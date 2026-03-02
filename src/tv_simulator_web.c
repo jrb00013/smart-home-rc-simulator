@@ -82,7 +82,7 @@ int tv_simulator_init(void) {
     struct sockaddr_in server_addr;
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    memcpy(&server_addr.sin_addr.s_addr, server->h_addr, server->h_length);
+    memcpy(&server_addr.sin_addr.s_addr, server->h_addr_list[0], (size_t)server->h_length);
     server_addr.sin_port = htons(WEB_SERVER_PORT);
     
     // Connect to server

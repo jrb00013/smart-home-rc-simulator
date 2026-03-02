@@ -5,7 +5,6 @@
 #include "../include/handlers.h"
 #include "../include/latency.h"
 #include "ir_asm.h"
-#include "ir_protocol.c"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
