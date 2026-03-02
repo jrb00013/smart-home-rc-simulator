@@ -28,6 +28,12 @@ poetry run pytest tests/test_functional.py
 
 # All button tests
 poetry run pytest tests/test_all_buttons.py
+
+# System tests (streaming, channels, frame API, rapid switching)
+poetry run pytest tests/test_system.py
+
+# Environment tests (imports, file structure, syntax; no server)
+poetry run pytest tests/test_environment.py
 ```
 
 ### Run with Verbose Output
@@ -49,9 +55,11 @@ tests/
 ├── __init__.py
 ├── conftest.py          # Shared fixtures and configuration
 ├── test_unit.py         # Unit tests (no server required)
+├── test_environment.py  # Environment checks: imports, file structure, syntax (no server)
 ├── test_api.py          # REST API integration tests
 ├── test_functional.py   # Functional workflow tests
-└── test_all_buttons.py  # Test all button codes
+├── test_system.py       # System tests: streaming, channels, frame API, rapid switching
+└── test_all_buttons.py # Test all button codes
 ```
 
 ## Test Categories
@@ -88,6 +96,24 @@ tests/
 - Tests every button code individually
 
 **Requires server** - Server must be running.
+
+### System Tests (`test_system.py`)
+- Strict streaming service verification (`current_app` matches)
+- Rapid streaming switching (multiple cycles)
+- Channel changes and TV show mode (number buttons, `current_app` None/Home)
+- Home button returns to Home
+- Frame API (info, PNG/JSON)
+
+**Requires server** - Server must be running. Integrates scenarios for robust system testing.
+
+### Environment Tests (`test_environment.py`)
+- File structure (paths relative to test package)
+- Python syntax
+- Required imports (flask, socketio, etc.)
+- Web server module symbols
+- HTML and JavaScript structure
+
+**No server required** - Safe to run from any working directory.
 
 ## Fixtures
 
