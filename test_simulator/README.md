@@ -133,11 +133,11 @@ Quick fixes:
 
 | Feature | Web (3D) | Desktop (Pygame) |
 |---------|----------|------------------|
-| 3D Graphics | ✅ Yes | ❌ 2D only |
-| VR-like Experience | ✅ Yes | ❌ No |
-| Browser Access | ✅ Yes | ❌ No |
-| Cross-platform | ✅ Yes | ✅ Yes |
-| Performance | ⚠️ Depends on browser | ✅ Native |
-| Installation | ✅ None needed | ⚠️ Python + pygame |
+| 3D Graphics | Yes | 2D only |
+| VR-like Experience | Yes | No |
+| Browser Access | Yes | No |
+| Cross-platform | Yes | Yes |
+| Performance | Depends on browser | Native |
+| Installation | None needed | Python + pygame |
 
 Choose the web version for the immersive 3D/VR experience!

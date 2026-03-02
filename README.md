@@ -110,7 +110,7 @@ universal-remote-phillips/
 - **[docs/README.md](docs/README.md)** — Full documentation index (C, latency, handlers, simulator, roadmap)
 - **[docs/REVOLUTIONARY.md](docs/REVOLUTIONARY.md)** — Why this stack is novel
 - **[docs/ML_CV_AI_AUDIT.md](docs/ML_CV_AI_AUDIT.md)** — ML/CV/AI audit (what is and is not used)
-- **Simulator:** [test_simulator/README.md](test_simulator/README.md), [test_simulator/API.md](test_simulator/API.md), [test_simulator/README_TESTS.md](test_simulator/README_TESTS.md)
+- **Simulator:** [test_simulator/README.md](test_simulator/README.md), [test_simulator/API.md](test_simulator/API.md). Tests: [test_simulator/README_TESTS.md](test_simulator/README_TESTS.md) (unit, API, system; ML audit tests in `test_brand_detection.py`, `test_protocol_classifier.py`, `test_ir_synthetic.py`).
 
 ## Building the Project
 
@@ -216,13 +216,13 @@ int main() {
 
 See `examples/universal_tv_example.c` for complete examples.
 
-## Universal TV Support 🎯
+## Universal TV Support
 
-**This remote works with ANY TV brand!** No hardcoded IR codes needed.
+**This remote works with ANY TV brand.** No hardcoded IR codes needed.
 
 The project implements **three universal TV strategies**:
 
-### ✅ Option 1: Multi-Protocol Universal Sender (Default)
+### Option 1: Multi-Protocol Universal Sender (Default)
 
 **How it works**: When you press a button, the remote tries multiple IR protocols and codes in sequence.
 
@@ -243,7 +243,7 @@ The project implements **three universal TV strategies**:
 
 This gives you **90%+ TV compatibility** without knowing your TV brand!
 
-### ✅ Option 2: Code Scan Mode
+### Option 2: Code Scan Mode
 
 **How it works**: Like store-bought universal remotes - cycle through codes until one works.
 
@@ -268,7 +268,7 @@ universal_tv_scan_confirm();
 4. When TV turns off → confirm to save that code
 5. Remote remembers it for future use
 
-### ⚠️ Option 3: Auto-Learning Universal (Requires Hardware)
+### Option 3: Auto-Learning Universal (Requires Hardware)
 
 **Best overall design** - requires IR receiver:
 - Add IR receiver to your device
@@ -441,7 +441,7 @@ When adding new buttons or features:
 
 ## Virtual TV Simulator (Optional)
 
-A game-like virtual TV interface is available for testing the remote control without physical hardware.
+A game-like virtual TV interface is available for testing the remote control without physical hardware. The web version provides a full 3D living room environment: wood floor, painted walls with baseboards, a window with frame and curtains, sofa, coffee table, side table with lamp, floor lamp, potted plants, wall art, media console under the TV, and cinematic lighting (directional, window light, lamp point lights, ceiling fixture). The TV and interactive 3D remote are placed in this room; you can orbit the camera, zoom to the TV or to the remote, and use keyboard or click-to-press for testing.
 
 ### Quick Start
 
@@ -450,14 +450,14 @@ A game-like virtual TV interface is available for testing the remote control wit
    cd test_simulator
    pip install -r requirements.txt
    ```
+   Or use Poetry: `poetry install` (see test_simulator/README.md).
 
 2. **Start the simulator:**
    ```bash
    python main.py
    ```
-   Or use the convenience scripts:
-   - Windows: `test_simulator\run_simulator.bat`
-   - Unix/Linux: `test_simulator/run_simulator.sh`
+   Or: `poetry run web-server` then open http://localhost:5000.
+   Convenience scripts: Windows `test_simulator\run_simulator.bat`, Unix/Linux `test_simulator/run_simulator.sh`.
 
 3. **Build the remote control with simulator support:**
    ```bash
@@ -471,7 +471,7 @@ A game-like virtual TV interface is available for testing the remote control wit
    ```
    (or `bin\remote_control.exe` on Windows)
 
-The simulator will display a virtual TV that responds to all button presses in real-time. See `test_simulator/README.md` for more details.
+The simulator displays a 3D living room with a virtual TV that responds to all button presses in real time. See `test_simulator/README.md` for details.
 
 ## Latency Measurement and Optimization
 
@@ -513,24 +513,19 @@ latency_print_all_stats();
 
 See `docs/LATENCY_OPTIMIZATION.md` and `docs/LATENCY_IMPLEMENTATION.md` for complete documentation.
 
-## Revolutionary Features (Simulator)
-
-- [x] **Brand detection from text** — `POST /api/detect-brand` with body `{"text": "Samsung Q80"}`. Keyword matching against a fixed table (no APIs, no models); returns `brand` and `brand_id` (C `tv_brand_t`); simulator state holds `detected_brand` / `detected_brand_id`.
-- [x] **Autonomous scheduler** — `autonomous_config.json` defines time rules (e.g. 19:00) and presets (button + delay lists). `scheduler.py` polls every 30s and POSTs button codes to the simulator API when a rule fires.
-- [x] **IR protocol from timings** — `ir_synthetic.py` builds lists of pulse lengths (µs) from NEC/RC5/RC6 constants in C. `protocol_classifier.py` identifies protocol by comparing the first one or two timings to 9ms/4.5ms (NEC), 2.66ms/889µs (RC6), or repeated 889µs (RC5); 40% tolerance. Synthetic dataset written as JSON for that classifier or for other use.
-
-## Future Enhancements
-
-- [x] **Universal TV support** - Multi-protocol sender for any TV brand
-- [x] **Code scan mode** - Cycle through codes until one works
-- [x] **Virtual TV Simulator** - Game-like testing interface
-- [x] **Latency measurement system** - High-precision timing and optimization tools
-- [ ] IR code learning/capture functionality (requires IR receiver hardware)
-- [ ] Hardware-specific IR implementation
-- [ ] Multi-device support with device profiles
-- [ ] Macro/sequence recording
-- [ ] Network control interface
-- [ ] Configuration file support
-- [ ] Expand universal code database for more buttons
-
+- Brand detection from text: `POST /api/detect-brand` with body `{"text": "Samsung Q80"}`. Keyword matching against a fixed table (no APIs, no models); returns `brand` and `brand_id` (C `tv_brand_t`); simulator state holds `detected_brand` / `detected_brand_id`.
+- Autonomous scheduler: `autonomous_config.json` defines time rules (e.g. 19:00) and presets (button + delay lists). `scheduler.py` polls every 30s and POSTs button codes to the simulator API when a rule fires.
+- IR protocol from timings: `ir_synthetic.py` builds pulse-length lists (µs) from NEC/RC5/RC6 constants in C. `protocol_classifier.py` identifies protocol by first pulse/space vs 9ms/4.5ms (NEC), 2.66ms/889µs (RC6), 889µs (RC5); 40% tolerance. Output: `ir_dataset_synthetic.json`.
+- Full 3D living room: wood plank floor, textured walls and baseboards, ceiling texture, window (frame, sill, glass, curtains), sofa, coffee table, side table with lamp, floor lamp, plants, wall art, media console, wall outlet, area rug. ACES tone mapping, 4K shadows, warm lighting.
+- Universal TV support: multi-protocol sender for any TV brand.
+- Code scan mode: cycle through codes until one works.
+- Virtual TV Simulator: game-like 3D testing interface.
+- Latency measurement: high-precision timing and optimization tools.
+- IR code learning/capture (planned; requires IR receiver hardware).
+- Hardware-specific IR implementation (planned).
+- Multi-device support with device profiles (planned).
+- Macro/sequence recording (planned).
+- Network control interface (planned).
+- Configuration file support (planned).
+- Expand universal code database for more buttons (planned).
 

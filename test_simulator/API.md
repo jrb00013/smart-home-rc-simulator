@@ -126,7 +126,7 @@ curl http://localhost:5000/api/frame -o frame.png
 GET /api/frame?format=json
 ```
 
-Returns frame data as JSON with base64-encoded image.
+Returns frame data as JSON. When a frame is available: base64-encoded image in `frame`, plus `timestamp`, `width`, `height`, `format`. When no frame is available yet: `frame` is `null`, `timestamp` is `0`, `width`/`height` are `0`; the response is always JSON so clients can safely call `response.json()`.
 
 **Response:**
 ```json
