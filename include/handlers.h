@@ -378,5 +378,12 @@ void interrupt_set_button(unsigned char button_code);
  */
 uint32_t interrupt_get_timestamp(void);
 
+/**
+ * @brief GPIO interrupt handler (assembly ISR)
+ * Called when a button press is detected in hardware. In simulation, call
+ * interrupt_set_button(button_code) first, then this, to run the full ISR path.
+ */
+void ir_gpio_interrupt_handler(void);
+
 #endif /* HANDLERS_H */
 

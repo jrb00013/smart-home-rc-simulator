@@ -1,10 +1,21 @@
+#define _POSIX_C_SOURCE 199309L
 #include "../include/handlers.h"
 #include "../include/remote_control.h"
 #include "../include/remote_buttons.h"
+#ifdef SIMULATOR
+# include "../include/tv_simulator.h"
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#ifdef _WIN32
+# include <windows.h>
+#else
+# include <unistd.h>
+# include <signal.h>
+# include <sys/time.h>
+#endif
 
 /* Forward declaration for interrupt callback (called from assembly) */
 void interrupt_callback(void);
@@ -12,6 +23,9 @@ void interrupt_callback(void);
 /* Handler Storage */
 handlers_t registered_handlers = {0};
 static int handlers_initialized = 0;
+
+/* Interrupt callback storage (used by handler_register_interrupt and assembly path) */
+static interrupt_handler_t interrupt_callback_storage = NULL;
 
 /**
  * @brief Initialize handler system
@@ -414,12 +428,7 @@ int handler_trigger_custom_event(event_t* event) {
 #include <windows.h>
 #else
 #include <unistd.h>
-#include <signal.h>
-#include <sys/time.h>
 #endif
-
-/* Interrupt callback storage */
-static interrupt_handler_t interrupt_callback_storage = NULL;
 
 /* Timer and Interrupt Handler Support */
 
@@ -585,7 +594,10 @@ void interrupt_callback(void) {
         if (button_code != 0 && button_code != last_gpio_state) {
             /* Button press detected - trigger C command chain */
             printf("[Interrupt] Button press detected: 0x%02X\n", button_code);
-            
+#ifdef SIMULATOR
+            /* Send to TV simulator when using assembly ISR path (simulated GPIO) */
+            tv_simulator_send_button(button_code);
+#endif
             /* Trigger hardware interrupt event */
             if (registered_handlers.interrupt_handler != NULL) {
                 registered_handlers.interrupt_handler();

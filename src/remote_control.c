@@ -201,13 +201,16 @@ int remote_press_button(unsigned char button_code) {
     /* Measure latency: Button press to IR transmission */
     uint64_t button_start = LATENCY_MEASURE_START();
     
-    /* Send to TV simulator if enabled */
 #ifdef SIMULATOR
-    tv_simulator_send_button(button_code);
-#endif
-    
-    /* Trigger button press event */
+    /* Route through assembly ISR so the real interrupt path is exercised:
+     * interrupt_set_button -> ir_gpio_interrupt_handler (assembly) -> interrupt_callback
+     * -> tv_simulator_send_button + handler_trigger_button_pressed */
+    interrupt_set_button(button_code);
+    ir_gpio_interrupt_handler();
+#else
+    /* Trigger button press event (non-simulator path) */
     handler_trigger_button_pressed(button_code);
+#endif
     
     /* Update state for certain buttons */
     switch (button_code) {
