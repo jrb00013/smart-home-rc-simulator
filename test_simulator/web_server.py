@@ -51,6 +51,8 @@ tv_state = {
     'channel_input': '',
     'last_button': None,
     'notification': None,
+    'detected_brand': None,
+    'detected_brand_id': 0,
 }
 
 # Frame storage for streaming API
@@ -265,20 +267,26 @@ def get_frame():
         - JPEG if ?format=jpeg
     """
     with frame_lock:
+        format_type = request.args.get('format', 'png').lower()
+
         if current_frame['data'] is None:
-            # Return a black frame if no frame available
+            # No frame: honor format=json so client gets JSON; otherwise return black placeholder
+            if format_type == 'json':
+                return jsonify({
+                    'frame': None,
+                    'timestamp': 0,
+                    'width': 0,
+                    'height': 0,
+                    'format': 'png',
+                })
             if HAS_PIL:
                 img = Image.new('RGB', (512, 512), color='black')
                 img_io = io.BytesIO()
                 img.save(img_io, format='PNG')
                 img_io.seek(0)
                 return Response(img_io.getvalue(), mimetype='image/png')
-            else:
-                # Simple black PNG without PIL (minimal 1x1 black PNG)
-                black_png = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==')
-                return Response(black_png, mimetype='image/png')
-        
-        format_type = request.args.get('format', 'png').lower()
+            black_png = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==')
+            return Response(black_png, mimetype='image/png')
         
         if format_type == 'json':
             # Return JSON with base64 encoded image
@@ -398,6 +406,28 @@ def api_button_press():
         handle_button_press(button_code, from_hardware=from_hardware)
         return {'status': 'success', 'button_code': button_code}
     return {'status': 'error', 'message': 'Invalid button_code'}, 400
+
+
+@app.route('/api/detect-brand', methods=['POST'])
+def api_detect_brand():
+    """
+    Brand detection from text: keyword match against known TV brands (see brand_detection.py).
+    Body: {"text": "I have a Samsung TV"}. Updates tv_state.detected_brand and
+    detected_brand_id; C/simulator can call universal_tv_set_brand(detected_brand_id).
+    Returns brand, brand_id, confidence.
+    """
+    try:
+        from brand_detection import detect_brand_from_text
+    except ImportError:
+        return jsonify({'error': 'brand_detection module not available'}), 501
+    data = request.get_json() or {}
+    text = data.get('text') or data.get('query') or ''
+    result = detect_brand_from_text(text)
+    tv_state['detected_brand'] = result['brand']
+    tv_state['detected_brand_id'] = result['brand_id']
+    socketio.emit('tv_state_update', tv_state)
+    return jsonify(result)
+
 
 # IPC integration for C program
 def start_ipc_listener():
