@@ -22,6 +22,14 @@
             height: 100vh;
             position: relative;
         }
+        /* Canvas behind UI - same size as container so no stretch/zoom */
+        #canvas-container canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            display: block;
+        }
         
         #ui-overlay {
             position: absolute;
@@ -32,7 +40,8 @@
             padding: 20px;
             border-radius: 10px;
             min-width: 250px;
-            z-index: 100;
+            z-index: 101;
+            pointer-events: auto;
             backdrop-filter: blur(10px);
         }
         
@@ -73,7 +82,8 @@
             font-size: 18px;
             font-weight: bold;
             display: none;
-            z-index: 100;
+            z-index: 101;
+            pointer-events: auto;
             box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         }
         
@@ -102,7 +112,8 @@
             border-radius: 10px;
             color: #fff;
             font-size: 12px;
-            z-index: 100;
+            z-index: 101;
+            pointer-events: auto;
         }
         
         #controls h3 {
@@ -124,6 +135,39 @@
             font-size: 24px;
             z-index: 200;
         }
+        
+        .view-btn {
+            position: absolute;
+            bottom: 20px;
+            z-index: 101;
+            pointer-events: auto;
+            padding: 10px 18px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #fff;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            transition: background 0.2s, transform 0.15s;
+        }
+        .view-btn:hover {
+            transform: scale(1.05);
+        }
+        #btn-zoom-tv {
+            left: 50%;
+            transform: translateX(calc(-50% - 65px));
+            background: rgba(76, 175, 80, 0.9);
+        }
+        #btn-zoom-tv:hover { background: rgba(76, 175, 80, 1); }
+        #btn-zoom-tv.active { background: rgba(56, 142, 60, 1); }
+        #btn-look-remote {
+            left: 50%;
+            transform: translateX(calc(-50% + 65px));
+            background: rgba(33, 150, 243, 0.9);
+        }
+        #btn-look-remote:hover { background: rgba(33, 150, 243, 1); }
+        #btn-look-remote.active { background: rgba(25, 118, 210, 1); }
     </style>
 </head>
 <body>
@@ -163,24 +207,39 @@
         
         <div id="notification"></div>
         
+        <button type="button" id="btn-zoom-tv" class="view-btn" title="Zoom in on the TV" onclick="switchViewToTVZoom()">Zoom on TV</button>
+        <button type="button" id="btn-look-remote" class="view-btn" title="Look down at the remote like you're holding it" onclick="switchViewToRemote()">Look at remote</button>
+        
         <div id="controls">
             <h3>Controls</h3>
+            <p><strong>Zoom on TV:</strong> Close-up view of the TV</p>
+            <p><strong>Look at remote:</strong> View from above as if holding the remote</p>
+            <p><strong>P:</strong> Power (turn TV on/off)</p>
+            <p><strong>U / D:</strong> Volume up / down</p>
             <p><strong>Mouse:</strong> Click & drag to rotate camera</p>
             <p><strong>Wheel:</strong> Zoom in/out</p>
             <p><strong>Click Remote:</strong> Press buttons on 3D remote!</p>
             <p><strong>Space:</strong> Reset camera</p>
             <p><strong>1-4:</strong> Camera presets</p>
             <p style="margin-top: 10px; color: #4CAF50; font-weight: bold;">
-                Click the 3D remote control to interact!
+                Press <strong>P</strong> to turn the TV on if the remote is hard to click!
             </p>
             <p style="margin-top: 10px; color: #FFC107; font-weight: bold;">
-                📺 Streaming: Click YT, NF, PR, HB buttons on remote!
+                Streaming: Click YT, NF, PR, HB buttons on remote!
             </p>
         </div>
     </div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+    <script>
+    // Button codes from C (include/remote_buttons.h + get_button_name) - single source of truth
+    (function() {
+        var raw = {{ button_codes_json|safe }};
+        window.BUTTON_CODES_FROM_C = {};
+        for (var k in raw) { window.BUTTON_CODES_FROM_C[parseInt(k, 10)] = raw[k]; }
+    })();
+    </script>
     <script src="/static/js/ir-visualization.js"></script>
     <script src="/static/js/tv-simulator.js"></script>
 </body>

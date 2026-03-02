@@ -2,7 +2,7 @@
 // Full Interactive 3D Experience with Remote Control
 
 let scene, camera, renderer, controls;
-let tvMesh, screenMesh, roomGroup, remoteMesh, remoteGroup;
+let tvMesh, screenMesh, roomGroup, remoteMesh, remoteGroup, handGroup;
 let tvFrame, tvPowerLED, tvGlowLight;
 let tvState = {};
 let socket;
@@ -95,6 +95,13 @@ let channelOverlay = {
     opacity: 0,
     scale: 0,
     slideY: -50
+};
+
+// Remote default position (used for camera "Look at remote" view)
+let remoteLookClose = {
+    basePosition: new THREE.Vector3(1.3, 0.95, 2.5),
+    baseScale: 1,
+    baseRotationY: -Math.PI / 5
 };
 
 // 3D UI elements
@@ -371,17 +378,22 @@ async function handleChannelChangeTo(channel) {
     }
 }
 
-// Helper function to get button name from code
+// Button map from C (injected by server from include/remote_buttons.h + get_button_name)
+// Build name->code reverse map once
+var BUTTON_NAME_TO_CODE = null;
+function buildButtonNameToCode() {
+    if (BUTTON_NAME_TO_CODE) return;
+    var codes = window.BUTTON_CODES_FROM_C || {};
+    BUTTON_NAME_TO_CODE = {};
+    for (var code in codes) { BUTTON_NAME_TO_CODE[codes[code]] = parseInt(code, 10); }
+}
+
 function getButtonNameFromCode(buttonCode) {
-    const buttonNames = {
-        0x10: 'Power', 0x11: 'Volume Up', 0x12: 'Volume Down', 0x13: 'Mute',
-        0x14: 'Channel Up', 0x15: 'Channel Down', 0x20: 'Home', 0x21: 'Menu',
-        0x22: 'Back', 0x23: 'Exit', 0x25: 'Input', 0x26: 'Source',
-        0x30: 'Up', 0x31: 'Down', 0x32: 'Left', 0x33: 'Right', 0x34: 'OK',
-        0x50: '0', 0x51: '1', 0x52: '2', 0x53: '3', 0x54: '4',
-        0x55: '5', 0x56: '6', 0x57: '7', 0x58: '8', 0x59: '9'
-    };
-    return buttonNames[buttonCode] || `Unknown (0x${buttonCode.toString(16).toUpperCase()})`;
+    buildButtonNameToCode();
+    var codes = window.BUTTON_CODES_FROM_C || {};
+    var c = typeof buttonCode === 'number' ? buttonCode : parseInt(buttonCode, 10);
+    var name = codes[c] || codes[String(c)];
+    return name || ('Unknown (0x' + (c >>> 0).toString(16).toUpperCase() + ')');
 }
 
 // Update TV state and visual representation
@@ -601,7 +613,7 @@ function getAppColor(appName) {
 // Get service-specific logo text
 function getAppLogo(appName) {
     const logos = {
-        'YouTube': '▶',
+        'YouTube': 'YT',
         'Netflix': 'N',
         'Amazon Prime': 'PRIME',
         'HBO Max': 'HBO',
@@ -610,28 +622,13 @@ function getAppLogo(appName) {
     return logos[appName] || appName;
 }
 
-// Get button code from button name
+// Get button code from button name (uses C names from server-injected BUTTON_CODES_FROM_C)
 function getButtonCodeFromName(buttonName) {
-    const buttonMap = {
-        'Power': 0x10,
-        'Volume Up': 0x11,
-        'Volume Down': 0x12,
-        'Mute': 0x13,
-        'Channel Up': 0x14,
-        'Channel Down': 0x15,
-        'Home': 0x20,
-        'Menu': 0x21,
-        'Back': 0x22,
-        'Exit': 0x23,
-        'Options': 0x24,
-        'Input': 0x25,
-        'Source': 0x26,
-        'YouTube': 0x01,
-        'Netflix': 0x02,
-        'Amazon Prime': 0x03,
-        'HBO Max': 0x04
-    };
-    return buttonMap[buttonName] || null;
+    buildButtonNameToCode();
+    if (BUTTON_NAME_TO_CODE && BUTTON_NAME_TO_CODE[buttonName] !== undefined) {
+        return BUTTON_NAME_TO_CODE[buttonName];
+    }
+    return null;
 }
 
 // Start app switching animation with in-depth effects
@@ -1079,7 +1076,9 @@ function initScene() {
     
     // Renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    const w = container.clientWidth || window.innerWidth;
+    const h = container.clientHeight || window.innerHeight;
+    renderer.setSize(w, h);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(renderer.domElement);
@@ -1296,6 +1295,7 @@ function createRemoteControl() {
     });
     const frontPanel = new THREE.Mesh(frontPanelGeometry, frontPanelMaterial);
     frontPanel.position.z = 0.026;
+    frontPanel.raycast = function() {}; // don't block button clicks
     remoteGroup.add(frontPanel);
     
     // Add brand logo area (subtle detail)
@@ -1307,6 +1307,7 @@ function createRemoteControl() {
     });
     const logo = new THREE.Mesh(logoGeometry, logoMaterial);
     logo.position.set(0, 0.35, 0.027);
+    logo.raycast = function() {}; // don't block button clicks
     remoteGroup.add(logo);
     
     // Power button (top)
@@ -1415,20 +1416,74 @@ function createRemoteControl() {
     });
     const topGrip = new THREE.Mesh(sideDetailGeometry, sideDetailMaterial);
     topGrip.position.set(0, 0.25, 0.027);
+    topGrip.raycast = function() {}; // don't block button clicks
     remoteGroup.add(topGrip);
     
     const bottomGrip = new THREE.Mesh(sideDetailGeometry, sideDetailMaterial);
     bottomGrip.position.set(0, -0.25, 0.027);
+    bottomGrip.raycast = function() {}; // don't block button clicks
     remoteGroup.add(bottomGrip);
     
     // Position remote in front of camera (on a virtual table)
-    remoteGroup.position.set(2, 0.8, 2);
-    remoteGroup.rotation.y = -Math.PI / 4;
+    remoteGroup.position.copy(remoteLookClose.basePosition);
+    remoteGroup.scale.setScalar(remoteLookClose.baseScale);
+    remoteGroup.rotation.y = remoteLookClose.baseRotationY;
     
     scene.add(remoteGroup);
+    
+    // Hand near the remote, not touching (gap so it's clearly separate)
+    createHand();
+}
+
+// Hand under the remote (rounded, readable shape – not touching)
+function createHand() {
+    handGroup = new THREE.Group();
+    const skinColor = 0xC4956A;
+    const skinMaterial = new THREE.MeshStandardMaterial({
+        color: skinColor,
+        roughness: 0.75,
+        metalness: 0.02,
+        emissive: 0x221108,
+        emissiveIntensity: 0.04
+    });
+    
+    const s = 1.4;
+    // Palm – rounded look via segments
+    const palmGeom = new THREE.BoxGeometry(0.2 * s, 0.1 * s, 0.04 * s, 4, 4, 2);
+    const palm = new THREE.Mesh(palmGeom, skinMaterial);
+    palm.castShadow = true;
+    handGroup.add(palm);
+    
+    // Fingers – cylinders so they’re round, not blocky
+    const fingerRad = 0.022 * s;
+    const fingerLen = 0.06 * s;
+    const fingerGeom = new THREE.CylinderGeometry(fingerRad * 0.9, fingerRad, fingerLen, 10);
+    [0.06, 0.03, -0.01, -0.05].forEach((y) => {
+        const f = new THREE.Mesh(fingerGeom, skinMaterial);
+        f.rotation.x = Math.PI / 2;
+        f.position.set(0.13 * s, y, 0.025 * s);
+        f.castShadow = true;
+        handGroup.add(f);
+    });
+    
+    // Thumb – cylinder, angled
+    const thumbGeom = new THREE.CylinderGeometry(0.018 * s, 0.022 * s, 0.05 * s, 10);
+    const thumb = new THREE.Mesh(thumbGeom, skinMaterial);
+    thumb.rotation.x = Math.PI / 2;
+    thumb.rotation.z = -0.5;
+    thumb.position.set(0.07 * s, 0.1 * s, -0.01 * s);
+    thumb.castShadow = true;
+    handGroup.add(thumb);
+    
+    handGroup.position.set(0.06, -0.4, -0.02);
+    handGroup.rotation.x = 0.32;
+    handGroup.rotation.z = 0.12;
+    handGroup.raycast = function() {};
+    remoteGroup.add(handGroup);
 }
 
 // Helper function to create label planes (simplified text representation)
+// Raycast disabled so clicks pass through to buttons underneath
 function createLabelPlane(text, width, height) {
     const geometry = new THREE.PlaneGeometry(width, height);
     const material = new THREE.MeshStandardMaterial({
@@ -1440,6 +1495,7 @@ function createLabelPlane(text, width, height) {
     });
     const plane = new THREE.Mesh(geometry, material);
     plane.userData.labelText = text;
+    plane.raycast = function() {}; // don't block button clicks
     return plane;
 }
 
@@ -2320,7 +2376,11 @@ function updateTVScreen(state) {
         }
     }
     
-    // Update screen material
+    // Update screen material (guard against missing material)
+    if (!screenMesh.material) {
+        console.warn('updateTVScreen: screenMesh.material not ready');
+        return;
+    }
     const texture = new THREE.CanvasTexture(canvas);
     texture.needsUpdate = true;
     
@@ -2474,7 +2534,7 @@ function drawYouTubeContent(ctx, canvas, brightness, time, state) {
     ctx.font = 'bold 60px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('▶ YouTube', 0, 0);
+    ctx.fillText('YouTube', 0, 0);
     ctx.restore();
     
     // Video thumbnail grid
@@ -2992,8 +3052,8 @@ function drawComedyShow(ctx, canvas, brightness, time, state, tvShow) {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Animated emoji/faces
-    const emojis = ['😄', '😂', '🤣', '😆', '😊'];
+    // Animated comedy accents
+    const accents = ['Ha', 'Ha', 'Ha', 'Ha', 'Ha'];
     for (let i = 0; i < 5; i++) {
         const x = canvas.width * (0.1 + i * 0.2) + Math.sin(time + i) * 20;
         const y = canvas.height * 0.3 + Math.cos(time * 0.7 + i) * 30;
@@ -3002,9 +3062,9 @@ function drawComedyShow(ctx, canvas, brightness, time, state, tvShow) {
         ctx.save();
         ctx.translate(x, y);
         ctx.scale(scale, scale);
-        ctx.font = `${60 * scale}px Arial`;
+        ctx.font = `bold ${36 * scale}px Arial`;
         ctx.textAlign = 'center';
-        ctx.fillText(emojis[i % emojis.length], 0, 0);
+        ctx.fillText(accents[i % accents.length], 0, 0);
         ctx.restore();
     }
     
@@ -3016,7 +3076,7 @@ function drawComedyShow(ctx, canvas, brightness, time, state, tvShow) {
     // Laugh track indicator
     ctx.fillStyle = `rgba(255, 200, 0, ${brightness * 0.8})`;
     ctx.font = '20px Arial';
-    ctx.fillText('🎭 LAUGH TRACK', canvas.width / 2, canvas.height / 2 + 40);
+    ctx.fillText('LAUGH TRACK', canvas.width / 2, canvas.height / 2 + 40);
 }
 
 // Movie Show - Cinema style
@@ -3054,7 +3114,7 @@ function drawMovieShow(ctx, canvas, brightness, time, state, tvShow) {
     // Rating and info
     ctx.fillStyle = `rgba(255, 200, 0, ${brightness})`;
     ctx.font = '24px Arial';
-    ctx.fillText('★★★★★', canvas.width / 2, canvas.height / 2 + 40);
+    ctx.fillText('5 Stars', canvas.width / 2, canvas.height / 2 + 40);
     
     ctx.fillStyle = `rgba(200, 200, 200, ${brightness * 0.8})`;
     ctx.font = '18px Arial';
@@ -3148,7 +3208,7 @@ function drawMusicShow(ctx, canvas, brightness, time, state, tvShow) {
     // Now playing
     ctx.fillStyle = `rgba(${tvShow.color.r}, ${tvShow.color.g}, ${tvShow.color.b}, ${brightness * 0.9})`;
     ctx.font = '24px Arial';
-    ctx.fillText('♪ Now Playing ♪', canvas.width / 2, 120);
+    ctx.fillText('Now Playing', canvas.width / 2, 120);
 }
 
 // Weather Show - Weather graphics
@@ -4731,10 +4791,16 @@ function hexToRgb(hex) {
 // Enhanced VR-like controls with smooth movement
 function initControls() {
     let isDragging = false;
+    let mouseDownPosition = { x: 0, y: 0 };
     let previousMousePosition = { x: 0, y: 0 };
+    const DRAG_THRESHOLD_PX = 5;
     let cameraDistance = 5;
     let targetCameraPosition = new THREE.Vector3(0, 1.5, 5);
     let currentCameraPosition = targetCameraPosition.clone();
+    let targetCameraLookAt = new THREE.Vector3(0, 1.2, -8);
+    let currentCameraLookAt = targetCameraLookAt.clone();
+    // Only these two + keydown below may set target* – no other code path (prevents bleed)
+    const TV_CENTER = new THREE.Vector3(0, 1.2, -8);
     
     const canvas = renderer.domElement;
     
@@ -4746,38 +4812,43 @@ function initControls() {
         raycaster.setFromCamera(mouse, camera);
         const intersects = raycaster.intersectObjects(remoteGroup.children, true);
         
-        if (intersects.length > 0) {
-            // Find the button group (traverse up parent chain if needed)
-            let button = intersects[0].object;
-            while (button && button.userData.buttonCode === undefined && button.parent) {
-                button = button.parent;
+        // Find first hit that belongs to a button (labels/overlays can block, so check all intersects)
+        for (let i = 0; i < intersects.length; i++) {
+            let obj = intersects[i].object;
+            while (obj && obj.userData.buttonCode === undefined && obj.parent) {
+                obj = obj.parent;
             }
-            
-            if (button && button.userData.buttonCode !== undefined) {
+            if (obj && obj.userData.buttonCode !== undefined) {
+                const button = obj;
                 // Visual feedback: highlight button immediately
                 highlightRemoteButton(button.userData.buttonName);
-                
-                // Trigger IR signal visualization
                 triggerIRSignal(button.userData.buttonName);
-                
-                // Send button press via WebSocket
                 if (socket && socket.connected) {
                     socket.emit('button_press', { button_code: button.userData.buttonCode });
                     console.log(`Clicked button: ${button.userData.buttonName} (0x${button.userData.buttonCode.toString(16).toUpperCase()})`);
                 } else {
                     console.warn('WebSocket not connected, button press not sent to server');
                 }
+                return;
             }
         }
     });
     
     canvas.addEventListener('mousedown', (e) => {
-        isDragging = true;
+        mouseDownPosition = { x: e.clientX, y: e.clientY };
         previousMousePosition = { x: e.clientX, y: e.clientY };
-        canvas.style.cursor = 'grabbing';
+        isDragging = false; // will set true in mousemove once past threshold
     });
     
     canvas.addEventListener('mousemove', (e) => {
+        if (!isDragging) {
+            const dx = e.clientX - mouseDownPosition.x;
+            const dy = e.clientY - mouseDownPosition.y;
+            if (dx * dx + dy * dy > DRAG_THRESHOLD_PX * DRAG_THRESHOLD_PX) {
+                isDragging = true;
+                canvas.style.cursor = 'grabbing';
+            }
+        }
         if (!isDragging) {
             // Check for button hover
             mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
@@ -4785,42 +4856,34 @@ function initControls() {
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects(remoteGroup.children, true);
             
-            if (intersects.length > 0) {
-                // Find the button group (traverse up parent chain if needed)
-                let button = intersects[0].object;
-                while (button && button.userData.buttonCode === undefined && button.parent) {
-                    button = button.parent;
+            let overButton = false;
+            for (let i = 0; i < intersects.length; i++) {
+                let obj = intersects[i].object;
+                while (obj && obj.userData.buttonCode === undefined && obj.parent) {
+                    obj = obj.parent;
                 }
-                
-                if (button && button.userData.buttonCode !== undefined) {
-                    canvas.style.cursor = 'pointer';
-                } else {
-                    canvas.style.cursor = 'grab';
+                if (obj && obj.userData.buttonCode !== undefined) {
+                    overButton = true;
+                    break;
                 }
-            } else {
-                canvas.style.cursor = 'grab';
             }
+            canvas.style.cursor = overButton ? 'pointer' : 'grab';
             return;
         }
         
+        if (!isDragging) return;
         const deltaX = e.clientX - previousMousePosition.x;
         const deltaY = e.clientY - previousMousePosition.y;
-        
-        // Rotate camera around TV (VR-like orbit)
-        const angleX = deltaY * 0.01;
-        const angleY = deltaX * 0.01;
-        
-        cameraDistance = currentCameraPosition.distanceTo(new THREE.Vector3(0, 1.2, -8));
+        // Use target (not lerped current) so orbit center is stable – no drift toward TV
+        const orbitCenter = targetCameraLookAt.clone();
+        cameraDistance = currentCameraPosition.distanceTo(orbitCenter);
         const spherical = new THREE.Spherical();
-        spherical.setFromVector3(currentCameraPosition.clone().sub(new THREE.Vector3(0, 1.2, -8)));
-        spherical.theta -= angleY;
-        spherical.phi += angleX;
+        spherical.setFromVector3(currentCameraPosition.clone().sub(orbitCenter));
+        spherical.theta -= deltaX * 0.01;
+        spherical.phi += deltaY * 0.01;
         spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
-        
-        targetCameraPosition = new THREE.Vector3();
-        targetCameraPosition.setFromSpherical(spherical);
-        targetCameraPosition.add(new THREE.Vector3(0, 1.2, -8));
-        
+        targetCameraPosition = new THREE.Vector3().setFromSpherical(spherical).add(orbitCenter);
+        targetCameraLookAt.copy(orbitCenter);
         previousMousePosition = { x: e.clientX, y: e.clientY };
     });
     
@@ -4834,42 +4897,84 @@ function initControls() {
     canvas.addEventListener('wheel', (e) => {
         e.preventDefault();
         cameraDistance += e.deltaY * 0.01;
-        cameraDistance = Math.max(2, Math.min(15, cameraDistance));
-        
-        const direction = currentCameraPosition.clone().sub(new THREE.Vector3(0, 1.2, -8)).normalize();
-        targetCameraPosition = new THREE.Vector3(0, 1.2, -8).add(direction.multiplyScalar(cameraDistance));
+        cameraDistance = Math.max(1.2, Math.min(15, cameraDistance));
+        // Use target lookAt so zoom center is stable – no drift toward TV in remote view
+        const center = targetCameraLookAt.clone();
+        const direction = currentCameraPosition.clone().sub(center).normalize();
+        targetCameraPosition.copy(center).add(direction.multiplyScalar(cameraDistance));
     });
     
-    // Camera presets
+    // Only place (with the two buttons below) that set camera targets – no other logic may touch them
     window.addEventListener('keydown', (e) => {
         if (e.code === 'Space') {
             e.preventDefault();
             targetCameraPosition.set(0, 1.5, 5);
+            targetCameraLookAt.copy(TV_CENTER);
+            document.getElementById('btn-zoom-tv')?.classList.remove('active');
+            document.getElementById('btn-look-remote')?.classList.remove('active');
         } else if (e.code === 'Digit1') {
-            // Front view
             targetCameraPosition.set(0, 1.5, 5);
+            targetCameraLookAt.copy(TV_CENTER);
         } else if (e.code === 'Digit2') {
-            // Side view
             targetCameraPosition.set(5, 1.5, 0);
+            targetCameraLookAt.copy(TV_CENTER);
         } else if (e.code === 'Digit3') {
-            // Top view
             targetCameraPosition.set(0, 8, 0);
+            targetCameraLookAt.copy(TV_CENTER);
         } else if (e.code === 'Digit4') {
-            // Remote close-up
-            targetCameraPosition.set(2, 0.8, 3);
+            if (typeof window.switchViewToRemote === 'function') window.switchViewToRemote();
+        } else if (e.code === 'KeyP') {
+            // P = Power (turn TV on/off) - works without clicking 3D remote
+            e.preventDefault();
+            if (socket && socket.connected) {
+                socket.emit('button_press', { button_code: 0x10 });
+                console.log('Keyboard: Power (P)');
+            }
+        } else if (e.code === 'KeyU') {
+            // U = Volume Up
+            e.preventDefault();
+            if (socket && socket.connected) {
+                socket.emit('button_press', { button_code: 0x11 });
+            }
+        } else if (e.code === 'KeyD') {
+            // D = Volume Down (only if not ArrowDown to avoid conflict)
+            if (!e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                if (socket && socket.connected) {
+                    socket.emit('button_press', { button_code: 0x12 });
+                }
+            }
         }
     });
     
-    // Smooth camera interpolation
+    // Smooth camera interpolation (position and lookAt)
     function updateCamera() {
         currentCameraPosition.lerp(targetCameraPosition, 0.1);
+        currentCameraLookAt.lerp(targetCameraLookAt, 0.1);
         camera.position.copy(currentCameraPosition);
-        camera.lookAt(0, 1.2, -8);
+        camera.lookAt(currentCameraLookAt);
     }
     
-    // Store update function for animation loop
     window.updateCamera = updateCamera;
+    
+    // Only these two + keydown above set target* – no camera orientation or other logic
+    window.switchViewToTVZoom = function() {
+        targetCameraPosition.set(0, 1.2, -5.6);
+        targetCameraLookAt.copy(TV_CENTER);
+        cameraDistance = 2.5;
+        document.getElementById('btn-zoom-tv')?.classList.add('active');
+        document.getElementById('btn-look-remote')?.classList.remove('active');
+    };
+    window.switchViewToRemote = function() {
+        var r = remoteLookClose.basePosition;
+        targetCameraPosition.set(r.x, r.y + 0.65, r.z + 1.0);
+        targetCameraLookAt.set(r.x, r.y, r.z);
+        cameraDistance = 1.8;
+        document.getElementById('btn-zoom-tv')?.classList.remove('active');
+        document.getElementById('btn-look-remote')?.classList.add('active');
+    };
 }
+
 
 // Animation loop with smooth camera movement
 function animate() {
@@ -5297,11 +5402,11 @@ function animate() {
         activeButton = null;
     }
     
-    // Animate remote control (subtle floating)
+    // Subtle floating for remote
     if (remoteGroup) {
         const time = Date.now() * 0.001;
-        remoteGroup.position.y = 0.8 + Math.sin(time) * 0.02;
-        remoteGroup.rotation.y = -Math.PI / 4 + Math.sin(time * 0.5) * 0.05;
+        remoteGroup.position.y = remoteLookClose.basePosition.y + Math.sin(time) * 0.02;
+        remoteGroup.rotation.y = remoteLookClose.baseRotationY + Math.sin(time * 0.5) * 0.05;
     }
     
     // Animate particles
@@ -5368,9 +5473,12 @@ function addAmbientEffects() {
 
 // Handle window resize
 function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    const container = document.getElementById('canvas-container');
+    const w = container ? container.clientWidth : window.innerWidth;
+    const h = container ? container.clientHeight : window.innerHeight;
+    camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(w, h);
 }
 
 // Initialize everything
