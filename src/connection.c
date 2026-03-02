@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 199309L
 #include "../include/connection.h"
 #include "../include/handlers.h"
 #include "../include/remote_buttons.h"
