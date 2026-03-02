@@ -63,28 +63,20 @@ current_frame = {
 }
 frame_lock = threading.Lock()
 
-# Button code mappings
-BUTTON_CODES = {
-    0x01: "YouTube", 0x02: "Netflix", 0x03: "Amazon Prime", 0x04: "HBO Max",
-    0x10: "Power", 0x11: "Volume Up", 0x12: "Volume Down", 0x13: "Mute",
-    0x14: "Channel Up", 0x15: "Channel Down", 0x20: "Home", 0x21: "Menu",
-    0x22: "Back", 0x23: "Exit", 0x24: "Options", 0x25: "Input", 0x26: "Source",
-    0x30: "Up", 0x31: "Down", 0x32: "Left", 0x33: "Right", 0x34: "OK", 0x35: "Enter",
-    0x40: "Play", 0x41: "Pause", 0x42: "Stop", 0x43: "Fast Forward", 0x44: "Rewind",
-    0x50: "0", 0x51: "1", 0x52: "2", 0x53: "3", 0x54: "4",
-    0x55: "5", 0x56: "6", 0x57: "7", 0x58: "8", 0x59: "9", 0x5A: "Dash",
-    0x60: "Red", 0x61: "Green", 0x62: "Yellow", 0x63: "Blue",
-    0x70: "Info", 0x71: "Guide", 0x72: "Settings", 0x73: "CC", 0x74: "Subtitles",
-    0x77: "Sleep", 0x78: "Picture Mode", 0x80: "Voice", 0x82: "Live TV", 0x83: "Stream",
-    0xA0: "Game Mode", 0xB0: "Motion", 0xB1: "Backlight", 0xB2: "Brightness",
-    0xC0: "Sound Mode", 0xD0: "Multi View", 0xD1: "PIP", 0xD2: "Screen Mirror",
-}
+# Button codes from C: include/remote_buttons.h + get_button_name() (single source of truth)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from button_codes import BUTTON_CODES
 
 def handle_button_press(button_code, from_hardware=False):
     """Handle button press and update TV state
-    @param button_code: Button code to handle
+    @param button_code: Button code to handle (int 0x01-0xD2, or int/str from JSON)
     @param from_hardware: True if this came from hardware interrupt, False for UI clicks
     """
+    try:
+        code = int(button_code) & 0xFF
+    except (TypeError, ValueError):
+        code = 0
+    button_code = code
     button_name = BUTTON_CODES.get(button_code, f"Unknown (0x{button_code:02X})")
     tv_state['last_button'] = button_name
     tv_state['notification'] = f"Button: {button_name}"
@@ -254,8 +246,9 @@ def handle_button_press(button_code, from_hardware=False):
 
 @app.route('/')
 def index():
-    """Serve the main 3D TV interface"""
-    return render_template('index.html')
+    """Serve the main 3D TV interface (button codes from C injected for JS)"""
+    import json
+    return render_template('index.html', button_codes_json=json.dumps(BUTTON_CODES))
 
 @app.route('/api/state')
 def get_state():
