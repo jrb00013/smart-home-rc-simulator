@@ -1,6 +1,8 @@
 # Universal Remote and 3D Simulator
 
-A C programming project for programming and controlling a Phillips universal remote control device, as well as a 3D TV simulation experience for testing.
+**Universal remote (C) + 3D simulator with keyword-based brand detection, time/preset scheduling, and a rule-based IR protocol classifier.**
+
+C project for controlling a Phillips-style universal remote, with a 3D TV simulator for testing. Extras: **brand detection** — free text is matched against a fixed keyword table (e.g. "Samsung", "LG OLED") and returns a `brand_id` for `universal_tv_set_brand()`; **autonomous scheduler** — JSON config of time rules and presets, Python daemon sends button sequences to the simulator at the right time; **IR protocol path** — `ir_synthetic` generates pulse-length sequences (µs) from NEC/RC5/RC6 timing constants (same as C), `protocol_classifier` identifies protocol by checking the first pulse/space against those timings (rule-based, 40% tolerance). No neural nets or external APIs in the current implementation. See `docs/AI_DETECTION_AND_REVOLUTIONARY_PLAN.md` for future directions.
 
 ## Features
 
@@ -98,8 +100,17 @@ universal-remote-phillips/
 ├── obj/                     # Object files (generated)
 ├── bin/                     # Executable (generated)
 ├── Makefile                # Build configuration
+├── docs/                   # Documentation (see docs/README.md)
 └── README.md               # This file
 ```
+
+## Documentation
+
+- **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)** — Quick run: Poetry, simulator, C remote, troubleshooting
+- **[docs/README.md](docs/README.md)** — Full documentation index (C, latency, handlers, simulator, roadmap)
+- **[docs/REVOLUTIONARY.md](docs/REVOLUTIONARY.md)** — Why this stack is novel
+- **[docs/ML_CV_AI_AUDIT.md](docs/ML_CV_AI_AUDIT.md)** — ML/CV/AI audit (what is and is not used)
+- **Simulator:** [test_simulator/README.md](test_simulator/README.md), [test_simulator/API.md](test_simulator/API.md), [test_simulator/README_TESTS.md](test_simulator/README_TESTS.md)
 
 ## Building the Project
 
@@ -501,6 +512,12 @@ latency_print_all_stats();
 ```
 
 See `docs/LATENCY_OPTIMIZATION.md` and `docs/LATENCY_IMPLEMENTATION.md` for complete documentation.
+
+## Revolutionary Features (Simulator)
+
+- [x] **Brand detection from text** — `POST /api/detect-brand` with body `{"text": "Samsung Q80"}`. Keyword matching against a fixed table (no APIs, no models); returns `brand` and `brand_id` (C `tv_brand_t`); simulator state holds `detected_brand` / `detected_brand_id`.
+- [x] **Autonomous scheduler** — `autonomous_config.json` defines time rules (e.g. 19:00) and presets (button + delay lists). `scheduler.py` polls every 30s and POSTs button codes to the simulator API when a rule fires.
+- [x] **IR protocol from timings** — `ir_synthetic.py` builds lists of pulse lengths (µs) from NEC/RC5/RC6 constants in C. `protocol_classifier.py` identifies protocol by comparing the first one or two timings to 9ms/4.5ms (NEC), 2.66ms/889µs (RC6), or repeated 889µs (RC5); 40% tolerance. Synthetic dataset written as JSON for that classifier or for other use.
 
 ## Future Enhancements
 

@@ -74,6 +74,39 @@ curl -X POST http://localhost:5000/api/button \
   -d '{"button_code": 16}'
 ```
 
+#### Detect TV Brand (keyword matching)
+
+```http
+POST /api/detect-brand
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "text": "I have a Samsung Q80 TV"
+}
+```
+(`query` is also accepted as a key.)
+
+**Response:**
+```json
+{
+  "brand": "Samsung",
+  "brand_id": 1,
+  "confidence": 0.85
+}
+```
+
+Detection is keyword-based only: the text is matched against a fixed table (see `brand_detection.BRAND_KEYWORDS`). No external APIs or models. `brand_id` matches C `tv_brand_t` in `include/universal_tv.h` (0=Unknown, 1=Samsung, 2=LG, 3=Sony, 4=Philips, etc.). Simulator updates `tv_state.detected_brand` and `tv_state.detected_brand_id` and broadcasts a state update.
+
+**Example:**
+```bash
+curl -X POST http://localhost:5000/api/detect-brand \
+  -H "Content-Type: application/json" \
+  -d '{"text": "LG OLED C2"}'
+```
+
 #### Get Current Frame (PNG)
 
 ```http

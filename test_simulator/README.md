@@ -1,6 +1,6 @@
 # Virtual TV Simulator
 
-A game-like virtual TV interface for testing the Phillips Universal Remote Control. Features both a web-based 3D/VR simulator and a desktop 2D simulator.
+A game-like virtual TV interface for testing the Phillips Universal Remote Control, with **keyword-based brand detection**, **autonomous scheduling**, and a **rule-based IR protocol classifier**. Web-based 3D/VR and desktop 2D simulators.
 
 ## Quick Start
 
@@ -18,10 +18,12 @@ poetry run desktop-simulator
 
 ## Documentation
 
-- **[SETUP.md](SETUP.md)** - Complete setup instructions for all platforms
-- **[FEATURES.md](FEATURES.md)** - Detailed feature documentation
-- **[API.md](API.md)** - REST API and WebSocket documentation
-- **[TESTING.md](TESTING.md)** - Testing guides and procedures
+- **[SETUP.md](SETUP.md)** - Setup (Poetry, platforms, troubleshooting)
+- **[FEATURES.md](FEATURES.md)** - Features (3D/VR, keyboard, APIs)
+- **[API.md](API.md)** - REST and WebSocket API reference
+- **[TESTING.md](TESTING.md)** - Manual testing guide
+- **[README_TESTS.md](README_TESTS.md)** - Pytest test suite
+- **Full index:** [../docs/README.md](../docs/README.md)
 
 ## Features
 
@@ -31,6 +33,9 @@ poetry run desktop-simulator
 - **Multiple Apps**: Simulate streaming services (YouTube, Netflix, etc.)
 - **Keyboard Testing**: Test buttons directly with keyboard shortcuts
 - **3D/VR Experience**: Immersive web-based 3D interface with VR-like controls
+- **Brand detection**: `POST /api/detect-brand` with `{"text": "I have a Samsung TV"}`. Text is matched against a fixed keyword table (BRAND_KEYWORDS in `brand_detection.py`); returns `brand`, `brand_id` (C `tv_brand_t`), `confidence`. Simulator state stores `detected_brand` / `detected_brand_id`.
+- **Autonomous scheduler**: Run `poetry run python scheduler.py` with the web server up. Reads `autonomous_config.json`: time rules (e.g. 19:00, days) and presets (list of button_code + delay_ms). Every 30s checks current time; when a rule matches, POSTs that preset’s buttons to `/api/button`.
+- **IR protocol from timings**: `ir_synthetic.py` produces pulse-length lists (µs) using NEC/RC5/RC6 constants from the C code. `protocol_classifier.py` identifies protocol by comparing the first pulse/space to 9ms/4.5ms (NEC), 2.66ms/889µs (RC6), or repeated 889µs (RC5), with 40% tolerance. Run `python ir_synthetic.py` to write `ir_dataset_synthetic.json` (used by the classifier or anything else that consumes timing + label).
 
 ## Installation
 

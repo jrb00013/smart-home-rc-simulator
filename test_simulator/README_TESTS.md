@@ -34,6 +34,12 @@ poetry run pytest tests/test_system.py
 
 # Environment tests (imports, file structure, syntax; no server)
 poetry run pytest tests/test_environment.py
+
+# Planned features (autonomous config format, detect-brand placeholder; no server)
+poetry run pytest tests/test_planned.py
+
+# ML/CV/AI audit components (brand detection, protocol classifier, synthetic IR)
+poetry run pytest tests/test_brand_detection.py tests/test_protocol_classifier.py tests/test_ir_synthetic.py
 ```
 
 ### Run with Verbose Output
@@ -56,6 +62,10 @@ tests/
 ├── conftest.py          # Shared fixtures and configuration
 ├── test_unit.py         # Unit tests (no server required)
 ├── test_environment.py  # Environment checks: imports, file structure, syntax (no server)
+├── test_planned.py      # Planned/revolutionary: autonomous config, detect-brand API, brand/IR tests
+├── test_brand_detection.py   # ML audit: brand detection (keyword-based)
+├── test_protocol_classifier.py # ML audit: IR protocol classifier (rule-based)
+├── test_ir_synthetic.py      # ML audit: synthetic NEC/RC5/RC6 data
 ├── test_api.py          # REST API integration tests
 ├── test_functional.py   # Functional workflow tests
 ├── test_system.py       # System tests: streaming, channels, frame API, rapid switching
@@ -66,12 +76,27 @@ tests/
 
 ### Unit Tests (`test_unit.py`)
 - Module imports
-- File structure
+- File structure (paths use SIMULATOR_ROOT; run from any cwd)
 - Python syntax
 - HTML structure
 - JavaScript structure
 
 **No server required** - These tests can run without the web server.
+
+### Planned / revolutionary features (`test_planned.py`)
+- **Autonomous config:** Time rules, presets, program rules as valid JSON; `autonomous_config.json` loads and has presets/time_rules; `scheduler.load_config()` works.
+- **Detect-brand API:** With server: POST `/api/detect-brand` returns brand/brand_id (Samsung, unknown, accepts `query` key). Without server: skipped.
+- **Brand detection module:** `detect_brand_from_text` for Samsung, LG, Philips, Sony, unknown, empty string; confidence in 0..1.
+- **IR pipeline:** NEC/RC5/RC6 timings shape and bit encoding; `classify_protocol` for NEC, RC5, RC6, unknown (short list); confidence in range; `evaluate_rule_based_classifier` on synthetic dataset.
+
+**No server required** for most tests; Detect-brand API tests skip when server is not running.
+
+### ML audit components (split by module)
+- **`test_brand_detection.py`** — [docs/ML_CV_AI_AUDIT.md](../docs/ML_CV_AI_AUDIT.md): no `.model`/`.predict`; response shape; confidence range; unknown/gibberish; all audited brands (Samsung–Sharp).
+- **`test_protocol_classifier.py`** — API surface; NEC/RC5/RC6/unknown; response shape; 40% tolerance; `evaluate_rule_based_classifier` on synthetic data.
+- **`test_ir_synthetic.py`** — NEC/RC5/RC6 timing constants; `generate_dataset` format and protocols.
+
+**No server required.**
 
 ### API Tests (`test_api.py`)
 - Server connection

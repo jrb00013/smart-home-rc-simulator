@@ -14,7 +14,7 @@ The Virtual TV Simulator provides a game-like virtual TV interface for testing t
 - **Multiple Apps**: Simulate streaming services (YouTube, Netflix, etc.)
 - **Menu System**: Navigate through TV menus and settings
 - **Keyboard Testing**: Test buttons directly with keyboard shortcuts (no remote program needed!)
-- **Standalone Test Mode**: Run `test_standalone.py` for automated testing
+- **Automated Tests**: Run `poetry run pytest` (see README_TESTS.md)
 
 ## Web-Based 3D/VR Simulator
 

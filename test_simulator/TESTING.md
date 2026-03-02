@@ -77,18 +77,16 @@ make SIMULATOR=1 WEB=1
 
 ### Step 6: Run Automated Tests
 
-**In a new terminal:**
+**Start the web server first** (in one terminal), then in another terminal:
 ```bash
 cd test_simulator
-poetry run python test_interactive_3d.py
+poetry run pytest
 ```
 
-**Expected output:**
-- ✅ All tests pass
-- ✅ Server connection works
-- ✅ REST API works
-- ✅ WebSocket works
-- ✅ State consistency verified
+See **README_TESTS.md** for test categories. With the server running, API and functional tests run; without it, unit and environment tests still pass. Expected:
+- ✅ Server connection and REST API
+- ✅ WebSocket and state consistency
+- ✅ Unit and environment checks (no server needed)
 
 ## Streaming Services Testing
 
@@ -262,15 +260,16 @@ The virtual TV window will open and wait for commands.
 6. Try Channel Up/Down - see the channel number change
 7. Try option 1 (Streaming Services) - see apps open on the TV
 
-## Standalone Test Mode
+## Automated Test Suite
 
-Run automated test sequence:
+Run the full pytest suite (with server running for API/functional tests):
 
 ```bash
-python test_standalone.py
+cd test_simulator
+poetry run pytest
 ```
 
-This runs a complete automated test sequence without needing the remote control program.
+See **README_TESTS.md** for test categories and options. No remote control program needed.
 
 ## Troubleshooting
 
