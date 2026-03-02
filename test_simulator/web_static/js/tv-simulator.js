@@ -1062,8 +1062,8 @@ function initScene() {
     
     // Scene - warm living room ambience
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x2a2520);
-    scene.fog = new THREE.Fog(0x2a2520, 12, 45);
+    scene.background = new THREE.Color(0x302a24);
+    scene.fog = new THREE.Fog(0x302a24, 14, 42);
     
     // Camera
     camera = new THREE.PerspectiveCamera(
@@ -1074,29 +1074,46 @@ function initScene() {
     );
     camera.position.set(0, 1.5, 5);
     
-    // Renderer
-    renderer = new THREE.WebGLRenderer({ antialias: true });
+    // Renderer - cinematic quality
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     const w = container.clientWidth || window.innerWidth;
     const h = container.clientHeight || window.innerHeight;
     renderer.setSize(w, h);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    if (renderer.outputEncoding !== undefined) renderer.outputEncoding = THREE.sRGBEncoding;
     container.appendChild(renderer.domElement);
     
-    // Lights
-    const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+    // Lights - warm, balanced living room
+    const ambientLight = new THREE.AmbientLight(0xeed8c0, 0.55);
     scene.add(ambientLight);
     
-    const mainLight = new THREE.DirectionalLight(0xfff5e6, 1);
-    mainLight.position.set(5, 10, 5);
+    const mainLight = new THREE.DirectionalLight(0xfff0e0, 1.0);
+    mainLight.position.set(6, 11, 4);
     mainLight.castShadow = true;
-    mainLight.shadow.mapSize.width = 2048;
-    mainLight.shadow.mapSize.height = 2048;
+    mainLight.shadow.mapSize.width = 4096;
+    mainLight.shadow.mapSize.height = 4096;
+    mainLight.shadow.bias = -0.00015;
+    mainLight.shadow.normalBias = 0.02;
+    if (mainLight.shadow.radius !== undefined) mainLight.shadow.radius = 2;
+    const shadowCam = mainLight.shadow.camera;
+    shadowCam.left = -14;
+    shadowCam.right = 14;
+    shadowCam.top = 14;
+    shadowCam.bottom = -14;
+    shadowCam.near = 0.5;
+    shadowCam.far = 55;
     scene.add(mainLight);
     
-    const fillLight = new THREE.DirectionalLight(0xe8dcc8, 0.35);
-    fillLight.position.set(-5, 5, -5);
+    const fillLight = new THREE.DirectionalLight(0xe8dcc8, 0.4);
+    fillLight.position.set(-6, 5, -4);
     scene.add(fillLight);
+    
+    const rimLight = new THREE.DirectionalLight(0xffeedd, 0.2);
+    rimLight.position.set(0, 6, -12);
+    scene.add(rimLight);
     
     // Point light for TV glow (will be animated)
     const tvGlow = new THREE.PointLight(0xffffff, 0, 10);
@@ -1134,35 +1151,34 @@ function initScene() {
 function createRoom() {
     roomGroup = new THREE.Group();
 
-    // --- Floor: wood-style laminate ---
+    // --- Floor: real wood plank style (horizontal strips, full width) ---
     const floorGeometry = new THREE.PlaneGeometry(20, 20);
     const floorCanvas = document.createElement('canvas');
     floorCanvas.width = 512;
-    floorCanvas.height = 512;
+    floorCanvas.height = 256;
     const floorCtx = floorCanvas.getContext('2d');
-    const floorWoodBase = '#3d2914';
-    const floorWoodLight = '#5c4033';
-    const floorWoodDark = '#2a1810';
-    floorCtx.fillStyle = floorWoodBase;
-    floorCtx.fillRect(0, 0, 512, 512);
-    const plankW = 64;
-    for (let py = 0; py < 512; py += plankW) {
-        for (let px = 0; px < 512; px += plankW) {
-            const shade = (px + py) % 2 === 0 ? floorWoodLight : floorWoodDark;
-            floorCtx.fillStyle = shade;
-            floorCtx.fillRect(px + 2, py + 2, plankW - 4, plankW - 4);
-            floorCtx.strokeStyle = '#1a0f08';
-            floorCtx.lineWidth = 1;
-            floorCtx.strokeRect(px + 2, py + 2, plankW - 4, plankW - 4);
+    const plankH = 24;
+    for (let py = 0; py < 256; py += plankH) {
+        const v = Math.random();
+        const base = v < 0.33 ? '#5a4232' : (v < 0.66 ? '#4d3828' : '#634a38');
+        floorCtx.fillStyle = base;
+        floorCtx.fillRect(0, py + 1, 512, plankH - 2);
+        floorCtx.strokeStyle = 'rgba(0,0,0,0.18)';
+        floorCtx.lineWidth = 1;
+        floorCtx.strokeRect(0, py + 1, 512, plankH - 2);
+        for (let k = 0; k < 8; k++) {
+            floorCtx.fillStyle = `rgba(255,255,255,${0.02 + Math.random() * 0.03})`;
+            floorCtx.fillRect(k * 70 + 10, py + 3, 50, plankH - 6);
         }
     }
     const floorTexture = new THREE.CanvasTexture(floorCanvas);
-    floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
-    floorTexture.repeat.set(4, 4);
+    floorTexture.wrapS = THREE.RepeatWrapping;
+    floorTexture.wrapT = THREE.RepeatWrapping;
+    floorTexture.repeat.set(5, 3);
     const floorMaterial = new THREE.MeshStandardMaterial({
         map: floorTexture,
-        roughness: 0.85,
-        metalness: 0.05
+        roughness: 0.8,
+        metalness: 0.04
     });
     const floor = new THREE.Mesh(floorGeometry, floorMaterial);
     floor.rotation.x = -Math.PI / 2;
@@ -1170,23 +1186,27 @@ function createRoom() {
     floor.receiveShadow = true;
     roomGroup.add(floor);
 
-    // --- Walls: warm living room paint with subtle texture ---
+    // --- Walls: real paint look - subtle gradient (slightly lighter at top) + texture ---
     const wallCanvas = document.createElement('canvas');
     wallCanvas.width = 256;
-    wallCanvas.height = 128;
+    wallCanvas.height = 256;
     const wallCtx = wallCanvas.getContext('2d');
-    wallCtx.fillStyle = '#d4c4a8';
-    wallCtx.fillRect(0, 0, 256, 128);
-    for (let i = 0; i < 800; i++) {
-        wallCtx.fillStyle = `rgba(200,190,170,${Math.random() * 0.08})`;
-        wallCtx.fillRect(Math.random() * 256, Math.random() * 128, 2, 2);
+    const wallGrad = wallCtx.createLinearGradient(0, 0, 0, 256);
+    wallGrad.addColorStop(0, '#e8dfd2');
+    wallGrad.addColorStop(0.5, '#e0d6c6');
+    wallGrad.addColorStop(1, '#d8cec0');
+    wallCtx.fillStyle = wallGrad;
+    wallCtx.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 400; i++) {
+        wallCtx.fillStyle = `rgba(220,212,200,${0.02 + Math.random() * 0.04})`;
+        wallCtx.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
     }
     const wallTexture = new THREE.CanvasTexture(wallCanvas);
     wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping;
-    wallTexture.repeat.set(2, 1);
+    wallTexture.repeat.set(2, 2);
     const wallMaterial = new THREE.MeshStandardMaterial({
         map: wallTexture,
-        roughness: 0.95,
+        roughness: 0.94,
         metalness: 0
     });
     const wallGeometry = new THREE.PlaneGeometry(20, 10);
@@ -1210,48 +1230,68 @@ function createRoom() {
     rightWall.receiveShadow = true;
     roomGroup.add(rightWall);
 
-    // --- Window (right wall) with frame and curtains ---
-    const windowFrameMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7 });
+    // --- Window (right wall): frame, sill, glass, curtains ---
+    const windowFrameMat = new THREE.MeshStandardMaterial({ color: 0xf5f0e6, roughness: 0.6 });
     const windowFrame = new THREE.Mesh(
-        new THREE.BoxGeometry(2.2, 1.8, 0.12),
+        new THREE.BoxGeometry(2.3, 1.85, 0.08),
         windowFrameMat
     );
-    windowFrame.position.set(10, 4.5, -4);
+    windowFrame.position.set(9.96, 4.5, -4);
     windowFrame.castShadow = true;
     roomGroup.add(windowFrame);
+    const windowSill = new THREE.Mesh(
+        new THREE.BoxGeometry(2.5, 0.06, 0.2),
+        new THREE.MeshStandardMaterial({ color: 0xe8e0d4, roughness: 0.7 })
+    );
+    windowSill.position.set(9.96, 3.52, -3.9);
+    windowSill.castShadow = true;
+    roomGroup.add(windowSill);
     const windowGlass = new THREE.Mesh(
-        new THREE.PlaneGeometry(2.0, 1.6),
+        new THREE.PlaneGeometry(2.05, 1.65),
         new THREE.MeshStandardMaterial({
-            color: 0xaaddff,
+            color: 0xa8c8e0,
             transparent: true,
             opacity: 0.5,
-            roughness: 0.1,
-            metalness: 0.1
+            roughness: 0.08,
+            metalness: 0.02
         })
     );
-    windowGlass.position.set(10.07, 4.5, -4);
+    windowGlass.position.set(9.96, 4.5, -3.96);
     roomGroup.add(windowGlass);
     const curtainMat = new THREE.MeshStandardMaterial({
-        color: 0xe8dcc8,
-        roughness: 0.95,
+        color: 0xebe2d4,
+        roughness: 0.9,
         side: THREE.DoubleSide
     });
-    const curtainL = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 1.9), curtainMat);
-    curtainL.position.set(9.15, 4.5, -4.02);
+    const curtainL = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 2.0), curtainMat);
+    curtainL.position.set(8.75, 4.5, -3.98);
     curtainL.castShadow = true;
     roomGroup.add(curtainL);
-    const curtainR = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 1.9), curtainMat);
-    curtainR.position.set(10.85, 4.5, -4.02);
+    const curtainR = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 2.0), curtainMat);
+    curtainR.position.set(11.17, 4.5, -3.98);
     curtainR.castShadow = true;
     roomGroup.add(curtainR);
-    const windowLight = new THREE.DirectionalLight(0xbbddff, 0.25);
-    windowLight.position.set(12, 4.5, -4);
+    const windowLight = new THREE.DirectionalLight(0xb0d0ee, 0.26);
+    windowLight.position.set(14, 4.5, -4);
     scene.add(windowLight);
 
-    // --- Ceiling: slightly lighter ---
+    // --- Ceiling: soft warm white (slightly textured) ---
+    const ceilingCanvas = document.createElement('canvas');
+    ceilingCanvas.width = 128;
+    ceilingCanvas.height = 128;
+    const ceilingCtx = ceilingCanvas.getContext('2d');
+    ceilingCtx.fillStyle = '#efe8dc';
+    ceilingCtx.fillRect(0, 0, 128, 128);
+    for (let i = 0; i < 80; i++) {
+        ceilingCtx.fillStyle = `rgba(235,228,218,${0.02 + Math.random() * 0.03})`;
+        ceilingCtx.fillRect(Math.random() * 128, Math.random() * 128, 1, 1);
+    }
+    const ceilingTexture = new THREE.CanvasTexture(ceilingCanvas);
+    ceilingTexture.wrapS = ceilingTexture.wrapT = THREE.RepeatWrapping;
+    ceilingTexture.repeat.set(3, 3);
     const ceilingMaterial = new THREE.MeshStandardMaterial({
-        color: 0xe8dfd0,
-        roughness: 0.9
+        map: ceilingTexture,
+        roughness: 0.88
     });
     const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), ceilingMaterial);
     ceiling.rotation.x = Math.PI / 2;
@@ -1260,7 +1300,7 @@ function createRoom() {
 
     // --- Baseboards ---
     const baseboardGeom = new THREE.BoxGeometry(20.2, 0.15, 0.1);
-    const baseboardMat = new THREE.MeshStandardMaterial({ color: 0x8b7355, roughness: 0.8 });
+    const baseboardMat = new THREE.MeshStandardMaterial({ color: 0x7a6348, roughness: 0.75 });
     const baseBack = new THREE.Mesh(baseboardGeom, baseboardMat);
     baseBack.position.set(0, 0.075, -9.95);
     roomGroup.add(baseBack);
@@ -1271,133 +1311,148 @@ function createRoom() {
     baseRight.position.set(9.95, 0.075, 0);
     roomGroup.add(baseRight);
 
-    // --- Area rug in front of TV ---
-    const rugGeometry = new THREE.PlaneGeometry(5, 3.5);
+    // --- Wall outlet (back wall, behind console - lived-in detail) ---
+    const outletPlate = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12, 0.08, 0.02),
+        new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7 })
+    );
+    outletPlate.position.set(0.6, 0.35, -9.98);
+    roomGroup.add(outletPlate);
+    const outletSlot1 = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.04, 0.025),
+        new THREE.MeshStandardMaterial({ color: 0x1a1a1a })
+    );
+    outletSlot1.position.set(0.6, 0.35, -9.97);
+    roomGroup.add(outletSlot1);
+    const outletSlot2 = outletSlot1.clone();
+    outletSlot2.position.set(0.66, 0.35, -9.97);
+    roomGroup.add(outletSlot2);
+
+    // --- Area rug: under sofa front + coffee table (real placement) ---
+    const rugGeometry = new THREE.PlaneGeometry(5.5, 4);
     const rugCanvas = document.createElement('canvas');
     rugCanvas.width = 256;
     rugCanvas.height = 256;
     const rugCtx = rugCanvas.getContext('2d');
-    rugCtx.fillStyle = '#4a3728';
-    rugCtx.fillRect(0, 0, 256, 256);
-    rugCtx.strokeStyle = '#6b5344';
-    rugCtx.lineWidth = 8;
-    rugCtx.strokeRect(4, 4, 248, 248);
     rugCtx.fillStyle = '#3d2e22';
-    rugCtx.fillRect(12, 12, 232, 232);
+    rugCtx.fillRect(0, 0, 256, 256);
+    rugCtx.strokeStyle = '#5c4838';
+    rugCtx.lineWidth = 6;
+    rugCtx.strokeRect(6, 6, 244, 244);
+    rugCtx.fillStyle = '#4a3728';
+    rugCtx.fillRect(10, 10, 236, 236);
     const rugTexture = new THREE.CanvasTexture(rugCanvas);
     const rugMat = new THREE.MeshStandardMaterial({
         map: rugTexture,
-        roughness: 0.95,
+        roughness: 0.92,
         metalness: 0
     });
     const rug = new THREE.Mesh(rugGeometry, rugMat);
     rug.rotation.x = -Math.PI / 2;
-    rug.position.set(0, 0.005, -2.5);
+    rug.position.set(0, 0.006, -2.15);
     rug.receiveShadow = true;
     roomGroup.add(rug);
 
-    // --- Sofa (facing TV) ---
+    // --- Sofa (facing TV, realistic depth with back against wall zone) ---
     const sofaBase = new THREE.Mesh(
-        new THREE.BoxGeometry(2.8, 0.45, 1.2),
-        new THREE.MeshStandardMaterial({ color: 0x2c1810, roughness: 0.9 })
+        new THREE.BoxGeometry(2.8, 0.42, 1.15),
+        new THREE.MeshStandardMaterial({ color: 0x352218, roughness: 0.88 })
     );
-    sofaBase.position.set(0, 0.225, -2.2);
+    sofaBase.position.set(0, 0.21, -2.55);
     sofaBase.castShadow = true;
     sofaBase.receiveShadow = true;
     roomGroup.add(sofaBase);
     const sofaBack = new THREE.Mesh(
         new THREE.BoxGeometry(2.8, 0.9, 0.25),
-        new THREE.MeshStandardMaterial({ color: 0x3d2817, roughness: 0.85 })
+        new THREE.MeshStandardMaterial({ color: 0x4a3020, roughness: 0.82 })
     );
-    sofaBack.position.set(0, 0.675, -2.2);
+    sofaBack.position.set(0, 0.66, -2.55);
     sofaBack.castShadow = true;
     roomGroup.add(sofaBack);
     const sofaCushion = new THREE.Mesh(
-        new THREE.BoxGeometry(2.6, 0.2, 1.0),
-        new THREE.MeshStandardMaterial({ color: 0x4a3020, roughness: 0.9 })
+        new THREE.BoxGeometry(2.6, 0.18, 0.95),
+        new THREE.MeshStandardMaterial({ color: 0x553828, roughness: 0.86 })
     );
-    sofaCushion.position.set(0, 0.55, -2.2);
+    sofaCushion.position.set(0, 0.525, -2.55);
     sofaCushion.castShadow = true;
     roomGroup.add(sofaCushion);
     const armL = new THREE.Mesh(
-        new THREE.BoxGeometry(0.25, 0.55, 1.2),
-        new THREE.MeshStandardMaterial({ color: 0x3d2817, roughness: 0.85 })
+        new THREE.BoxGeometry(0.24, 0.52, 1.15),
+        new THREE.MeshStandardMaterial({ color: 0x453022, roughness: 0.82 })
     );
-    armL.position.set(-1.275, 0.5, -2.2);
+    armL.position.set(-1.28, 0.48, -2.55);
     armL.castShadow = true;
     roomGroup.add(armL);
     const armR = new THREE.Mesh(
-        new THREE.BoxGeometry(0.25, 0.55, 1.2),
-        new THREE.MeshStandardMaterial({ color: 0x3d2817, roughness: 0.85 })
+        new THREE.BoxGeometry(0.24, 0.52, 1.15),
+        new THREE.MeshStandardMaterial({ color: 0x453022, roughness: 0.82 })
     );
-    armR.position.set(1.275, 0.5, -2.2);
+    armR.position.set(1.28, 0.48, -2.55);
     armR.castShadow = true;
     roomGroup.add(armR);
 
-    // --- Coffee table ---
+    // --- Coffee table (in front of sofa, reachable) ---
     const tableTop = new THREE.Mesh(
-        new THREE.BoxGeometry(1.4, 0.08, 0.75),
-        new THREE.MeshStandardMaterial({ color: 0x1a1209, roughness: 0.4, metalness: 0.1 })
+        new THREE.BoxGeometry(1.35, 0.06, 0.7),
+        new THREE.MeshStandardMaterial({ color: 0x1e1610, roughness: 0.35, metalness: 0.08 })
     );
-    tableTop.position.set(0, 0.42, -2.2);
+    tableTop.position.set(0, 0.39, -1.95);
     tableTop.castShadow = true;
     tableTop.receiveShadow = true;
     roomGroup.add(tableTop);
-    const tableLeg = new THREE.Mesh(
-        new THREE.BoxGeometry(0.06, 0.38, 0.06),
-        new THREE.MeshStandardMaterial({ color: 0x2a2015, roughness: 0.6 })
-    );
-    [[-0.67, 0.21], [0.67, 0.21], [-0.67, -0.21], [0.67, -0.21]].forEach(([x, z]) => {
-        const leg = tableLeg.clone();
-        leg.position.set(x, 0.21, -2.2 + z);
+    const tableLegGeom = new THREE.BoxGeometry(0.055, 0.33, 0.055);
+    const tableLegMat = new THREE.MeshStandardMaterial({ color: 0x2e2418, roughness: 0.55 });
+    [[-0.65, 0.2], [0.65, 0.2], [-0.65, -0.2], [0.65, -0.2]].forEach(([x, z]) => {
+        const leg = new THREE.Mesh(tableLegGeom, tableLegMat);
+        leg.position.set(x, 0.195, -1.95 + z);
         leg.castShadow = true;
         roomGroup.add(leg);
     });
     // Coffee table props: mug, book, remote
     const mug = new THREE.Mesh(
         new THREE.CylinderGeometry(0.04, 0.035, 0.1, 16),
-        new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 })
+        new THREE.MeshStandardMaterial({ color: 0xf5f0e8, roughness: 0.6 })
     );
-    mug.position.set(-0.25, 0.47, -2.2);
+    mug.position.set(-0.22, 0.435, -1.95);
     mug.castShadow = true;
     roomGroup.add(mug);
     const mugHandle = new THREE.Mesh(
         new THREE.TorusGeometry(0.03, 0.008, 8, 16, Math.PI),
-        new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 })
+        new THREE.MeshStandardMaterial({ color: 0xf5f0e8, roughness: 0.6 })
     );
     mugHandle.rotation.x = Math.PI / 2;
-    mugHandle.position.set(-0.2, 0.47, -2.2);
+    mugHandle.position.set(-0.17, 0.435, -1.95);
     roomGroup.add(mugHandle);
     const book = new THREE.Mesh(
-        new THREE.BoxGeometry(0.22, 0.03, 0.28),
-        new THREE.MeshStandardMaterial({ color: 0x8b4513, roughness: 0.8 })
+        new THREE.BoxGeometry(0.2, 0.028, 0.26),
+        new THREE.MeshStandardMaterial({ color: 0x7a5230, roughness: 0.8 })
     );
-    book.position.set(0.3, 0.455, -2.35);
-    book.rotation.y = -0.3;
+    book.position.set(0.28, 0.42, -2.08);
+    book.rotation.y = -0.25;
     book.castShadow = true;
     roomGroup.add(book);
     const remoteProp = new THREE.Mesh(
-        new THREE.BoxGeometry(0.12, 0.025, 0.04),
+        new THREE.BoxGeometry(0.11, 0.022, 0.038),
         new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.4 })
     );
-    remoteProp.position.set(0.15, 0.445, -2.05);
-    remoteProp.rotation.y = 0.5;
+    remoteProp.position.set(0.12, 0.418, -1.82);
+    remoteProp.rotation.y = 0.4;
     remoteProp.castShadow = true;
     roomGroup.add(remoteProp);
 
     // --- Side table + lamp (left of sofa) ---
     const sideTableTop = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.35, 0.36, 0.04, 24),
+        new THREE.CylinderGeometry(0.34, 0.35, 0.035, 24),
         new THREE.MeshStandardMaterial({ color: 0x2a1810, roughness: 0.5 })
     );
-    sideTableTop.position.set(-2.2, 0.52, -2.2);
+    sideTableTop.position.set(-2.25, 0.5, -2.55);
     sideTableTop.castShadow = true;
     roomGroup.add(sideTableTop);
     const sideTableLeg = new THREE.Mesh(
         new THREE.CylinderGeometry(0.04, 0.05, 0.48, 12),
         new THREE.MeshStandardMaterial({ color: 0x1a0f08, roughness: 0.6 })
     );
-    sideTableLeg.position.set(-2.2, 0.26, -2.2);
+    sideTableLeg.position.set(-2.25, 0.25, -2.55);
     sideTableLeg.castShadow = true;
     roomGroup.add(sideTableLeg);
     // Lamp
@@ -1405,42 +1460,42 @@ function createRoom() {
         new THREE.CylinderGeometry(0.12, 0.14, 0.04, 16),
         new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.6, roughness: 0.3 })
     );
-    lampBase.position.set(-2.2, 0.56, -2.2);
+    lampBase.position.set(-2.25, 0.54, -2.55);
     roomGroup.add(lampBase);
     const lampPole = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.02, 0.02, 0.5, 8),
+        new THREE.CylinderGeometry(0.02, 0.02, 0.48, 8),
         new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.5, roughness: 0.4 })
     );
-    lampPole.position.set(-2.2, 0.81, -2.2);
+    lampPole.position.set(-2.25, 0.79, -2.55);
     roomGroup.add(lampPole);
     const lampShade = new THREE.Mesh(
         new THREE.CylinderGeometry(0.22, 0.28, 0.2, 16, 1, true),
         new THREE.MeshStandardMaterial({
-            color: 0xf5e6d3,
+            color: 0xfaf0e0,
             side: THREE.DoubleSide,
-            roughness: 0.95,
-            emissive: 0xf5e6b0,
-            emissiveIntensity: 0.15
+            roughness: 0.92,
+            emissive: 0xffe8b8,
+            emissiveIntensity: 0.18
         })
     );
-    lampShade.position.set(-2.2, 1.01, -2.2);
+    lampShade.position.set(-2.25, 0.99, -2.55);
     lampShade.castShadow = true;
     roomGroup.add(lampShade);
-    const lampLight = new THREE.PointLight(0xffeedd, 0.4, 4);
-    lampLight.position.set(-2.2, 1.0, -2.2);
+    const lampLight = new THREE.PointLight(0xffeedd, 0.45, 4.5);
+    lampLight.position.set(-2.25, 1.0, -2.55);
     scene.add(lampLight);
     // Side table props: coaster, small book
     const coaster = new THREE.Mesh(
         new THREE.CylinderGeometry(0.08, 0.08, 0.01, 16),
         new THREE.MeshStandardMaterial({ color: 0x4a3728, roughness: 0.9 })
     );
-    coaster.position.set(-2.2, 0.545, -2.15);
+    coaster.position.set(-2.25, 0.525, -2.52);
     roomGroup.add(coaster);
     const sideBook = new THREE.Mesh(
         new THREE.BoxGeometry(0.14, 0.02, 0.2),
         new THREE.MeshStandardMaterial({ color: 0x2c1810, roughness: 0.85 })
     );
-    sideBook.position.set(-2.35, 0.555, -2.25);
+    sideBook.position.set(-2.38, 0.535, -2.58);
     sideBook.rotation.y = 0.6;
     sideBook.castShadow = true;
     roomGroup.add(sideBook);
@@ -1462,17 +1517,17 @@ function createRoom() {
     const floorLampShade = new THREE.Mesh(
         new THREE.CylinderGeometry(0.25, 0.3, 0.25, 16, 1, true),
         new THREE.MeshStandardMaterial({
-            color: 0xe8dcc8,
+            color: 0xf0e6d4,
             side: THREE.DoubleSide,
-            roughness: 0.9,
-            emissive: 0xeedd99,
-            emissiveIntensity: 0.12
+            roughness: 0.88,
+            emissive: 0xf5e4a0,
+            emissiveIntensity: 0.15
         })
     );
     floorLampShade.position.set(3.5, 1.45, -3);
     floorLampShade.castShadow = true;
     roomGroup.add(floorLampShade);
-    const floorLampLight = new THREE.PointLight(0xffeedd, 0.35, 5);
+    const floorLampLight = new THREE.PointLight(0xffeedd, 0.4, 5.5);
     floorLampLight.position.set(3.5, 1.4, -3);
     scene.add(floorLampLight);
 
@@ -1480,7 +1535,7 @@ function createRoom() {
     function addPlant(x, z, scale) {
         const pot = new THREE.Mesh(
             new THREE.CylinderGeometry(0.2 * scale, 0.18 * scale, 0.25 * scale, 12),
-            new THREE.MeshStandardMaterial({ color: 0x8b4513, roughness: 0.85 })
+            new THREE.MeshStandardMaterial({ color: 0x9c5c2e, roughness: 0.82 })
         );
         pot.position.set(x, 0.125 * scale, z);
         pot.castShadow = true;
@@ -1491,8 +1546,8 @@ function createRoom() {
         );
         soil.position.set(x, 0.27 * scale, z);
         roomGroup.add(soil);
-        const leafMat = new THREE.MeshStandardMaterial({ color: 0x2d5a27, roughness: 0.9 });
-        const leafMat2 = new THREE.MeshStandardMaterial({ color: 0x3d6b37, roughness: 0.9 });
+        const leafMat = new THREE.MeshStandardMaterial({ color: 0x2a5c28, roughness: 0.88 });
+        const leafMat2 = new THREE.MeshStandardMaterial({ color: 0x387238, roughness: 0.88 });
         const foliage1 = new THREE.Mesh(new THREE.SphereGeometry(0.35 * scale, 10, 10), leafMat);
         foliage1.position.set(x, 0.55 * scale, z);
         foliage1.castShadow = true;
@@ -1518,7 +1573,7 @@ function createRoom() {
         draw(ctx, w, h);
         return new THREE.CanvasTexture(c);
     }
-    const frameMat = new THREE.MeshStandardMaterial({ color: 0x3d2817, roughness: 0.7 });
+    const frameMat = new THREE.MeshStandardMaterial({ color: 0x4a3525, roughness: 0.68 });
     const frameGeom = new THREE.PlaneGeometry(1.0, 0.7);
     const artGeom = new THREE.PlaneGeometry(0.9, 0.6);
     const artLeft = new THREE.Group();
@@ -1631,7 +1686,7 @@ function createRoom() {
         new THREE.BoxGeometry(0.45, 0.12, 0.45),
         new THREE.MeshStandardMaterial({ color: 0x6b4423, roughness: 0.9 })
     );
-    throwPillow.position.set(0.5, 0.61, -2.2);
+    throwPillow.position.set(0.5, 0.6, -2.55);
     throwPillow.rotation.y = 0.4;
     throwPillow.castShadow = true;
     roomGroup.add(throwPillow);
@@ -1639,7 +1694,7 @@ function createRoom() {
         new THREE.BoxGeometry(0.4, 0.1, 0.4),
         new THREE.MeshStandardMaterial({ color: 0x5a3d2a, roughness: 0.9 })
     );
-    throwPillow2.position.set(-0.6, 0.59, -2.35);
+    throwPillow2.position.set(-0.6, 0.58, -2.6);
     throwPillow2.rotation.y = -0.25;
     throwPillow2.castShadow = true;
     roomGroup.add(throwPillow2);
@@ -1654,28 +1709,33 @@ function createRoom() {
     const ceilingLightShade = new THREE.Mesh(
         new THREE.CylinderGeometry(0.4, 0.45, 0.2, 24, 1, true),
         new THREE.MeshStandardMaterial({
-            color: 0xf5f0e6,
+            color: 0xfaf6eb,
             side: THREE.DoubleSide,
-            roughness: 0.9,
-            emissive: 0xffeedd,
-            emissiveIntensity: 0.2
+            roughness: 0.88,
+            emissive: 0xffeed8,
+            emissiveIntensity: 0.22
         })
     );
     ceilingLightShade.position.set(0, 9.6, -3);
     ceilingLightShade.castShadow = true;
     roomGroup.add(ceilingLightShade);
-    const ceilingPointLight = new THREE.PointLight(0xffeedd, 0.3, 8);
+    const ceilingPointLight = new THREE.PointLight(0xffeed8, 0.32, 9);
     ceilingPointLight.position.set(0, 9.5, -3);
     scene.add(ceilingPointLight);
 
-    // --- Rug pattern (stripes) ---
-    rugCtx.fillStyle = '#3d2e22';
+    // --- Rug pattern (stripes + border) ---
+    rugCtx.fillStyle = '#352a1e';
     rugCtx.fillRect(0, 0, 256, 256);
-    rugCtx.fillStyle = '#4a3728';
-    for (let i = 0; i < 256; i += 32) rugCtx.fillRect(0, i, 256, 16);
-    rugCtx.strokeStyle = '#5c4838';
-    rugCtx.lineWidth = 4;
+    rugCtx.fillStyle = '#4a3d2a';
+    for (let i = 0; i < 256; i += 28) rugCtx.fillRect(0, i, 256, 14);
+    rugCtx.fillStyle = '#3d3225';
+    for (let i = 14; i < 256; i += 28) rugCtx.fillRect(0, i, 256, 14);
+    rugCtx.strokeStyle = '#6b5a48';
+    rugCtx.lineWidth = 5;
     rugCtx.strokeRect(8, 8, 240, 240);
+    rugCtx.strokeStyle = '#5c4d38';
+    rugCtx.lineWidth = 2;
+    rugCtx.strokeRect(12, 12, 232, 232);
     rugTexture.needsUpdate = true;
 
     scene.add(roomGroup);
