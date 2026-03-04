@@ -1,10 +1,20 @@
-# Universal Remote and 3D Simulator
+# 3D Autonomous Smart Home Simulator
 
-**Universal remote (C) + 3D simulator with keyword-based brand detection, time/preset scheduling, and a rule-based IR protocol classifier.**
+A **3D smart home simulator** built around a virtual living room: TV, interactive remote, and room environment. Time-based rules and presets drive the TV (or real devices) automatically; the same stack can control the in-browser simulator or real TVs via Broadlink, Samsung, LG, or HDMI-CEC. The control layer is a C universal remote with multi-protocol IR, optional brand detection, and a rule-based IR protocol classifier. No cloud APIs or neural nets in the current implementation.
 
-C project for controlling a Phillips-style universal remote, with a 3D TV simulator for testing. Extras: **brand detection** — free text is matched against a fixed keyword table (e.g. "Samsung", "LG OLED") and returns a `brand_id` for `universal_tv_set_brand()`; **autonomous scheduler** — JSON config of time rules and presets, Python daemon sends button sequences to the simulator at the right time; **IR protocol path** — `ir_synthetic` generates pulse-length sequences (µs) from NEC/RC5/RC6 timing constants (same as C), `protocol_classifier` identifies protocol by checking the first pulse/space against those timings (rule-based, 40% tolerance). No neural nets or external APIs in the current implementation. See `docs/AI_DETECTION_AND_REVOLUTIONARY_PLAN.md` for future directions.
+**In the simulator:** A full 3D room (floor, walls, window, sofa, lamps, media console) with a TV that responds to button presses. The room’s ambient light reacts to the current channel or app. You can drive it with the C program, the web UI (click the 3D remote or use the keyboard), or the **autonomous scheduler** (time rules and presets in JSON). The scheduler can target the simulator or named backends (e.g. a living-room TV) so one config runs “evening preset at 19:00” for the simulator or real hardware.
+
+**Smart home integration:** REST API, optional API key, webhooks, and MQTT. Home Assistant and Node-RED can call the API or receive state-change events. Backend adapters (simulator, Broadlink, Samsung, LG, CEC) are selected per preset or per rule. See `test_simulator/docs/SERVICE_AND_AUTOMATION.md` and `test_simulator/docs/HOME_ASSISTANT_NODE_RED.md`.
+
+**Extras:** Keyword-based **brand detection** (text matched against a fixed table; returns `brand_id` for the C universal TV). **IR protocol path:** `ir_synthetic` and `protocol_classifier` (rule-based, 40% tolerance). See `docs/AI_DETECTION_AND_REVOLUTIONARY_PLAN.md` for future directions.
 
 ## Features
+
+### 3D Simulator and Automation
+- **3D living room:** TV, remote, room (floor, walls, window, sofa, coffee table, lamps, plants, media console). Orbit camera, first-person mode, GPU-based graphics presets.
+- **Autonomous scheduler:** Time rules (e.g. 19:00 weekdays) and presets (button sequences). Targets simulator or real devices via `autonomous_config.json` and `service_config.json`.
+- **Remote as a service:** REST (state, button, presets, backends), WebSocket, optional API key, webhooks, MQTT. OpenAPI spec. Home Assistant and Node-RED examples.
+- **Backend adapters:** Simulator (default), Broadlink IR blaster, Samsung Smart TV, LG webOS, HDMI-CEC. Per-rule or per-preset target.
 
 ### Streaming Service Buttons
 - **YouTube** - Dedicated button for YouTube app
@@ -82,26 +92,39 @@ C project for controlling a Phillips-style universal remote, with a 3D TV simula
 ## Project Structure
 
 ```
-universal-remote-phillips/
-├── include/
-│   ├── remote_buttons.h    # Button definitions and constants
-│   ├── ir_codes.h          # IR code mappings and protocol
-│   ├── remote_control.h    # Main remote control interface
-│   └── universal_tv.h      # Universal TV support (multi-protocol)
-├── src/
-│   ├── ir_codes.c          # IR code implementation
-│   ├── ir_protocol.c       # IR protocol implementations (RC5, RC6, NEC)
-│   ├── universal_tv.c      # Universal TV code database and functions
-│   ├── remote_control.c    # Remote control functions
-│   └── main.c              # Main program and demos
+universal-remote-simulator/
+├── include/                  # C headers
+│   ├── remote_buttons.h      # Button definitions and constants
+│   ├── ir_codes.h            # IR code mappings and protocol
+│   ├── remote_control.h      # Main remote control interface
+│   └── universal_tv.h       # Universal TV support (multi-protocol)
+├── src/                      # C source (remote, IR, universal TV)
+│   ├── ir_codes.c
+│   ├── ir_protocol.c         # RC5, RC6, NEC, etc.
+│   ├── universal_tv.c        # Code database and multi-protocol sender
+│   ├── remote_control.c
+│   ├── tv_simulator_web.c    # Web simulator client (SIMULATOR=1 WEB=1)
+│   └── main.c
 ├── examples/
-│   ├── simple_example.c    # Basic remote control example
-│   └── universal_tv_example.c  # Universal TV usage example
-├── obj/                     # Object files (generated)
-├── bin/                     # Executable (generated)
-├── Makefile                # Build configuration
-├── docs/                   # Documentation (see docs/README.md)
-└── README.md               # This file
+│   ├── simple_example.c
+│   └── universal_tv_example.c
+├── docs/                     # C/firmware and project docs (see docs/README.md)
+├── test_simulator/           # 3D simulator and smart home stack
+│   ├── web_server.py         # Flask + SocketIO web app
+│   ├── virtual_tv.py         # TV state and button handling
+│   ├── scheduler.py          # Autonomous time rules + presets
+│   ├── service_layer.py      # Auth, webhooks, MQTT
+│   ├── autonomous_config.json
+│   ├── adapters/             # Backends: simulator, broadlink, samsung, lg, cec
+│   ├── gpu_runtime/         # GPU detection and graphics preset
+│   ├── web_static/           # 3D frontend (Three.js)
+│   ├── web_templates/
+│   ├── docs/                 # SERVICE_AND_AUTOMATION, HOME_ASSISTANT_NODE_RED
+│   └── tests/
+├── obj/                      # Object files (generated)
+├── bin/                      # Executable (generated)
+├── Makefile
+└── README.md                 # This file
 ```
 
 ## Documentation
@@ -110,7 +133,7 @@ universal-remote-phillips/
 - **[docs/README.md](docs/README.md)** — Full documentation index (C, latency, handlers, simulator, roadmap)
 - **[docs/REVOLUTIONARY.md](docs/REVOLUTIONARY.md)** — Why this stack is novel
 - **[docs/ML_CV_AI_AUDIT.md](docs/ML_CV_AI_AUDIT.md)** — ML/CV/AI audit (what is and is not used)
-- **Simulator:** [test_simulator/README.md](test_simulator/README.md), [test_simulator/API.md](test_simulator/API.md). Tests: [test_simulator/README_TESTS.md](test_simulator/README_TESTS.md) (unit, API, system; ML audit tests in `test_brand_detection.py`, `test_protocol_classifier.py`, `test_ir_synthetic.py`).
+- **3D simulator and smart home:** [test_simulator/README.md](test_simulator/README.md), [test_simulator/API.md](test_simulator/API.md), [test_simulator/FEATURES.md](test_simulator/FEATURES.md). Automation: [test_simulator/docs/SERVICE_AND_AUTOMATION.md](test_simulator/docs/SERVICE_AND_AUTOMATION.md), [test_simulator/docs/HOME_ASSISTANT_NODE_RED.md](test_simulator/docs/HOME_ASSISTANT_NODE_RED.md). Tests: [test_simulator/README_TESTS.md](test_simulator/README_TESTS.md), [test_simulator/TESTING.md](test_simulator/TESTING.md).
 
 ## Building the Project
 
@@ -439,39 +462,34 @@ When adding new buttons or features:
 - Hardware initialization may need device-specific code
 - Check console output for error messages
 
-## Virtual TV Simulator (Optional)
+## Running the 3D Simulator
 
-A game-like virtual TV interface is available for testing the remote control without physical hardware. The web version provides a full 3D living room environment: wood floor, painted walls with baseboards, a window with frame and curtains, sofa, coffee table, side table with lamp, floor lamp, potted plants, wall art, media console under the TV, and cinematic lighting (directional, window light, lamp point lights, ceiling fixture). The TV and interactive 3D remote are placed in this room; you can orbit the camera, zoom to the TV or to the remote, and use keyboard or click-to-press for testing.
+The web app serves the 3D smart home simulator: living room (floor, walls, window, sofa, lamps, media console), TV, and interactive 3D remote. Room lighting reacts to the current channel or app. Orbit the camera, zoom to the TV or remote, use keyboard shortcuts or click the remote. Optional: run the **autonomous scheduler** so time rules apply presets automatically.
 
-### Quick Start
+### Quick start
 
-1. **Install Python dependencies:**
+1. **Install and start the web server:**
    ```bash
    cd test_simulator
-   pip install -r requirements.txt
+   poetry install
+   poetry run web-server
    ```
-   Or use Poetry: `poetry install` (see test_simulator/README.md).
+   Open http://localhost:5000. Or use `pip install -r requirements.txt` and run the server (see test_simulator/README.md).
 
-2. **Start the simulator:**
-   ```bash
-   python main.py
-   ```
-   Or: `poetry run web-server` then open http://localhost:5000.
-   Convenience scripts: Windows `test_simulator\run_simulator.bat`, Unix/Linux `test_simulator/run_simulator.sh`.
-
-3. **Build the remote control with simulator support:**
+2. **Optional: C remote control (sends button presses to the simulator):**
    ```bash
    make clean
-   make SIMULATOR=1
-   ```
-
-4. **Run the remote control:**
-   ```bash
+   make SIMULATOR=1 WEB=1
    ./bin/remote_control
    ```
-   (or `bin\remote_control.exe` on Windows)
 
-The simulator displays a 3D living room with a virtual TV that responds to all button presses in real time. See `test_simulator/README.md` for details.
+3. **Optional: Autonomous scheduler (time rules and presets):**
+   With the web server running, in another terminal:
+   ```bash
+   cd test_simulator
+   poetry run python scheduler.py
+   ```
+   Edit `autonomous_config.json` for times and presets; use `service_config.json` and adapters to target real devices. See test_simulator/docs/SERVICE_AND_AUTOMATION.md.
 
 ## Latency Measurement and Optimization
 
@@ -513,19 +531,10 @@ latency_print_all_stats();
 
 See `docs/LATENCY_OPTIMIZATION.md` and `docs/LATENCY_IMPLEMENTATION.md` for complete documentation.
 
-- Brand detection from text: `POST /api/detect-brand` with body `{"text": "Samsung Q80"}`. Keyword matching against a fixed table (no APIs, no models); returns `brand` and `brand_id` (C `tv_brand_t`); simulator state holds `detected_brand` / `detected_brand_id`.
-- Autonomous scheduler: `autonomous_config.json` defines time rules (e.g. 19:00) and presets (button + delay lists). `scheduler.py` polls every 30s and POSTs button codes to the simulator API when a rule fires.
-- IR protocol from timings: `ir_synthetic.py` builds pulse-length lists (µs) from NEC/RC5/RC6 constants in C. `protocol_classifier.py` identifies protocol by first pulse/space vs 9ms/4.5ms (NEC), 2.66ms/889µs (RC6), 889µs (RC5); 40% tolerance. Output: `ir_dataset_synthetic.json`.
-- Full 3D living room: wood plank floor, textured walls and baseboards, ceiling texture, window (frame, sill, glass, curtains), sofa, coffee table, side table with lamp, floor lamp, plants, wall art, media console, wall outlet, area rug. ACES tone mapping, 4K shadows, warm lighting.
-- Universal TV support: multi-protocol sender for any TV brand.
-- Code scan mode: cycle through codes until one works.
-- Virtual TV Simulator: game-like 3D testing interface.
-- Latency measurement: high-precision timing and optimization tools.
-- IR code learning/capture (planned; requires IR receiver hardware).
-- Hardware-specific IR implementation (planned).
-- Multi-device support with device profiles (planned).
-- Macro/sequence recording (planned).
-- Network control interface (planned).
-- Configuration file support (planned).
-- Expand universal code database for more buttons (planned).
+- **3D simulator:** Living room (floor, walls, window, sofa, lamps, media console, rug), TV, 3D remote. Room glow reacts to channel/app. GPU-based graphics presets. WebSocket + REST.
+- **Autonomous scheduler:** Time rules and presets in `autonomous_config.json`; targets simulator or real backends. `scheduler.py` runs as a daemon; optional `service_config.json` for auth, webhooks, MQTT, and named devices.
+- **Smart home:** REST API, webhooks, MQTT, Home Assistant and Node-RED examples. Adapters: simulator, Broadlink, Samsung, LG, CEC.
+- **C universal remote:** Multi-protocol IR, brand detection (keyword table, `POST /api/detect-brand`), code scan mode. Latency measurement and assembly-optimized timing.
+- **IR protocol path:** `ir_synthetic.py` and `protocol_classifier.py` (rule-based, 40% tolerance); no neural nets.
+- **Planned:** IR learning (IR receiver), hardware-specific IR, multi-device profiles, macro recording, expanded code database.
 
