@@ -237,3 +237,4 @@ int main(void) {
 - `src/io_mode.c` - I/O mode implementation
 - `docs/ASSEMBLY_INTEGRATION.md` - Assembly timing details
 
+

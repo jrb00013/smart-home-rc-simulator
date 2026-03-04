@@ -332,3 +332,4 @@ int main(void) {
 - `include/connection.h` - Connection API reference
 - `src/connection.c` - Connection implementation
 
+

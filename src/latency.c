@@ -316,3 +316,4 @@ uint32_t latency_get_min(void) {
     return global_stats.min_us == UINT32_MAX ? 0 : global_stats.min_us;
 }
 
+

@@ -313,3 +313,4 @@ int main(void) {
 - `src/handlers.c` - Handler implementation
 - `src/interrupt_handlers.s` - Hardware interrupt handlers
 
+

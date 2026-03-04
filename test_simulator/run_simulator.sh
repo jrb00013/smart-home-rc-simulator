@@ -3,3 +3,4 @@
 echo "Starting Virtual TV Simulator..."
 python3 main.py
 
+
