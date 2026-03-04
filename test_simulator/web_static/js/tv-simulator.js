@@ -2,7 +2,8 @@
 // Full Interactive 3D Experience with Remote Control
 
 let scene, camera, renderer, controls;
-let tvMesh, screenMesh, roomGroup, remoteMesh, remoteGroup, handGroup;
+let tvMesh, screenMesh, roomGroup, remoteMesh, remoteGroup, handGroup, armGroup, firstPersonHolder;
+let firstPersonMode = false;
 let tvFrame, tvPowerLED, tvGlowLight;
 let tvState = {};
 let socket;
@@ -141,16 +142,15 @@ let volumeStabilizer = {
     lastApp: 'Home'
 };
 
-// TV Shows Database - Multiple different shows for different channels
+// Programmed channel lineup (1-99 explicit; 100-999 use default). Used for live TV display.
 let tvShows = {
-    // News Channels (1-5)
+    // News & info (1-5)
     1: { name: 'Morning News', type: 'news', genre: 'News', color: { r: 200, g: 200, b: 255 } },
     2: { name: 'Evening News', type: 'news', genre: 'News', color: { r: 150, g: 150, b: 200 } },
     3: { name: 'Breaking News', type: 'news', genre: 'News', color: { r: 255, g: 100, b: 100 } },
     4: { name: 'Weather Channel', type: 'weather', genre: 'Weather', color: { r: 100, g: 200, b: 255 } },
     5: { name: 'Business Report', type: 'news', genre: 'Business', color: { r: 255, g: 200, b: 100 } },
-    
-    // Unique Creative Shows (6-15)
+    // Creative / variety (6-15)
     6: { name: 'Big Red Dog', type: 'bigreddog', genre: 'Comedy', color: { r: 255, g: 0, b: 0 } },
     7: { name: 'Pabst Blue Ribbon', type: 'pabst', genre: 'Drama', color: { r: 0, g: 100, b: 200 } },
     8: { name: 'Pool Lifeguard Live', type: 'lifeguard', genre: 'Reality', color: { r: 0, g: 200, b: 255 } },
@@ -161,43 +161,99 @@ let tvShows = {
     13: { name: 'Endless Drive', type: 'driving', genre: 'Action', color: { r: 100, g: 100, b: 150 } },
     14: { name: 'Ocean Meets Volcano', type: 'oceanvolcano', genre: 'Nature', color: { r: 255, g: 100, b: 0 } },
     15: { name: 'Fridge Planet', type: 'fridgeplanet', genre: 'Sitcom', color: { r: 200, g: 255, b: 255 } },
-    
-    // More Creative Shows (16-20)
+    // More creative (16-20)
     16: { name: 'Talking Toaster', type: 'toaster', genre: 'Comedy', color: { r: 255, g: 200, b: 100 } },
     17: { name: 'Cloud Watching', type: 'clouds', genre: 'Relaxation', color: { r: 200, g: 220, b: 255 } },
     18: { name: 'Paint Drying Live', type: 'paint', genre: 'Documentary', color: { r: 150, g: 150, b: 200 } },
     19: { name: 'Rubber Duck Adventures', type: 'rubberduck', genre: 'Adventure', color: { r: 255, g: 255, b: 0 } },
     20: { name: 'The Office', type: 'comedy', genre: 'Comedy', color: { r: 255, g: 200, b: 100 } },
-    
     // Sports (21-30)
     21: { name: 'Football Live', type: 'sports', genre: 'Sports', color: { r: 0, g: 150, b: 0 } },
     22: { name: 'Basketball Game', type: 'sports', genre: 'Sports', color: { r: 255, g: 150, b: 0 } },
     23: { name: 'Baseball Tonight', type: 'sports', genre: 'Sports', color: { r: 200, g: 100, b: 0 } },
     24: { name: 'Soccer Highlights', type: 'sports', genre: 'Sports', color: { r: 0, g: 200, b: 100 } },
     25: { name: 'Tennis Championship', type: 'sports', genre: 'Sports', color: { r: 255, g: 255, b: 200 } },
-    
+    26: { name: 'Hockey Night', type: 'sports', genre: 'Sports', color: { r: 200, g: 220, b: 240 } },
+    27: { name: 'Golf Channel', type: 'sports', genre: 'Sports', color: { r: 0, g: 180, b: 100 } },
+    28: { name: 'MMA Fights', type: 'sports', genre: 'Sports', color: { r: 180, g: 80, b: 80 } },
+    29: { name: 'Racing Live', type: 'sports', genre: 'Sports', color: { r: 255, g: 50, b: 50 } },
+    30: { name: 'Olympic Channel', type: 'sports', genre: 'Sports', color: { r: 255, g: 215, b: 0 } },
     // Movies (31-40)
     31: { name: 'Action Movie', type: 'movie', genre: 'Action', color: { r: 255, g: 50, b: 50 } },
     32: { name: 'Sci-Fi Film', type: 'movie', genre: 'Sci-Fi', color: { r: 100, g: 100, b: 255 } },
     33: { name: 'Comedy Special', type: 'comedy', genre: 'Comedy', color: { r: 255, g: 200, b: 0 } },
     34: { name: 'Horror Night', type: 'horror', genre: 'Horror', color: { r: 50, g: 0, b: 0 } },
     35: { name: 'Romance Film', type: 'romance', genre: 'Romance', color: { r: 255, g: 150, b: 200 } },
-    
-    // Kids Channels (41-50)
+    36: { name: 'Western Channel', type: 'movie', genre: 'Western', color: { r: 180, g: 140, b: 80 } },
+    37: { name: 'Documentary Hour', type: 'documentary', genre: 'Documentary', color: { r: 100, g: 120, b: 140 } },
+    38: { name: 'Thriller Night', type: 'drama', genre: 'Thriller', color: { r: 80, g: 80, b: 120 } },
+    39: { name: 'Indie Films', type: 'movie', genre: 'Indie', color: { r: 150, g: 130, b: 180 } },
+    40: { name: 'Classic Cinema', type: 'movie', genre: 'Classic', color: { r: 200, g: 180, b: 150 } },
+    // Kids & family (41-50)
     41: { name: 'Cartoon Network', type: 'cartoon', genre: 'Kids', color: { r: 255, g: 200, b: 100 } },
     42: { name: 'Disney Channel', type: 'cartoon', genre: 'Kids', color: { r: 100, g: 200, b: 255 } },
     43: { name: 'Nickelodeon', type: 'cartoon', genre: 'Kids', color: { r: 255, g: 100, b: 100 } },
     44: { name: 'PBS Kids', type: 'educational', genre: 'Educational', color: { r: 100, g: 255, b: 100 } },
     45: { name: 'Animal Planet', type: 'documentary', genre: 'Nature', color: { r: 100, g: 200, b: 100 } },
-    
-    // Music Channels (51-60)
+    46: { name: 'Discovery Kids', type: 'documentary', genre: 'Educational', color: { r: 0, g: 160, b: 180 } },
+    47: { name: 'Boomerang', type: 'cartoon', genre: 'Kids', color: { r: 255, g: 180, b: 80 } },
+    48: { name: 'Universal Kids', type: 'cartoon', genre: 'Kids', color: { r: 100, g: 180, b: 255 } },
+    49: { name: 'Family Movie', type: 'movie', genre: 'Family', color: { r: 255, g: 220, b: 180 } },
+    50: { name: 'Nature Kids', type: 'documentary', genre: 'Nature', color: { r: 80, g: 200, b: 120 } },
+    // Music (51-60)
     51: { name: 'MTV', type: 'music', genre: 'Music', color: { r: 255, g: 0, b: 100 } },
     52: { name: 'VH1', type: 'music', genre: 'Music', color: { r: 200, g: 100, b: 255 } },
     53: { name: 'Classic Rock', type: 'music', genre: 'Music', color: { r: 150, g: 100, b: 50 } },
     54: { name: 'Jazz Channel', type: 'music', genre: 'Music', color: { r: 100, g: 150, b: 200 } },
     55: { name: 'Country Music', type: 'music', genre: 'Music', color: { r: 255, g: 200, b: 150 } },
-    
-    // Default fallback
+    56: { name: 'Hip Hop Nation', type: 'music', genre: 'Music', color: { r: 255, g: 100, b: 150 } },
+    57: { name: 'Latin Beats', type: 'music', genre: 'Music', color: { r: 255, g: 180, b: 0 } },
+    58: { name: 'Electronic Dance', type: 'music', genre: 'Music', color: { r: 150, g: 50, b: 255 } },
+    59: { name: 'Acoustic Live', type: 'music', genre: 'Music', color: { r: 200, g: 160, b: 120 } },
+    60: { name: 'Pop Hits', type: 'music', genre: 'Music', color: { r: 255, g: 100, b: 200 } },
+    // Drama & series (61-70)
+    61: { name: 'Drama Central', type: 'drama', genre: 'Drama', color: { r: 120, g: 80, b: 140 } },
+    62: { name: 'Crime & Mystery', type: 'drama', genre: 'Drama', color: { r: 80, g: 80, b: 100 } },
+    63: { name: 'Soap Opera', type: 'drama', genre: 'Drama', color: { r: 255, g: 200, b: 220 } },
+    64: { name: 'Legal Drama', type: 'drama', genre: 'Drama', color: { r: 180, g: 160, b: 200 } },
+    65: { name: 'Medical Drama', type: 'drama', genre: 'Drama', color: { r: 200, g: 230, b: 255 } },
+    66: { name: 'Political Thriller', type: 'drama', genre: 'Drama', color: { r: 100, g: 80, b: 80 } },
+    67: { name: 'Period Drama', type: 'drama', genre: 'Drama', color: { r: 200, g: 180, b: 150 } },
+    68: { name: 'Anthology Series', type: 'drama', genre: 'Drama', color: { r: 140, g: 120, b: 160 } },
+    69: { name: 'Limited Series', type: 'drama', genre: 'Drama', color: { r: 160, g: 140, b: 180 } },
+    70: { name: 'Prime Time Drama', type: 'drama', genre: 'Drama', color: { r: 100, g: 100, b: 140 } },
+    // News & info continued (71-80)
+    71: { name: 'World News', type: 'news', genre: 'News', color: { r: 180, g: 180, b: 255 } },
+    72: { name: 'Local News', type: 'news', genre: 'News', color: { r: 200, g: 220, b: 255 } },
+    73: { name: 'Politics Today', type: 'news', genre: 'News', color: { r: 150, g: 150, b: 180 } },
+    74: { name: 'Tech News', type: 'news', genre: 'News', color: { r: 100, g: 200, b: 255 } },
+    75: { name: 'Sports News', type: 'news', genre: 'News', color: { r: 200, g: 255, b: 200 } },
+    76: { name: 'Entertainment Tonight', type: 'news', genre: 'News', color: { r: 255, g: 200, b: 220 } },
+    77: { name: 'Traffic & Weather', type: 'weather', genre: 'Weather', color: { r: 150, g: 210, b: 255 } },
+    78: { name: 'Science Now', type: 'documentary', genre: 'Documentary', color: { r: 100, g: 180, b: 220 } },
+    79: { name: 'History Channel', type: 'documentary', genre: 'History', color: { r: 180, g: 150, b: 120 } },
+    80: { name: 'Travel Channel', type: 'documentary', genre: 'Travel', color: { r: 255, g: 220, b: 180 } },
+    // Variety (81-99)
+    81: { name: 'Reality TV', type: 'comedy', genre: 'Reality', color: { r: 255, g: 180, b: 200 } },
+    82: { name: 'Game Show Network', type: 'comedy', genre: 'Game Show', color: { r: 255, g: 255, b: 100 } },
+    83: { name: 'Talk Show Central', type: 'comedy', genre: 'Talk', color: { r: 255, g: 230, b: 200 } },
+    84: { name: 'Food Network', type: 'documentary', genre: 'Food', color: { r: 255, g: 120, b: 80 } },
+    85: { name: 'Home & Garden', type: 'documentary', genre: 'Lifestyle', color: { r: 180, g: 220, b: 160 } },
+    86: { name: 'DIY Channel', type: 'documentary', genre: 'Lifestyle', color: { r: 200, g: 160, b: 100 } },
+    87: { name: 'True Crime', type: 'documentary', genre: 'Documentary', color: { r: 100, g: 80, b: 80 } },
+    88: { name: 'Comedy Central', type: 'comedy', genre: 'Comedy', color: { r: 255, g: 200, b: 0 } },
+    89: { name: 'Stand-Up Hour', type: 'comedy', genre: 'Comedy', color: { r: 255, g: 220, b: 150 } },
+    90: { name: 'Sketch Comedy', type: 'comedy', genre: 'Comedy', color: { r: 255, g: 180, b: 100 } },
+    91: { name: 'Late Night', type: 'comedy', genre: 'Talk', color: { r: 80, g: 80, b: 120 } },
+    92: { name: 'Daytime Talk', type: 'comedy', genre: 'Talk', color: { r: 255, g: 240, b: 220 } },
+    93: { name: 'Court TV', type: 'drama', genre: 'Reality', color: { r: 180, g: 160, b: 200 } },
+    94: { name: 'Faith & Family', type: 'drama', genre: 'Family', color: { r: 220, g: 220, b: 255 } },
+    95: { name: 'Shopping Network', type: 'general', genre: 'Shopping', color: { r: 255, g: 100, b: 150 } },
+    96: { name: 'C-SPAN', type: 'news', genre: 'News', color: { r: 100, g: 100, b: 140 } },
+    97: { name: 'C-SPAN 2', type: 'news', genre: 'News', color: { r: 120, g: 120, b: 160 } },
+    98: { name: 'Public Access', type: 'general', genre: 'Local', color: { r: 150, g: 150, b: 180 } },
+    99: { name: 'Test Pattern', type: 'general', genre: 'Utility', color: { r: 200, g: 200, b: 200 } },
+    // Fallback for 100-999
     default: { name: 'TV Channel', type: 'general', genre: 'General', color: { r: 100, g: 100, b: 150 } }
 };
 
@@ -214,6 +270,8 @@ function initSocket() {
         console.log('Connected to server');
         console.log('[Volume Stabilizer] Server connection established - volume stabilization active');
         document.getElementById('loading').style.display = 'none';
+        // Force next frame to be sent so /api/frame has data quickly when TV is on
+        lastFrameSent = 0;
         // Initialize IR visualization
         if (typeof initIRVisualization === 'function') {
             initIRVisualization();
@@ -235,7 +293,18 @@ function initSocket() {
     socket.on('tv_state_update', (state) => {
         updateTVState(state);
     });
-    
+
+    socket.on('graphics_preset', (preset) => {
+        if (preset && typeof preset === 'object') {
+            window.GRAPHICS_PRESET = preset;
+            if (document.getElementById('graphics-tier')) {
+                var label = preset._tier || 'MEDIUM';
+                if (preset._gpu_name) label += ' (' + (preset._gpu_name.length > 20 ? preset._gpu_name.substring(0, 17) + '…' : preset._gpu_name) + ')';
+                document.getElementById('graphics-tier').textContent = label;
+            }
+        }
+    });
+
     socket.on('connected', (data) => {
         console.log('Server:', data.message);
     });
@@ -475,7 +544,7 @@ function updateTVState(state) {
         document.getElementById('power-status').className = `status-value ${state.powered_on ? 'on' : 'off'}`;
         document.getElementById('volume-status').textContent = state.volume + '%';
         document.getElementById('channel-status').textContent = state.channel;
-        document.getElementById('app-status').textContent = state.current_app || 'Home';
+        document.getElementById('app-status').textContent = state.current_app != null ? state.current_app : 'Live TV';
         document.getElementById('mute-status').textContent = state.muted ? 'Yes' : 'No';
         document.getElementById('game-mode-status').textContent = state.game_mode ? 'ON' : 'OFF';
         
@@ -1056,15 +1125,43 @@ function showNotification(message) {
     }, 2000);
 }
 
-// Initialize Three.js scene
+// Default graphics preset (used when server does not send GPU-based preset)
+var DEFAULT_GRAPHICS_PRESET = {
+    antialias: true,
+    shadowMapEnabled: true,
+    shadowMapType: 'PCFSoftShadowMap',
+    shadowMapSize: 4096,
+    shadowRadius: 2,
+    castShadow: true,
+    toneMappingExposure: 1.05,
+    pixelRatio: 1.0,
+    floorTextureWidth: 512,
+    floorTextureHeight: 256,
+    wallTextureSize: 256,
+    ceilingTextureSize: 128,
+    fogFar: 42,
+    ambientParticleCount: 100
+};
+
+// Read numeric preset value (allows 0 so SIM_SAFE / LOW tiers apply correctly)
+function presetNum(preset, key, defaultVal) {
+    var v = preset[key];
+    if (typeof v === 'number' && !isNaN(v)) return v;
+    var n = parseInt(v, 10);
+    return (n === n) ? n : defaultVal;
+}
+
+// Initialize Three.js scene (uses window.GRAPHICS_PRESET from server when available)
 function initScene() {
     const container = document.getElementById('canvas-container');
-    
+    var preset = (typeof window.GRAPHICS_PRESET === 'object' && window.GRAPHICS_PRESET) ? window.GRAPHICS_PRESET : DEFAULT_GRAPHICS_PRESET;
+
     // Scene - warm living room ambience
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x302a24);
-    scene.fog = new THREE.Fog(0x302a24, 14, 42);
-    
+    var fogFar = presetNum(preset, 'fogFar', 42);
+    scene.fog = new THREE.Fog(0x302a24, 14, Math.max(10, fogFar));
+
     // Camera
     camera = new THREE.PerspectiveCamera(
         75,
@@ -1073,31 +1170,39 @@ function initScene() {
         1000
     );
     camera.position.set(0, 1.5, 5);
-    
-    // Renderer - cinematic quality
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+
+    // Renderer - quality from GPU tier preset
+    var antialias = preset.antialias !== false;
+    renderer = new THREE.WebGLRenderer({ antialias: antialias, alpha: false });
     const w = container.clientWidth || window.innerWidth;
     const h = container.clientHeight || window.innerHeight;
     renderer.setSize(w, h);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    var pixelRatio = presetNum(preset, 'pixelRatio', 1.0);
+    if (pixelRatio > 0) {
+        var deviceRatio = window.devicePixelRatio || 1;
+        renderer.setPixelRatio(Math.min(deviceRatio, pixelRatio));
+    }
+    renderer.shadowMap.enabled = preset.shadowMapEnabled === true;
+    var shadowType = preset.shadowMapType || 'PCFSoftShadowMap';
+    renderer.shadowMap.type = THREE[shadowType] !== undefined ? THREE[shadowType] : THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
+    renderer.toneMappingExposure = Math.max(0.1, presetNum(preset, 'toneMappingExposure', 1.05));
     if (renderer.outputEncoding !== undefined) renderer.outputEncoding = THREE.sRGBEncoding;
     container.appendChild(renderer.domElement);
-    
+
     // Lights - warm, balanced living room
     const ambientLight = new THREE.AmbientLight(0xeed8c0, 0.55);
     scene.add(ambientLight);
-    
+
     const mainLight = new THREE.DirectionalLight(0xfff0e0, 1.0);
     mainLight.position.set(6, 11, 4);
-    mainLight.castShadow = true;
-    mainLight.shadow.mapSize.width = 4096;
-    mainLight.shadow.mapSize.height = 4096;
+    mainLight.castShadow = preset.castShadow === true;
+    var mapSize = Math.max(256, Math.min(8192, presetNum(preset, 'shadowMapSize', 4096)));
+    mainLight.shadow.mapSize.width = mapSize;
+    mainLight.shadow.mapSize.height = mapSize;
     mainLight.shadow.bias = -0.00015;
     mainLight.shadow.normalBias = 0.02;
-    if (mainLight.shadow.radius !== undefined) mainLight.shadow.radius = 2;
+    if (mainLight.shadow.radius !== undefined) mainLight.shadow.radius = Math.max(0, presetNum(preset, 'shadowRadius', 2));
     const shadowCam = mainLight.shadow.camera;
     shadowCam.left = -14;
     shadowCam.right = 14;
@@ -1139,33 +1244,50 @@ function initScene() {
     
     // Add subtle ambient effects
     addAmbientEffects();
-    
+
+    // Expose preset to runtime (for resize and UI)
+    window._graphicsPresetTier = preset._tier || 'MEDIUM';
+    window._graphicsPresetGpu = preset._gpu_name || null;
+    if (document.getElementById('graphics-tier')) {
+        var label = preset._tier || 'MEDIUM';
+        if (preset._gpu_name) label += ' (' + (preset._gpu_name.length > 20 ? preset._gpu_name.substring(0, 17) + '…' : preset._gpu_name) + ')';
+        document.getElementById('graphics-tier').textContent = label;
+    }
+    console.log('[TV Simulator] Graphics preset applied: tier=' + (preset._tier || 'MEDIUM') + (preset._gpu_name ? ' gpu=' + preset._gpu_name : ' (no GPU detected)'));
+
     // Handle window resize
     window.addEventListener('resize', onWindowResize);
-    
+
     // Start animation loop
     animate();
 }
 
-// Create room environment - full living room
+// Create room environment - full living room (texture sizes from GPU preset)
 function createRoom() {
+    var preset = (typeof window.GRAPHICS_PRESET === 'object' && window.GRAPHICS_PRESET) ? window.GRAPHICS_PRESET : DEFAULT_GRAPHICS_PRESET;
+    var floorW = Math.max(64, presetNum(preset, 'floorTextureWidth', 512));
+    var floorH = Math.max(32, presetNum(preset, 'floorTextureHeight', 256));
+    var wallSize = Math.max(32, presetNum(preset, 'wallTextureSize', 256));
+    var ceilingSize = Math.max(16, presetNum(preset, 'ceilingTextureSize', 128));
+    var castShadow = preset.castShadow === true;
+
     roomGroup = new THREE.Group();
 
     // --- Floor: real wood plank style (horizontal strips, full width) ---
     const floorGeometry = new THREE.PlaneGeometry(20, 20);
     const floorCanvas = document.createElement('canvas');
-    floorCanvas.width = 512;
-    floorCanvas.height = 256;
+    floorCanvas.width = floorW;
+    floorCanvas.height = floorH;
     const floorCtx = floorCanvas.getContext('2d');
-    const plankH = 24;
-    for (let py = 0; py < 256; py += plankH) {
+    const plankH = Math.max(8, Math.floor(floorH / 10));
+    for (let py = 0; py < floorH; py += plankH) {
         const v = Math.random();
         const base = v < 0.33 ? '#5a4232' : (v < 0.66 ? '#4d3828' : '#634a38');
         floorCtx.fillStyle = base;
-        floorCtx.fillRect(0, py + 1, 512, plankH - 2);
+        floorCtx.fillRect(0, py + 1, floorW, plankH - 2);
         floorCtx.strokeStyle = 'rgba(0,0,0,0.18)';
         floorCtx.lineWidth = 1;
-        floorCtx.strokeRect(0, py + 1, 512, plankH - 2);
+        floorCtx.strokeRect(0, py + 1, floorW, plankH - 2);
         for (let k = 0; k < 8; k++) {
             floorCtx.fillStyle = `rgba(255,255,255,${0.02 + Math.random() * 0.03})`;
             floorCtx.fillRect(k * 70 + 10, py + 3, 50, plankH - 6);
@@ -1183,23 +1305,23 @@ function createRoom() {
     const floor = new THREE.Mesh(floorGeometry, floorMaterial);
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = 0;
-    floor.receiveShadow = true;
+    floor.receiveShadow = castShadow;
     roomGroup.add(floor);
 
     // --- Walls: real paint look - subtle gradient (slightly lighter at top) + texture ---
     const wallCanvas = document.createElement('canvas');
-    wallCanvas.width = 256;
-    wallCanvas.height = 256;
+    wallCanvas.width = wallSize;
+    wallCanvas.height = wallSize;
     const wallCtx = wallCanvas.getContext('2d');
-    const wallGrad = wallCtx.createLinearGradient(0, 0, 0, 256);
+    const wallGrad = wallCtx.createLinearGradient(0, 0, 0, wallSize);
     wallGrad.addColorStop(0, '#e8dfd2');
     wallGrad.addColorStop(0.5, '#e0d6c6');
     wallGrad.addColorStop(1, '#d8cec0');
     wallCtx.fillStyle = wallGrad;
-    wallCtx.fillRect(0, 0, 256, 256);
-    for (let i = 0; i < 400; i++) {
+    wallCtx.fillRect(0, 0, wallSize, wallSize);
+    for (let i = 0; i < Math.min(400, wallSize * wallSize / 160); i++) {
         wallCtx.fillStyle = `rgba(220,212,200,${0.02 + Math.random() * 0.04})`;
-        wallCtx.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
+        wallCtx.fillRect(Math.random() * wallSize, Math.random() * wallSize, 2, 2);
     }
     const wallTexture = new THREE.CanvasTexture(wallCanvas);
     wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping;
@@ -1213,21 +1335,21 @@ function createRoom() {
     const backWall = new THREE.Mesh(wallGeometry, wallMaterial);
     backWall.position.z = -10;
     backWall.position.y = 5;
-    backWall.receiveShadow = true;
+    backWall.receiveShadow = castShadow;
     roomGroup.add(backWall);
 
     const leftWall = new THREE.Mesh(wallGeometry, wallMaterial);
     leftWall.rotation.y = Math.PI / 2;
     leftWall.position.x = -10;
     leftWall.position.y = 5;
-    leftWall.receiveShadow = true;
+    leftWall.receiveShadow = castShadow;
     roomGroup.add(leftWall);
 
     const rightWall = new THREE.Mesh(wallGeometry, wallMaterial);
     rightWall.rotation.y = -Math.PI / 2;
     rightWall.position.x = 10;
     rightWall.position.y = 5;
-    rightWall.receiveShadow = true;
+    rightWall.receiveShadow = castShadow;
     roomGroup.add(rightWall);
 
     // --- Window (right wall): frame, sill, glass, curtains ---
@@ -1277,14 +1399,14 @@ function createRoom() {
 
     // --- Ceiling: soft warm white (slightly textured) ---
     const ceilingCanvas = document.createElement('canvas');
-    ceilingCanvas.width = 128;
-    ceilingCanvas.height = 128;
+    ceilingCanvas.width = ceilingSize;
+    ceilingCanvas.height = ceilingSize;
     const ceilingCtx = ceilingCanvas.getContext('2d');
     ceilingCtx.fillStyle = '#efe8dc';
-    ceilingCtx.fillRect(0, 0, 128, 128);
-    for (let i = 0; i < 80; i++) {
+    ceilingCtx.fillRect(0, 0, ceilingSize, ceilingSize);
+    for (let i = 0; i < Math.min(80, ceilingSize * ceilingSize / 200); i++) {
         ceilingCtx.fillStyle = `rgba(235,228,218,${0.02 + Math.random() * 0.03})`;
-        ceilingCtx.fillRect(Math.random() * 128, Math.random() * 128, 1, 1);
+        ceilingCtx.fillRect(Math.random() * ceilingSize, Math.random() * ceilingSize, 1, 1);
     }
     const ceilingTexture = new THREE.CanvasTexture(ceilingCanvas);
     ceilingTexture.wrapS = ceilingTexture.wrapT = THREE.RepeatWrapping;
@@ -1994,6 +2116,8 @@ function createRemoteControl() {
     
     // Hand near the remote, not touching (gap so it's clearly separate)
     createHand();
+    // First-person arm (shoulder to wrist), only visible in first-person view
+    createFirstPersonArm();
 }
 
 // Hand under the remote (rounded, readable shape – not touching)
@@ -2041,6 +2165,72 @@ function createHand() {
     handGroup.rotation.z = 0.12;
     handGroup.raycast = function() {};
     remoteGroup.add(handGroup);
+}
+
+// First-person arm: extends from shoulder (near camera) to wrist (hand). Only visible when in first-person "Look at remote" view.
+function createFirstPersonArm() {
+    armGroup = new THREE.Group();
+    const skinColor = 0xC4956A;
+    const skinMaterial = new THREE.MeshStandardMaterial({
+        color: skinColor,
+        roughness: 0.75,
+        metalness: 0.02,
+        emissive: 0x221108,
+        emissiveIntensity: 0.04
+    });
+    // Forearm: cylinder (Y-up, height 1), will be scaled and rotated each frame to span shoulder -> wrist
+    const forearmGeom = new THREE.CylinderGeometry(0.055, 0.07, 1, 12);
+    const forearm = new THREE.Mesh(forearmGeom, skinMaterial);
+    forearm.castShadow = true;
+    forearm.name = 'forearm';
+    armGroup.add(forearm);
+    // Upper arm: slightly thicker, from shoulder to elbow (we'll do one segment for now: shoulder to wrist)
+    // Use a second cylinder for upper arm so we have shoulder->elbow->wrist in first person
+    const upperGeom = new THREE.CylinderGeometry(0.07, 0.08, 1, 12);
+    const upperArm = new THREE.Mesh(upperGeom, skinMaterial);
+    upperArm.castShadow = true;
+    upperArm.name = 'upperArm';
+    armGroup.add(upperArm);
+    armGroup.visible = false;
+    armGroup.raycast = function() {};
+    scene.add(armGroup);
+    // Container that follows the camera in first-person so remote+hand move with the viewer
+    firstPersonHolder = new THREE.Group();
+    firstPersonHolder.raycast = function() {};
+    scene.add(firstPersonHolder);
+}
+
+// Update first-person arm to span from shoulder (derived from camera) to wrist (hand). Call from animate() when firstPersonMode.
+function updateFirstPersonArm() {
+    if (!armGroup || !handGroup || !camera) return;
+    const wrist = new THREE.Vector3(-0.06, 0.02, 0);
+    handGroup.localToWorld(wrist);
+    // Shoulder: in front of and below camera (right arm, so slightly to the right)
+    const camDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+    const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+    const shoulder = camera.position.clone()
+        .add(camRight.clone().multiplyScalar(0.22))
+        .add(new THREE.Vector3(0, -1, 0).multiplyScalar(0.5))
+        .add(camDir.clone().multiplyScalar(-0.35));
+    const forearm = armGroup.getObjectByName('forearm');
+    const upperArm = armGroup.getObjectByName('upperArm');
+    if (!forearm || !upperArm) return;
+    // Elbow: 45% along from shoulder to wrist for a natural bend
+    const elbow = new THREE.Vector3().lerpVectors(shoulder, wrist, 0.45);
+    const dirUpper = new THREE.Vector3().subVectors(elbow, shoulder).normalize();
+    const lenUpper = shoulder.distanceTo(elbow);
+    const dirForearm = new THREE.Vector3().subVectors(wrist, elbow).normalize();
+    const lenForearm = elbow.distanceTo(wrist);
+    const yUp = new THREE.Vector3(0, 1, 0);
+    // Upper arm: center at midpoint, Y axis along dirUpper
+    upperArm.position.copy(shoulder).add(elbow).multiplyScalar(0.5);
+    upperArm.scale.set(1, lenUpper, 1);
+    upperArm.quaternion.setFromUnitVectors(yUp, dirUpper);
+    // Forearm: center at midpoint elbow-wrist
+    forearm.position.copy(elbow).add(wrist).multiplyScalar(0.5);
+    forearm.scale.set(1, lenForearm, 1);
+    forearm.quaternion.setFromUnitVectors(yUp, dirForearm);
+    armGroup.visible = true;
 }
 
 // Helper function to create label planes (simplified text representation)
@@ -2959,37 +3149,33 @@ function updateTVScreen(state) {
     
     screenMesh.material.needsUpdate = true;
     
-    // Capture frame for streaming API (send every ~200ms to avoid overload)
-    if (socket && socket.connected) {
-        captureAndSendFrame(canvas);
+    // Capture frame for streaming API: process and send when TV has content (throttled)
+    if (socket && socket.connected && canvas) {
+        captureAndSendFrame(canvas, effectivePoweredOn);
     }
 }
 
-// Frame capture for streaming API
+// Frame capture for streaming API - ensures /api/frame is always processing latest TV output
 let lastFrameSent = 0;
-const FRAME_SEND_INTERVAL = 200; // Send frame every 200ms (5 FPS for API)
+const FRAME_SEND_INTERVAL = 200; // Send every 200ms (~5 FPS) to avoid overload; server always has recent frame
 
-function captureAndSendFrame(canvas) {
+function captureAndSendFrame(canvas, _isTVOn) {
+    if (!canvas || typeof canvas.toDataURL !== 'function') return;
     const now = Date.now();
-    if (now - lastFrameSent < FRAME_SEND_INTERVAL) {
-        return; // Skip if too soon
-    }
+    if (now - lastFrameSent < FRAME_SEND_INTERVAL) return;
     lastFrameSent = now;
-    
     try {
-        // Convert canvas to base64
         const frameData = canvas.toDataURL('image/png');
-        // Remove data URL prefix (data:image/png;base64,)
         const base64Data = frameData.split(',')[1];
-        
-        // Send to server via WebSocket
-        socket.emit('frame_update', {
-            frame_data: base64Data,
-            width: canvas.width,
-            height: canvas.height,
-            format: 'png',
-            timestamp: now
-        });
+        if (base64Data) {
+            socket.emit('frame_update', {
+                frame_data: base64Data,
+                width: canvas.width,
+                height: canvas.height,
+                format: 'png',
+                timestamp: now
+            });
+        }
     } catch (error) {
         console.warn('[Frame Capture] Error capturing frame:', error);
     }
@@ -5396,6 +5582,7 @@ function initControls() {
     });
     
     canvas.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return; // only left button starts drag
         mouseDownPosition = { x: e.clientX, y: e.clientY };
         previousMousePosition = { x: e.clientX, y: e.clientY };
         isDragging = false; // will set true in mousemove once past threshold
@@ -5435,22 +5622,24 @@ function initControls() {
         if (!isDragging) return;
         const deltaX = e.clientX - previousMousePosition.x;
         const deltaY = e.clientY - previousMousePosition.y;
-        // Use target (not lerped current) so orbit center is stable – no drift toward TV
+        // Use TARGET position for orbit (not lerped current) so orbit is stable and doesn't drift toward TV
         const orbitCenter = targetCameraLookAt.clone();
-        cameraDistance = currentCameraPosition.distanceTo(orbitCenter);
+        cameraDistance = targetCameraPosition.distanceTo(orbitCenter);
         const spherical = new THREE.Spherical();
-        spherical.setFromVector3(currentCameraPosition.clone().sub(orbitCenter));
+        spherical.setFromVector3(targetCameraPosition.clone().sub(orbitCenter));
         spherical.theta -= deltaX * 0.01;
         spherical.phi += deltaY * 0.01;
         spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
-        targetCameraPosition = new THREE.Vector3().setFromSpherical(spherical).add(orbitCenter);
+        targetCameraPosition.copy(new THREE.Vector3().setFromSpherical(spherical).add(orbitCenter));
         targetCameraLookAt.copy(orbitCenter);
         previousMousePosition = { x: e.clientX, y: e.clientY };
     });
     
-    canvas.addEventListener('mouseup', () => {
-        isDragging = false;
-        canvas.style.cursor = 'grab';
+    canvas.addEventListener('mouseup', (e) => {
+        if (e.button === 0) {
+            isDragging = false;
+            canvas.style.cursor = 'grab';
+        }
     });
     
     canvas.style.cursor = 'grab';
@@ -5470,17 +5659,55 @@ function initControls() {
         if (e.repeat) return; // ignore key hold so orbit/scroll don't get overwritten by repeated reset
         if (e.code === 'Space') {
             e.preventDefault();
+            firstPersonMode = false;
+            if (armGroup) armGroup.visible = false;
+            if (remoteGroup && firstPersonHolder && remoteGroup.parent === firstPersonHolder) {
+                if (remoteGroup.parent) remoteGroup.parent.remove(remoteGroup);
+                scene.add(remoteGroup);
+                remoteGroup.position.copy(remoteLookClose.basePosition);
+                remoteGroup.rotation.set(0, remoteLookClose.baseRotationY, 0);
+                remoteGroup.scale.setScalar(remoteLookClose.baseScale);
+            }
             targetCameraPosition.set(0, 1.5, 5);
             targetCameraLookAt.copy(TV_CENTER);
+            snapCameraToTarget();
             document.getElementById('btn-zoom-tv')?.classList.remove('active');
             document.getElementById('btn-look-remote')?.classList.remove('active');
         } else if (e.code === 'Digit1') {
+            firstPersonMode = false;
+            if (armGroup) armGroup.visible = false;
+            if (remoteGroup && firstPersonHolder && remoteGroup.parent === firstPersonHolder) {
+                if (remoteGroup.parent) remoteGroup.parent.remove(remoteGroup);
+                scene.add(remoteGroup);
+                remoteGroup.position.copy(remoteLookClose.basePosition);
+                remoteGroup.rotation.set(0, remoteLookClose.baseRotationY, 0);
+                remoteGroup.scale.setScalar(remoteLookClose.baseScale);
+            }
             targetCameraPosition.set(0, 1.5, 5);
             targetCameraLookAt.copy(TV_CENTER);
+            snapCameraToTarget();
         } else if (e.code === 'Digit2') {
+            firstPersonMode = false;
+            if (armGroup) armGroup.visible = false;
+            if (remoteGroup && firstPersonHolder && remoteGroup.parent === firstPersonHolder) {
+                if (remoteGroup.parent) remoteGroup.parent.remove(remoteGroup);
+                scene.add(remoteGroup);
+                remoteGroup.position.copy(remoteLookClose.basePosition);
+                remoteGroup.rotation.set(0, remoteLookClose.baseRotationY, 0);
+                remoteGroup.scale.setScalar(remoteLookClose.baseScale);
+            }
             targetCameraPosition.set(5, 1.5, 0);
             targetCameraLookAt.copy(TV_CENTER);
         } else if (e.code === 'Digit3') {
+            firstPersonMode = false;
+            if (armGroup) armGroup.visible = false;
+            if (remoteGroup && firstPersonHolder && remoteGroup.parent === firstPersonHolder) {
+                if (remoteGroup.parent) remoteGroup.parent.remove(remoteGroup);
+                scene.add(remoteGroup);
+                remoteGroup.position.copy(remoteLookClose.basePosition);
+                remoteGroup.rotation.set(0, remoteLookClose.baseRotationY, 0);
+                remoteGroup.scale.setScalar(remoteLookClose.baseScale);
+            }
             targetCameraPosition.set(0, 8, 0);
             targetCameraLookAt.copy(TV_CENTER);
         } else if (e.code === 'Digit4') {
@@ -5519,19 +5746,67 @@ function initControls() {
     
     window.updateCamera = updateCamera;
     
+    // Snap camera current to target so view switch doesn't lerp from old position (fixes broken POV)
+    function snapCameraToTarget() {
+        currentCameraPosition.copy(targetCameraPosition);
+        currentCameraLookAt.copy(targetCameraLookAt);
+        camera.position.copy(currentCameraPosition);
+        camera.lookAt(currentCameraLookAt);
+    }
+
     // Only these two + keydown above set target* – no camera orientation or other logic
     window.switchViewToTVZoom = function() {
+        firstPersonMode = false;
+        if (armGroup) armGroup.visible = false;
+        if (remoteGroup && firstPersonHolder && remoteGroup.parent === firstPersonHolder) {
+            if (remoteGroup.parent) remoteGroup.parent.remove(remoteGroup);
+            scene.add(remoteGroup);
+            remoteGroup.position.copy(remoteLookClose.basePosition);
+            remoteGroup.rotation.set(0, remoteLookClose.baseRotationY, 0);
+            remoteGroup.scale.setScalar(remoteLookClose.baseScale);
+        }
         targetCameraPosition.set(0, 1.2, -5.6);
         targetCameraLookAt.copy(TV_CENTER);
         cameraDistance = 2.5;
+        snapCameraToTarget();
         document.getElementById('btn-zoom-tv')?.classList.add('active');
         document.getElementById('btn-look-remote')?.classList.remove('active');
     };
+    // Toggle: press once = lock into first-person (look at remote), press again = release to default view
     window.switchViewToRemote = function() {
+        if (firstPersonMode) {
+            // Already in first-person: release back to default TV view
+            firstPersonMode = false;
+            if (armGroup) armGroup.visible = false;
+            if (remoteGroup && firstPersonHolder && remoteGroup.parent === firstPersonHolder) {
+                if (remoteGroup.parent) remoteGroup.parent.remove(remoteGroup);
+                scene.add(remoteGroup);
+                remoteGroup.position.copy(remoteLookClose.basePosition);
+                remoteGroup.rotation.set(0, remoteLookClose.baseRotationY, 0);
+                remoteGroup.scale.setScalar(remoteLookClose.baseScale);
+            }
+            targetCameraPosition.set(0, 1.5, 5);
+            targetCameraLookAt.copy(TV_CENTER);
+            cameraDistance = 5;
+            snapCameraToTarget();
+            document.getElementById('btn-look-remote')?.classList.remove('active');
+            return;
+        }
+        firstPersonMode = true;
         var r = remoteLookClose.basePosition;
-        targetCameraPosition.set(r.x, r.y + 0.65, r.z + 1.0);
+        // First-person: eye position (slightly back and up), looking at the remote
+        targetCameraPosition.set(r.x, r.y + 0.6, r.z + 1.5);
         targetCameraLookAt.set(r.x, r.y, r.z);
         cameraDistance = 1.8;
+        // Attach remote+hand to holder that follows camera so they move with the viewer
+        if (remoteGroup && firstPersonHolder) {
+            if (remoteGroup.parent) remoteGroup.parent.remove(remoteGroup);
+            remoteGroup.position.set(0, -0.35, -1.05);
+            remoteGroup.rotation.set(0.25, 0, 0.05);
+            remoteGroup.scale.setScalar(1);
+            firstPersonHolder.add(remoteGroup);
+        }
+        snapCameraToTarget();
         document.getElementById('btn-zoom-tv')?.classList.remove('active');
         document.getElementById('btn-look-remote')?.classList.add('active');
     };
@@ -5951,21 +6226,49 @@ function animate() {
         }
     }
     
-    // Animate button press feedback
+    // Animate button press feedback (green highlight + press-in, then fade out)
     if (activeButton && Date.now() - buttonPressTime < 200) {
         const elapsed = Date.now() - buttonPressTime;
         const intensity = 1 - (elapsed / 200);
-        activeButton.material.emissiveIntensity = intensity;
-        activeButton.position.z = 0.03 - (intensity * 0.01);
+        if (activeButton.isGroup) {
+            activeButton.children.forEach(child => {
+                if (child.material && child.material.emissiveIntensity !== undefined) {
+                    child.material.emissiveIntensity = intensity * 0.8;
+                }
+            });
+            activeButton.position.z = -0.01 + (elapsed / 200) * 0.04; // Ease back from press
+        } else if (activeButton.material) {
+            activeButton.material.emissiveIntensity = intensity;
+            activeButton.position.z = 0.03 - (intensity * 0.01);
+        }
     } else if (activeButton) {
-        activeButton.material.emissive.setHex(0x000000);
-        activeButton.material.emissiveIntensity = 0;
-        activeButton.position.z = 0.03;
+        if (activeButton.isGroup) {
+            activeButton.children.forEach(child => {
+                if (child.material && child.material.emissive) {
+                    child.material.emissive.setHex(0x000000);
+                    child.material.emissiveIntensity = 0;
+                }
+            });
+            activeButton.position.z = 0;
+        } else if (activeButton.material) {
+            activeButton.material.emissive.setHex(0x000000);
+            activeButton.material.emissiveIntensity = 0;
+            activeButton.position.z = 0.03;
+        }
         activeButton = null;
     }
     
-    // Subtle floating for remote
-    if (remoteGroup) {
+    // First-person: holder (and thus remote+hand) follows camera so arm/hand move with you
+    if (firstPersonMode && firstPersonHolder) {
+        firstPersonHolder.position.copy(camera.position);
+        firstPersonHolder.quaternion.copy(camera.quaternion);
+        updateFirstPersonArm();
+    } else if (armGroup) {
+        armGroup.visible = false;
+    }
+
+    // Subtle floating for remote (only when not in first-person)
+    if (remoteGroup && !firstPersonMode) {
         const time = Date.now() * 0.001;
         remoteGroup.position.y = remoteLookClose.basePosition.y + Math.sin(time) * 0.02;
         remoteGroup.rotation.y = remoteLookClose.baseRotationY + Math.sin(time * 0.5) * 0.05;
@@ -5993,31 +6296,37 @@ function animate() {
     renderer.render(scene, camera);
 }
 
-// Add ambient effects for immersion
+// Add ambient effects for immersion (particle count from GPU preset)
 function addAmbientEffects() {
-    // Add subtle particles/dust in the air
-    const particleCount = 100;
+    var preset = (typeof window.GRAPHICS_PRESET === 'object' && window.GRAPHICS_PRESET) ? window.GRAPHICS_PRESET : DEFAULT_GRAPHICS_PRESET;
+    var particleCount = Math.max(0, presetNum(preset, 'ambientParticleCount', 100));
+
+    if (particleCount <= 0) {
+        window.animateParticles = function() {};
+        return;
+    }
+
     const particles = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
-    
+
     for (let i = 0; i < particleCount * 3; i += 3) {
         positions[i] = (Math.random() - 0.5) * 20;
         positions[i + 1] = Math.random() * 10;
         positions[i + 2] = (Math.random() - 0.5) * 20;
     }
-    
+
     particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    
+
     const particleMaterial = new THREE.PointsMaterial({
         color: 0xffffff,
         size: 0.05,
         transparent: true,
         opacity: 0.3
     });
-    
+
     const particleSystem = new THREE.Points(particles, particleMaterial);
     scene.add(particleSystem);
-    
+
     // Animate particles
     function animateParticles() {
         const positions = particles.attributes.position.array;
@@ -6029,11 +6338,11 @@ function addAmbientEffects() {
         }
         particles.attributes.position.needsUpdate = true;
     }
-    
+
     window.animateParticles = animateParticles;
 }
 
-// Handle window resize
+// Handle window resize (re-apply preset pixel ratio so runtime keeps GPU tier limits)
 function onWindowResize() {
     const container = document.getElementById('canvas-container');
     const w = container ? container.clientWidth : window.innerWidth;
@@ -6041,6 +6350,12 @@ function onWindowResize() {
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     renderer.setSize(w, h);
+    var preset = (typeof window.GRAPHICS_PRESET === 'object' && window.GRAPHICS_PRESET) ? window.GRAPHICS_PRESET : DEFAULT_GRAPHICS_PRESET;
+    var pixelRatio = presetNum(preset, 'pixelRatio', 1.0);
+    if (pixelRatio > 0 && renderer.setPixelRatio) {
+        var deviceRatio = window.devicePixelRatio || 1;
+        renderer.setPixelRatio(Math.min(deviceRatio, pixelRatio));
+    }
 }
 
 // Initialize everything

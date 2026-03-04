@@ -168,6 +168,8 @@
         }
         #btn-look-remote:hover { background: rgba(33, 150, 243, 1); }
         #btn-look-remote.active { background: rgba(25, 118, 210, 1); }
+        .remote-style-btn { padding: 8px 14px; font-size: 12px; }
+        .remote-style-btn.active { background: rgba(76, 175, 80, 1); border-color: rgba(255,255,255,0.5); }
     </style>
 </head>
 <body>
@@ -199,6 +201,10 @@
                 <span class="status-label">Game Mode:</span>
                 <span class="status-value" id="game-mode-status">OFF</span>
             </div>
+            <div class="status-item" id="graphics-tier-item">
+                <span class="status-label">Graphics:</span>
+                <span class="status-value" id="graphics-tier">-</span>
+            </div>
             <div class="status-item" id="last-button-item" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #333;">
                 <span class="status-label">Last Button:</span>
                 <span class="status-value" id="last-button" style="color: #FFC107;">-</span>
@@ -208,17 +214,24 @@
         <div id="notification"></div>
         
         <button type="button" id="btn-zoom-tv" class="view-btn" title="Zoom in on the TV" onclick="switchViewToTVZoom()">Zoom on TV</button>
-        <button type="button" id="btn-look-remote" class="view-btn" title="Look down at the remote like you're holding it" onclick="switchViewToRemote()">Look at remote</button>
+        <button type="button" id="btn-look-remote" class="view-btn" title="First-person view: your arm extends to the remote" onclick="switchViewToRemote()">First person (arm + remote)</button>
+        
+        <div id="remote-style" style="position: absolute; bottom: 20px; right: 20px; z-index: 101; display: flex; gap: 8px; align-items: center;">
+            <span style="color: #aaa; font-size: 12px;">Remote:</span>
+            <button type="button" id="btn-remote-handheld" class="view-btn remote-style-btn active" title="Handheld physical remote" onclick="switchRemoteStyle('handheld')">Handheld</button>
+            <button type="button" id="btn-remote-digital" class="view-btn remote-style-btn" title="Flat screen digital / tablet remote" onclick="switchRemoteStyle('digital')">Digital</button>
+        </div>
         
         <div id="controls">
             <h3>Controls</h3>
             <p><strong>Zoom on TV:</strong> Close-up view of the TV</p>
-            <p><strong>Look at remote:</strong> View from above as if holding the remote</p>
+            <p><strong>First person (arm + remote):</strong> Your view with an arm extending to the remote</p>
             <p><strong>P:</strong> Power (turn TV on/off)</p>
             <p><strong>U / D:</strong> Volume up / down</p>
             <p><strong>Mouse:</strong> Click & drag to rotate camera</p>
             <p><strong>Wheel:</strong> Zoom in/out</p>
             <p><strong>Click Remote:</strong> Press buttons on 3D remote!</p>
+            <p><strong>Remote style:</strong> Choose <strong>Handheld</strong> (physical) or <strong>Digital</strong> (flat screen) in the bottom-right.</p>
             <p><strong>Space:</strong> Reset camera</p>
             <p><strong>1-4:</strong> Camera presets</p>
             <p style="margin-top: 10px; color: #4CAF50; font-weight: bold;">
@@ -239,9 +252,20 @@
         window.BUTTON_CODES_FROM_C = {};
         for (var k in raw) { window.BUTTON_CODES_FROM_C[parseInt(k, 10)] = raw[k]; }
     })();
+    // GPU tier-based graphics preset (from server: detector + tier classifier + preset mapper)
+    window.GRAPHICS_PRESET = {{ graphics_preset_json|default('{}')|safe }};
     </script>
     <script src="/static/js/ir-visualization.js"></script>
-    <script src="/static/js/tv-simulator.js"></script>
+    <script src="/static/js/simulator/globals.js"></script>
+    <script src="/static/js/simulator/utils.js"></script>
+    <script src="/static/js/simulator/animations.js"></script>
+    <script src="/static/js/simulator/socket-state.js"></script>
+    <script src="/static/js/simulator/scene.js"></script>
+    <script src="/static/js/simulator/ir-remote.js"></script>
+    <script src="/static/js/simulator/shows.js"></script>
+    <script src="/static/js/simulator/screen.js"></script>
+    <script src="/static/js/simulator/controls.js"></script>
+    <script src="/static/js/simulator/main.js"></script>
 </body>
 </html>
 
