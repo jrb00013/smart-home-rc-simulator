@@ -20,7 +20,7 @@ def check_file_structure():
         'virtual_tv.py',
         'ipc_server.py',
         'web_templates/index.html',
-        'web_static/js/tv-simulator.js',
+        'web_static/js/simulator/main.js',
     ]
     
     all_present = True
@@ -107,7 +107,7 @@ def check_web_files():
     print("=" * 60)
     
     html_file = 'web_templates/index.html'
-    js_file = 'web_static/js/tv-simulator.js'
+    js_file = 'web_static/js/simulator/main.js'
     
     all_ok = True
     
@@ -126,13 +126,11 @@ def check_web_files():
     if os.path.exists(js_file):
         with open(js_file, 'r', encoding='utf-8') as f:
             js = f.read()
-        required_funcs = ['initSocket', 'initScene', 'createTV', 'updateTVScreen']
-        for func in required_funcs:
-            if func in js:
-                print(f"[OK] {js_file} - Has {func}")
-            else:
-                print(f"[WARNING] {js_file} - Missing {func}")
-                all_ok = False
+        if 'function animate' in js and 'initScene' in js:
+            print(f"[OK] {js_file} - animation loop and init entry")
+        else:
+            print(f"[WARNING] {js_file} - missing animate or initScene reference")
+            all_ok = False
     else:
         print(f"[ERROR] {js_file} not found")
         all_ok = False

@@ -58,21 +58,23 @@ class TestStreamingServices:
     ])
     def test_streaming_service(self, server_running, ensure_tv_on, service_name, button_code):
         """Test each streaming service"""
-        press_button(button_code, delay=1.2)  # Wait for animation
-        
-        # Allow a short moment for state to propagate (avoid race with broadcast)
-        state = None
-        for _ in range(5):
+        # Ensure TV is actually on (poll in case ensure_tv_on sleep was not enough)
+        for _ in range(10):
             state = get_state()
-            if state is not None and state.get('current_app') is not None:
+            if state is not None and state.get('powered_on'):
                 break
-            time.sleep(0.3)
-        if state is None:
+            time.sleep(0.5)
+        press_button(button_code, delay=2.0)
+        state = None
+        for _ in range(20):
             state = get_state()
-        assert state is not None
-        current_app = state.get('current_app')
-        # App should match or be in transition
-        assert current_app == service_name or current_app is not None
+            if state is not None and state.get('current_app') == service_name:
+                break
+            time.sleep(0.5)
+        assert state is not None, "get_state() returned None"
+        assert state.get('current_app') == service_name, (
+            f"Expected current_app={service_name!r}, got {state.get('current_app')!r} (powered_on={state.get('powered_on')})"
+        )
 
 
 class TestChannelChanges:
@@ -82,13 +84,21 @@ class TestChannelChanges:
         """Test channel up button"""
         initial_state = get_state()
         initial_channel = initial_state.get('channel', 1) if initial_state else 1
-        
-        press_button(BUTTON_CODES['Channel Up'])
-        
-        new_state = get_state()
-        new_channel = new_state.get('channel', 1) if new_state else 1
-        
-        assert new_channel > initial_channel or new_channel == 1  # Wraps around
+
+        press_button(BUTTON_CODES['Channel Up'], delay=0.6)
+        new_state = None
+        for _ in range(10):
+            new_state = get_state()
+            if new_state is not None:
+                new_channel = new_state.get('channel', 1)
+                if new_channel != initial_channel:
+                    break
+            time.sleep(0.3)
+        assert new_state is not None
+        new_channel = new_state.get('channel', 1)
+        assert new_channel > initial_channel or new_channel == 1, (
+            f"Channel should increase or wrap to 1: initial={initial_channel}, got {new_channel}"
+        )
     
     def test_channel_down(self, server_running, ensure_tv_on):
         """Test channel down button"""

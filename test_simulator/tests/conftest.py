@@ -76,7 +76,12 @@ def ensure_tv_on(server_running):
     state = requests.get(STATE_URL, timeout=2).json()
     if not state.get('powered_on'):
         requests.post(API_URL, json={'button_code': BUTTON_CODES['Power']}, timeout=2)
-        time.sleep(2.5)  # Wait for power-on animation
+        # Poll until TV is on (handles slow power-on)
+        for _ in range(15):
+            time.sleep(0.5)
+            state = requests.get(STATE_URL, timeout=2).json()
+            if state.get('powered_on'):
+                break
     yield
     # Cleanup: turn TV off after test
     state = requests.get(STATE_URL, timeout=2).json()

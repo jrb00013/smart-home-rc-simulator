@@ -1,6 +1,6 @@
 """
 Map GPU tier to simulator graphics preset.
-Preset keys match what tv-simulator.js uses (renderer, shadows, textures, fog, particles).
+Preset keys match what the simulator uses (simulator/preset.js, scene.js, main.js).
 Each tier produces distinct values so the client applies different graphics and textures
 (ULTRA/HIGH/MEDIUM/LOW/SIM_SAFE). Supports multiple GPUs (server picks best by VRAM)
 and CPU-only/headless (SIM_SAFE).
@@ -12,7 +12,7 @@ class GraphicsPresetMapper:
 
     def map(self, tier):
         """
-        Return preset dict for the simulator. Keys are consumed by tv-simulator.js.
+        Return preset dict for the simulator. Keys are consumed by simulator preset/scene/main.
         """
         presets = {
             "ULTRA": self._ultra(),
