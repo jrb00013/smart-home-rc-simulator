@@ -1,0 +1,37 @@
+{
+  "default_backend": "simulator",
+  "simulator_api": "http://localhost:5000",
+  "api_key": null,
+  "webhook_url": null,
+  "webhook_events": ["state_change"],
+  "mqtt": {
+    "enabled": false,
+    "broker": "localhost",
+    "port": 1883,
+    "topic_prefix": "tv_remote",
+    "username": null,
+    "password": null,
+    "subscribe_commands": false
+  },
+  "webhook_headers": {},
+  "backends": {
+    "simulator": {
+      "backend": "simulator"
+    },
+    "living_room_tv": {
+      "backend": "broadlink",
+      "host": "192.168.1.100",
+      "code_map": {}
+    },
+    "samsung_bedroom": {
+      "backend": "samsung",
+      "host": "192.168.1.101",
+      "port": 8002
+    },
+    "lg_office": {
+      "backend": "lg",
+      "host": "192.168.1.102",
+      "port": 3000
+    }
+  }
+}

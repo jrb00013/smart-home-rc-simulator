@@ -1,0 +1,256 @@
+openapi: 3.0.3
+info:
+  title: TV Remote API
+  description: |
+    Remote-as-a-service: control a TV (simulator or real device via adapters).
+    Optional API key via X-API-Key header or Authorization: Bearer <key>.
+    Webhooks and MQTT can be configured in service_config.json.
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000
+    description: Local simulator
+paths:
+  /api/health:
+    get:
+      summary: Health check
+      operationId: health
+      responses:
+        '200':
+          description: Service healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  service: { type: string, example: tv_remote }
+                  version: { type: string }
+                  simulator: { type: boolean }
+  /api/state:
+    get:
+      summary: Get current TV state
+      operationId: getState
+      responses:
+        '200':
+          description: Current TV state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TVState'
+  /api/button:
+    post:
+      summary: Send button code
+      operationId: sendButton
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [button_code]
+              properties:
+                button_code:
+                  type: integer
+                  description: Button code (e.g. 16 = Power)
+                from_hardware:
+                  type: boolean
+                  default: true
+      responses:
+        '200':
+          description: Button sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: success }
+                  button_code: { type: integer }
+        '400':
+          description: Invalid button_code
+  /api/detect-brand:
+    post:
+      summary: Detect TV brand from text (keyword matching)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text: { type: string }
+                query: { type: string }
+      responses:
+        '200':
+          description: Detected brand
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  brand: { type: string }
+                  brand_id: { type: integer }
+                  confidence: { type: number }
+  /api/frame:
+    get:
+      summary: Get current TV frame (PNG or JSON)
+      parameters:
+        - name: format
+          in: query
+          schema: { type: string, enum: [png, json, jpeg] }
+          description: png (default), json (base64), or jpeg
+      responses:
+        '200':
+          description: Frame image or JSON
+  /api/frame/info:
+    get:
+      summary: Get frame metadata
+      responses:
+        '200':
+          description: has_frame, timestamp, width, height, format, age_seconds
+  /api/graphics-preset:
+    get:
+      summary: Get GPU graphics preset (tier, shadowMapSize, etc.)
+      parameters:
+        - name: refresh
+          in: query
+          schema: { type: string, enum: ['1'] }
+      responses:
+        '200':
+          description: Preset object
+    post:
+      summary: Set graphics config (tier override)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                use_auto: { type: boolean }
+                tier_override: { type: string }
+      responses:
+        '200':
+          description: ok, preset
+  /api/backends:
+    get:
+      summary: List available backends (simulator, broadlink, samsung, lg, cec)
+      responses:
+        '200':
+          description: List of backend names
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: string }
+  /api/backends/status:
+    get:
+      summary: Backend availability status
+      responses:
+        '200':
+          description: Map of backend name to { name, available }
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  properties:
+                    name: { type: string }
+                    available: { type: boolean }
+  /api/backends/broadlink/learn:
+    post:
+      summary: Learn IR code from Broadlink device
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                host: { type: string, description: Broadlink device IP }
+                timeout_sec: { type: integer, default: 10 }
+      responses:
+        '200':
+          description: Learned IR hex
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  ir_hex: { type: string }
+                  host: { type: string }
+        '400':
+          description: host required
+        '408':
+          description: Learning timeout
+        '501':
+          description: Broadlink not installed or device does not support learning
+  /api/presets:
+    get:
+      summary: List presets from autonomous_config
+      responses:
+        '200':
+          description: Presets and default_target
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  presets: { type: array }
+                  default_target: { type: string }
+  /api/preset/{preset_name}/trigger:
+    post:
+      summary: Run a preset (button sequence)
+      parameters:
+        - name: preset_name
+          in: path
+          required: true
+          schema: { type: string }
+        - name: target
+          in: query
+          schema: { type: string, default: simulator }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                target: { type: string }
+      responses:
+        '200':
+          description: Preset executed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  preset: { type: string }
+                  target: { type: string }
+                  buttons_sent: { type: integer }
+        '404':
+          description: Preset not found
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Optional; required if service_config.api_key is set
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: API key
+  security: []
+  schemas:
+    TVState:
+      type: object
+      properties:
+        powered_on: { type: boolean }
+        volume: { type: integer }
+        channel: { type: integer }
+        muted: { type: boolean }
+        current_app: { type: [ 'string', 'null' ] }
+        input_source: { type: string }
+        game_mode: { type: boolean }
+        last_button: { type: [ 'string', 'null' ] }
+        detected_brand: { type: [ 'string', 'null' ] }
+        detected_brand_id: { type: integer }

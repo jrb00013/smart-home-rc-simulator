@@ -1,0 +1,12 @@
+# Dependencies and local state
+.venv
+venv
+env
+__pycache__
+*.pyc
+.pytest_cache
+.git
+*.md
+# Optional: don't bake secrets into image
+service_config.json
+graphics_config.json
