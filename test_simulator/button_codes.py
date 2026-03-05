@@ -118,6 +118,18 @@ BUTTON_CODES = {
     0xF1: "Room: Upstairs Bedroom",
     0xF2: "Room: Upstairs Bathroom",
     0xF3: "Room: Hood Light",
+    0xF4: "Room: Thermostat Up",
+    0xF5: "Room: Thermostat Down",
+    0xF6: "Room: AC On",
+    0xF7: "Room: Heating On",
+    0xF8: "Room: Garage Door",
+    0xF9: "Room: Door Lock",
+    0xFA: "Room: Security Arm",
+    0xFB: "Room: Blinds Open",
+    0xFC: "Room: Blinds Close",
+    0xFD: "Room: Ceiling Fan",
+    0xFE: "Room: Living Room Light",
+    0xFF: "Room: Dining Room Light",
 }
 
 

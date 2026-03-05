@@ -1,8 +1,83 @@
+// Helper function to get button symbol/icon
+function getButtonSymbol(buttonCode, buttonName) {
+    const symbols = {
+        // Basic controls
+        0x10: '⏻', // Power
+        0x11: '🔊', // Volume Up
+        0x12: '🔉', // Volume Down
+        0x13: '🔇', // Mute
+        0x14: '⬆', // Channel Up
+        0x15: '⬇', // Channel Down
+        // Navigation
+        0x20: '🏠', // Home
+        0x21: '☰', // Menu
+        0x22: '◀', // Back
+        0x23: '✕', // Exit
+        0x24: '⚙', // Options
+        0x25: '📥', // Input
+        0x26: '📺', // Source
+        // D-pad
+        0x30: '▲', // Up
+        0x31: '▼', // Down
+        0x32: '◀', // Left
+        0x33: '▶', // Right
+        0x34: '✓', // OK
+        0x35: '↵', // Enter
+        // Playback
+        0x40: '▶', // Play
+        0x41: '⏸', // Pause
+        0x42: '⏹', // Stop
+        0x43: '⏩', // Fast Forward
+        0x44: '⏪', // Rewind
+        0x45: '●', // Record
+        // Streaming
+        0x01: 'YT', // YouTube
+        0x02: 'NF', // Netflix
+        0x03: 'PR', // Amazon Prime
+        0x04: 'HB', // HBO Max
+        // Smart Home - Scenes
+        0xE0: '🎬', // Movie
+        0xE1: '😌', // Relax
+        0xE2: '🌙', // Off
+        0xE3: '💡', // Lights Dim
+        0xE4: '💡', // Lights Full
+        // Smart Home - Devices
+        0xE5: '🔌', // Plug 1
+        0xE6: '🔊', // Speaker
+        0xE7: '🌈', // Ambient
+        0xE8: '🔌', // Plug 2
+        0xE9: '🔌', // Plug 3
+        0xEA: '💡', // Kitchen Light
+        0xEB: '❄', // Fridge
+        0xEC: '🔥', // Oven
+        0xED: '💡', // Bedroom Lamp
+        0xEE: '💡', // Bathroom Light
+        0xEF: '💡', // Upstairs Hall
+        0xF0: '💡', // Entry Light
+        0xF1: '💡', // Upstairs Bedroom
+        0xF2: '💡', // Upstairs Bathroom
+        0xF3: '💡', // Hood Light
+        0xF4: '🌡', // Thermostat Up
+        0xF5: '🌡', // Thermostat Down
+        0xF6: '❄', // AC On
+        0xF7: '🔥', // Heating On
+        0xF8: '🚗', // Garage Door
+        0xF9: '🔒', // Door Lock
+        0xFA: '🛡', // Security Arm
+        0xFB: '🪟', // Blinds Open
+        0xFC: '🪟', // Blinds Close
+        0xFD: '🌀', // Ceiling Fan
+        0xFE: '💡', // Living Room Light
+        0xFF: '💡', // Dining Room Light
+    };
+    return symbols[buttonCode] || buttonName.substring(0, 2).toUpperCase();
+}
+
 function createRemoteControl() {
     remoteGroup = new THREE.Group();
     
-    // Remote body with rounded edges (using beveled box)
-    const bodyGeometry = new THREE.BoxGeometry(0.3, 0.8, 0.05, 8, 8, 1);
+    // Remote body - made larger to fit all buttons (0.4 wide, 1.4 tall)
+    const bodyGeometry = new THREE.BoxGeometry(0.4, 1.4, 0.05, 8, 8, 1);
     const bodyMaterial = new THREE.MeshStandardMaterial({
         color: 0x1a1a1a,
         roughness: 0.3,
@@ -17,7 +92,7 @@ function createRemoteControl() {
     remoteMesh = body;
     
     // Add subtle texture detail with a darker front panel
-    const frontPanelGeometry = new THREE.PlaneGeometry(0.28, 0.78);
+    const frontPanelGeometry = new THREE.PlaneGeometry(0.38, 1.38);
     const frontPanelMaterial = new THREE.MeshStandardMaterial({
         color: 0x151515,
         roughness: 0.5,
@@ -36,73 +111,215 @@ function createRemoteControl() {
         metalness: 0.2
     });
     const logo = new THREE.Mesh(logoGeometry, logoMaterial);
-    logo.position.set(0, 0.35, 0.027);
+    logo.position.set(0, 0.65, 0.027);
     logo.raycast = function() {}; // don't block button clicks
     remoteGroup.add(logo);
     
-    // Power button (top)
-    const powerButton = createButton(0.08, 0.08, 0x10, 'Power', 0xff0000);
-    powerButton.position.set(0, 0.3, 0.03);
-    remoteGroup.add(powerButton);
+    let yPos = 0.6; // Start from top
     
-    // Volume buttons
-    const volUpButton = createButton(0.06, 0.06, 0x11, 'Volume Up', 0x4CAF50);
-    volUpButton.position.set(-0.08, 0.15, 0.03);
+    // Power button (top center)
+    const powerButton = createButtonWithSymbol(0.07, 0.07, 0x10, 'Power', 0xff0000);
+    powerButton.position.set(0, yPos, 0.03);
+    remoteGroup.add(powerButton);
+    yPos -= 0.1;
+    
+    // Volume and Channel controls (row)
+    const volUpButton = createButtonWithSymbol(0.05, 0.05, 0x11, 'Volume Up', 0x4CAF50);
+    volUpButton.position.set(-0.12, yPos, 0.03);
     remoteGroup.add(volUpButton);
     
-    const volDownButton = createButton(0.06, 0.06, 0x12, 'Volume Down', 0xf44336);
-    volDownButton.position.set(-0.08, 0.05, 0.03);
+    const volDownButton = createButtonWithSymbol(0.05, 0.05, 0x12, 'Volume Down', 0xf44336);
+    volDownButton.position.set(-0.12, yPos - 0.07, 0.03);
     remoteGroup.add(volDownButton);
     
-    // Channel buttons
-    const chUpButton = createButton(0.06, 0.06, 0x14, 'Channel Up', 0x2196F3);
-    chUpButton.position.set(0.08, 0.15, 0.03);
+    const muteButton = createButtonWithSymbol(0.05, 0.05, 0x13, 'Mute', 0xFF9800);
+    muteButton.position.set(-0.12, yPos - 0.14, 0.03);
+    remoteGroup.add(muteButton);
+    
+    const chUpButton = createButtonWithSymbol(0.05, 0.05, 0x14, 'Channel Up', 0x2196F3);
+    chUpButton.position.set(0.12, yPos, 0.03);
     remoteGroup.add(chUpButton);
     
-    const chDownButton = createButton(0.06, 0.06, 0x15, 'Channel Down', 0x2196F3);
-    chDownButton.position.set(0.08, 0.05, 0.03);
+    const chDownButton = createButtonWithSymbol(0.05, 0.05, 0x15, 'Channel Down', 0x2196F3);
+    chDownButton.position.set(0.12, yPos - 0.07, 0.03);
     remoteGroup.add(chDownButton);
     
-    // Home button
-    const homeButton = createButton(0.06, 0.06, 0x20, 'Home', 0xFFC107);
-    homeButton.position.set(0, 0.1, 0.03);
+    // Navigation buttons (center)
+    const homeButton = createButtonWithSymbol(0.05, 0.05, 0x20, 'Home', 0xFFC107);
+    homeButton.position.set(0, yPos, 0.03);
     remoteGroup.add(homeButton);
     
-    // Number pad (1-9)
+    const menuButton = createButtonWithSymbol(0.05, 0.05, 0x21, 'Menu', 0x9C27B0);
+    menuButton.position.set(0, yPos - 0.07, 0.03);
+    remoteGroup.add(menuButton);
+    
+    const backButton = createButtonWithSymbol(0.05, 0.05, 0x22, 'Back', 0x607D8B);
+    backButton.position.set(0, yPos - 0.14, 0.03);
+    remoteGroup.add(backButton);
+    
+    yPos -= 0.22;
+    
+    // D-pad
+    const dpadSize = 0.05;
+    const dpadY = yPos;
+    const upButton = createButtonWithSymbol(dpadSize, dpadSize, 0x30, 'Up', 0x00BCD4);
+    upButton.position.set(0, dpadY + 0.06, 0.03);
+    remoteGroup.add(upButton);
+    
+    const leftButton = createButtonWithSymbol(dpadSize, dpadSize, 0x32, 'Left', 0x00BCD4);
+    leftButton.position.set(-0.06, dpadY, 0.03);
+    remoteGroup.add(leftButton);
+    
+    const okButton = createButtonWithSymbol(dpadSize, dpadSize, 0x34, 'OK', 0x4CAF50);
+    okButton.position.set(0, dpadY, 0.03);
+    remoteGroup.add(okButton);
+    
+    const rightButton = createButtonWithSymbol(dpadSize, dpadSize, 0x33, 'Right', 0x00BCD4);
+    rightButton.position.set(0.06, dpadY, 0.03);
+    remoteGroup.add(rightButton);
+    
+    const downButton = createButtonWithSymbol(dpadSize, dpadSize, 0x31, 'Down', 0x00BCD4);
+    downButton.position.set(0, dpadY - 0.06, 0.03);
+    remoteGroup.add(downButton);
+    
+    yPos -= 0.15;
+    
+    // Playback controls
+    const playButton = createButtonWithSymbol(0.04, 0.04, 0x40, 'Play', 0x4CAF50);
+    playButton.position.set(-0.09, yPos, 0.03);
+    remoteGroup.add(playButton);
+    
+    const pauseButton = createButtonWithSymbol(0.04, 0.04, 0x41, 'Pause', 0xFF9800);
+    pauseButton.position.set(-0.03, yPos, 0.03);
+    remoteGroup.add(pauseButton);
+    
+    const stopButton = createButtonWithSymbol(0.04, 0.04, 0x42, 'Stop', 0xf44336);
+    stopButton.position.set(0.03, yPos, 0.03);
+    remoteGroup.add(stopButton);
+    
+    const ffButton = createButtonWithSymbol(0.04, 0.04, 0x43, 'Fast Forward', 0x2196F3);
+    ffButton.position.set(0.09, yPos, 0.03);
+    remoteGroup.add(ffButton);
+    
+    yPos -= 0.08;
+    
+    // Number pad (1-9) - smaller to fit more
     for (let i = 0; i < 9; i++) {
         const row = Math.floor(i / 3);
         const col = i % 3;
-        const numButton = createButton(0.05, 0.05, 0x51 + i, `${i + 1}`, 0xffffff);
+        const numButton = createButtonWithSymbol(0.04, 0.04, 0x51 + i, `${i + 1}`, 0xffffff);
         numButton.position.set(
-            (col - 1) * 0.07,
-            -0.1 - row * 0.07,
+            (col - 1) * 0.06,
+            yPos - row * 0.06,
             0.03
         );
         remoteGroup.add(numButton);
     }
     
-    // Zero button (below number pad, centered)
-    const zeroButton = createButton(0.05, 0.05, 0x50, '0', 0xffffff);
-    zeroButton.position.set(0, -0.31, 0.03);
+    // Zero button
+    const zeroButton = createButtonWithSymbol(0.04, 0.04, 0x50, '0', 0xffffff);
+    zeroButton.position.set(0, yPos - 0.18, 0.03);
     remoteGroup.add(zeroButton);
     
-    // Streaming service buttons (below number pad)
+    yPos -= 0.25;
+    
+    // Streaming service buttons
     const streamingButtons = [
-        { name: 'YouTube', code: 0x01, color: 0xff0000, label: 'YT' },
-        { name: 'Netflix', code: 0x02, color: 0xe50914, label: 'NF' },
-        { name: 'Amazon Prime', code: 0x03, color: 0x00a8e1, label: 'PR' },
-        { name: 'HBO Max', code: 0x04, color: 0x800080, label: 'HB' }
+        { name: 'YouTube', code: 0x01, color: 0xff0000 },
+        { name: 'Netflix', code: 0x02, color: 0xe50914 },
+        { name: 'Amazon Prime', code: 0x03, color: 0x00a8e1 },
+        { name: 'HBO Max', code: 0x04, color: 0x800080 }
     ];
     
     for (let i = 0; i < streamingButtons.length; i++) {
         const btn = streamingButtons[i];
-        const streamButton = createButton(0.06, 0.04, btn.code, btn.name, btn.color);
+        const streamButton = createButtonWithSymbol(0.05, 0.04, btn.code, btn.name, btn.color);
         streamButton.position.set(
-            (i - 1.5) * 0.08,
-            -0.35,
+            (i - 1.5) * 0.07,
+            yPos,
             0.03
         );
         remoteGroup.add(streamButton);
+    }
+    
+    yPos -= 0.08;
+    
+    // Smart Home Scene Buttons (first row)
+    const sceneButtons = [
+        { code: 0xE0, name: 'Movie', color: 0x9C27B0 },
+        { code: 0xE1, name: 'Relax', color: 0x4CAF50 },
+        { code: 0xE2, name: 'Off', color: 0x424242 },
+        { code: 0xE3, name: 'Dim', color: 0xFFC107 },
+        { code: 0xE4, name: 'Full', color: 0xFF9800 }
+    ];
+    
+    for (let i = 0; i < sceneButtons.length; i++) {
+        const btn = sceneButtons[i];
+        const sceneButton = createButtonWithSymbol(0.045, 0.04, btn.code, btn.name, btn.color);
+        sceneButton.position.set(
+            (i - 2) * 0.055,
+            yPos,
+            0.03
+        );
+        remoteGroup.add(sceneButton);
+    }
+    
+    yPos -= 0.07;
+    
+    // Smart Home Device Buttons (organized in rows)
+    const deviceButtons = [
+        // Row 1
+        { code: 0xE5, name: 'Plug1', color: 0x607D8B },
+        { code: 0xE6, name: 'Speaker', color: 0x2196F3 },
+        { code: 0xE7, name: 'Ambient', color: 0xE91E63 },
+        { code: 0xE8, name: 'Plug2', color: 0x607D8B },
+        { code: 0xE9, name: 'Plug3', color: 0x607D8B },
+        // Row 2
+        { code: 0xEA, name: 'Kitchen', color: 0xFFC107 },
+        { code: 0xEB, name: 'Fridge', color: 0x00BCD4 },
+        { code: 0xEC, name: 'Oven', color: 0xf44336 },
+        { code: 0xED, name: 'Bedroom', color: 0x9C27B0 },
+        { code: 0xEE, name: 'Bathroom', color: 0x2196F3 },
+        // Row 3
+        { code: 0xEF, name: 'UpHall', color: 0x4CAF50 },
+        { code: 0xF0, name: 'Entry', color: 0xFF9800 },
+        { code: 0xF1, name: 'UpBed', color: 0x9C27B0 },
+        { code: 0xF2, name: 'UpBath', color: 0x2196F3 },
+        { code: 0xF3, name: 'Hood', color: 0xFFC107 },
+        // Row 4
+        { code: 0xF4, name: 'Temp+', color: 0xf44336 },
+        { code: 0xF5, name: 'Temp-', color: 0x2196F3 },
+        { code: 0xF6, name: 'AC', color: 0x00BCD4 },
+        { code: 0xF7, name: 'Heat', color: 0xf44336 },
+        { code: 0xF8, name: 'Garage', color: 0x607D8B },
+        // Row 5
+        { code: 0xF9, name: 'Lock', color: 0x424242 },
+        { code: 0xFA, name: 'Security', color: 0x4CAF50 },
+        { code: 0xFB, name: 'Blinds+', color: 0x9E9E9E },
+        { code: 0xFC, name: 'Blinds-', color: 0x616161 },
+        { code: 0xFD, name: 'Fan', color: 0x00BCD4 },
+        // Row 6
+        { code: 0xFE, name: 'Living', color: 0xFFC107 },
+        { code: 0xFF, name: 'Dining', color: 0xFF9800 }
+    ];
+    
+    let deviceRow = 0;
+    let deviceCol = 0;
+    for (let i = 0; i < deviceButtons.length; i++) {
+        if (i > 0 && i % 5 === 0) {
+            deviceRow++;
+            deviceCol = 0;
+            yPos -= 0.07;
+        }
+        const btn = deviceButtons[i];
+        const deviceButton = createButtonWithSymbol(0.04, 0.035, btn.code, btn.name, btn.color);
+        deviceButton.position.set(
+            (deviceCol - 2) * 0.055,
+            yPos,
+            0.03
+        );
+        remoteGroup.add(deviceButton);
+        deviceCol++;
     }
     
     // IR emitter (red LED on top) with glow effect
@@ -113,44 +330,23 @@ function createRemoteControl() {
         emissiveIntensity: 0.5
     });
     const irEmitter = new THREE.Mesh(irEmitterGeometry, irEmitterMaterial);
-    irEmitter.position.set(0, 0.4, 0.03);
+    irEmitter.position.set(0, 0.7, 0.03);
     remoteGroup.add(irEmitter);
     
-    // Add button labels using text geometry (simplified - using small planes as placeholders)
-    // Volume Up label
-    const volUpLabel = createLabelPlane('VOL+', 0.04, 0.01);
-    volUpLabel.position.set(-0.08, 0.15, 0.04);
-    remoteGroup.add(volUpLabel);
-    
-    // Volume Down label
-    const volDownLabel = createLabelPlane('VOL-', 0.04, 0.01);
-    volDownLabel.position.set(-0.08, 0.05, 0.04);
-    remoteGroup.add(volDownLabel);
-    
-    // Channel Up label
-    const chUpLabel = createLabelPlane('CH+', 0.04, 0.01);
-    chUpLabel.position.set(0.08, 0.15, 0.04);
-    remoteGroup.add(chUpLabel);
-    
-    // Channel Down label
-    const chDownLabel = createLabelPlane('CH-', 0.04, 0.01);
-    chDownLabel.position.set(0.08, 0.05, 0.04);
-    remoteGroup.add(chDownLabel);
-    
     // Add subtle side details (grip texture simulation)
-    const sideDetailGeometry = new THREE.PlaneGeometry(0.28, 0.05);
+    const sideDetailGeometry = new THREE.PlaneGeometry(0.38, 0.05);
     const sideDetailMaterial = new THREE.MeshStandardMaterial({
         color: 0x0f0f0f,
         roughness: 0.7,
         metalness: 0.05
     });
     const topGrip = new THREE.Mesh(sideDetailGeometry, sideDetailMaterial);
-    topGrip.position.set(0, 0.25, 0.027);
+    topGrip.position.set(0, 0.6, 0.027);
     topGrip.raycast = function() {}; // don't block button clicks
     remoteGroup.add(topGrip);
     
     const bottomGrip = new THREE.Mesh(sideDetailGeometry, sideDetailMaterial);
-    bottomGrip.position.set(0, -0.25, 0.027);
+    bottomGrip.position.set(0, -0.6, 0.027);
     bottomGrip.raycast = function() {}; // don't block button clicks
     remoteGroup.add(bottomGrip);
     
@@ -560,6 +756,44 @@ function createButton(width, height, buttonCode, buttonName, color) {
     
     buttonGroup.userData.buttonCode = buttonCode;
     buttonGroup.userData.buttonName = buttonName;
+    return buttonGroup;
+}
+
+// Create a button with symbol/icon displayed on it
+function createButtonWithSymbol(width, height, buttonCode, buttonName, color) {
+    const buttonGroup = createButton(width, height, buttonCode, buttonName, color);
+    
+    // Get symbol for this button
+    const symbol = getButtonSymbol(buttonCode, buttonName);
+    
+    // Create symbol label (using a plane with text-like appearance)
+    // For emoji/symbols, we'll use a colored plane that represents the symbol
+    const symbolGeometry = new THREE.PlaneGeometry(width * 0.7, height * 0.7);
+    const symbolMaterial = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        roughness: 0.9,
+        metalness: 0.1,
+        transparent: true,
+        opacity: 0.95,
+        emissive: 0xffffff,
+        emissiveIntensity: 0.2
+    });
+    const symbolPlane = new THREE.Mesh(symbolGeometry, symbolMaterial);
+    symbolPlane.position.z = 0.012;
+    
+    // Store symbol text in userData for potential text rendering later
+    symbolPlane.userData.symbolText = symbol;
+    symbolPlane.userData.buttonName = buttonName;
+    
+    buttonGroup.add(symbolPlane);
+    
+    // For number buttons, add the number as a smaller label
+    if (buttonName.match(/^\d+$/)) {
+        const numLabel = createLabelPlane(buttonName, width * 0.5, height * 0.5);
+        numLabel.position.z = 0.013;
+        buttonGroup.add(numLabel);
+    }
+    
     return buttonGroup;
 }
 

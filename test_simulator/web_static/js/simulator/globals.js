@@ -13,7 +13,7 @@ let playerPitch = 0;             // radians, up-down
 let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
 const WALK_SPEED = 4.5;
 const EYE_HEIGHT = 1.62;
-const ROOM_BOUND = 21.5;         // keep player inside walls (huge smart home)
+const ROOM_BOUND = 22;         // keep player inside walls (whole house - expanded for full exploration)
 const TV_POSITION = { x: 0, y: 1.68, z: -17.6 };  // scaled for 44x44x14 room
 let tvFrame, tvPowerLED, tvGlowLight;
 let tvState = {};
@@ -154,7 +154,9 @@ let volumeStabilizer = {
         'Amazon Prime': -4,     // Slightly quieter
         'HBO Max': -2           // Slightly quieter
     },
-    lastApp: 'Home'
+    lastApp: 'Home',
+    _lastStabilizedVolume: null,  // Track last volume we stabilized to (prevents feedback loop)
+    _isProcessingStabilization: false  // Flag to prevent recursive stabilization
 };
 
 // Programmed channel lineup (1-99 explicit; 100-999 use default). Used for live TV display.

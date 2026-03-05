@@ -218,6 +218,10 @@ function stabilizeVolumeOnAppSwitch(oldApp, newApp, currentVolume) {
         targetVolume = Math.min(targetVolume, volumeStabilizer.maxVolume);
     }
     
+    // Mark that we're processing stabilization to prevent feedback loop
+    volumeStabilizer._isProcessingStabilization = true;
+    volumeStabilizer._lastStabilizedVolume = targetVolume;
+    
     // Start smooth volume transition
     volumeStabilizer.isStabilizing = true;
     volumeStabilizer.startVolume = currentVolume;
@@ -255,8 +259,15 @@ function applyVolumeStabilization(currentVolume, currentApp) {
 function smoothVolumeTransition(fromVolume, toVolume) {
     if (Math.abs(fromVolume - toVolume) < 1) {
         volumeStabilizer.isStabilizing = false;
+        volumeStabilizer._isProcessingStabilization = false;
         return;
     }
+    
+    // Initialize stabilization state
+    volumeStabilizer.isStabilizing = true;
+    volumeStabilizer.startVolume = fromVolume;
+    volumeStabilizer.targetVol = toVolume;
+    volumeStabilizer.startTime = Date.now();
     
     // Use requestAnimationFrame for smooth transition
     const animate = () => {
@@ -291,6 +302,11 @@ function smoothVolumeTransition(fromVolume, toVolume) {
             requestAnimationFrame(animate);
         } else {
             volumeStabilizer.isStabilizing = false;
+            volumeStabilizer._isProcessingStabilization = false;
+            // Clear the last stabilized volume after a delay to allow new stabilization if needed
+            setTimeout(() => {
+                volumeStabilizer._lastStabilizedVolume = null;
+            }, 500);
             console.log(`[Volume Stabilizer] Volume stabilized at ${Math.round(volumeStabilizer.targetVol)}%`);
         }
     };

@@ -233,25 +233,6 @@ function updateTVState(state) {
         }
     }
     
-    // Volume Stabilizer: Apply volume limiting to prevent spikes
-    if (volumeStabilizer.enabled && state.powered_on && !state.muted) {
-        const stabilizedVolume = applyVolumeStabilization(state.volume, state.current_app);
-        if (Math.abs(stabilizedVolume - state.volume) > 1) {
-            // Volume was adjusted, update state and send to server
-            state.volume = stabilizedVolume;
-            if (socket && socket.connected) {
-                try {
-                    socket.emit('update_volume', { volume: stabilizedVolume });
-                    console.log(`[Volume Stabilizer] Volume spike prevented: ${state.volume}% -> ${stabilizedVolume}%`);
-                } catch (error) {
-                    console.error('[Volume Stabilizer] Error sending stabilized volume to server:', error);
-                }
-            } else {
-                console.warn('[Volume Stabilizer] Socket not connected, cannot send stabilized volume');
-            }
-        }
-    }
-    
     // HDMI input switching animation
     const oldInput = tvState.input_source;
     if (oldInput !== state.input_source && state.powered_on) {
@@ -259,17 +240,40 @@ function updateTVState(state) {
     }
     
     // Volume change animation
-    if (Math.abs(oldVolume - state.volume) > 0 && state.powered_on) {
+    const volumeChanged = Math.abs(oldVolume - state.volume) > 0;
+    if (volumeChanged && state.powered_on) {
         startVolumeAnimation(oldVolume, state.volume);
         
-        // Apply volume stabilization after volume change (prevents spikes from button presses)
-        if (volumeStabilizer.enabled && !state.muted) {
+        // Check if this volume change is from our own stabilization (prevent feedback loop)
+        const isStabilizerUpdate = volumeStabilizer._lastStabilizedVolume !== null && 
+                                   Math.abs(state.volume - volumeStabilizer._lastStabilizedVolume) < 2;
+        
+        // Only apply stabilization if:
+        // 1. Stabilizer is enabled
+        // 2. Not muted
+        // 3. Not currently processing a stabilization
+        // 4. This is NOT an update from our own stabilization (prevents feedback loop)
+        if (volumeStabilizer.enabled && !state.muted && 
+            !volumeStabilizer._isProcessingStabilization && !isStabilizerUpdate) {
+            
             const stabilizedVolume = applyVolumeStabilization(state.volume, state.current_app);
-            if (Math.abs(stabilizedVolume - state.volume) > 1) {
+            const needsStabilization = Math.abs(stabilizedVolume - state.volume) > 1;
+            
+            if (needsStabilization) {
+                // Mark that we're processing stabilization to prevent recursive calls
+                volumeStabilizer._isProcessingStabilization = true;
+                volumeStabilizer._lastStabilizedVolume = stabilizedVolume;
+                
                 // Volume needs adjustment, smoothly transition
                 console.log(`[Volume Stabilizer] Volume change detected: ${state.volume}% -> stabilizing to ${stabilizedVolume}%`);
                 smoothVolumeTransition(state.volume, stabilizedVolume);
             }
+        } else if (isStabilizerUpdate) {
+            // This is our own update, clear the flag after a short delay
+            setTimeout(() => {
+                volumeStabilizer._isProcessingStabilization = false;
+                volumeStabilizer._lastStabilizedVolume = null;
+            }, 100);
         }
     }
     

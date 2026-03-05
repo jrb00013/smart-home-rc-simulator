@@ -470,7 +470,13 @@ function animate() {
         firstPersonHolder.position.copy(camera.position);
         firstPersonHolder.quaternion.copy(camera.quaternion);
         updateFirstPersonArm();
-    } else if (armGroup) {
+        // Ensure arm and hand are visible in first person mode (including walk mode)
+        if (armGroup) armGroup.visible = true;
+        if (handGroup && remoteGroup && remoteGroup.parent === firstPersonHolder) {
+            handGroup.visible = true;
+        }
+    } else if (armGroup && !walkMode) {
+        // Only hide arm if not in walk mode (walk mode uses first person)
         armGroup.visible = false;
     }
 
@@ -601,6 +607,11 @@ window.addEventListener('DOMContentLoaded', () => {
     initSocket();
     
     initSmartHomePanel();
+    
+    // Initialize default remote style (handheld)
+    if (typeof window.switchRemoteStyle === 'function') {
+        window.switchRemoteStyle('handheld');
+    }
     
     // Initialize screen with default state after a short delay to ensure everything is loaded
     setTimeout(() => {

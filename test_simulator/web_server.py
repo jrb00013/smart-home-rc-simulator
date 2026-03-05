@@ -13,6 +13,7 @@ import sys
 import os
 import base64
 import io
+from pathlib import Path
 
 # App config (env-first)
 try:
@@ -887,6 +888,82 @@ def start_ipc_listener():
 
 _shutdown_stop_event = None
 
+# HMR (Hot Module Replacement) file watcher
+_hmr_watcher_thread = None
+_hmr_file_times = {}
+_hmr_stop_event = None
+
+def _start_hmr_watcher():
+    """Start file watcher for HMR - only in debug mode"""
+    global _hmr_watcher_thread, _hmr_stop_event
+    
+    if not get_debug():
+        log.debug("HMR disabled (not in debug mode)")
+        return
+    
+    _hmr_stop_event = threading.Event()
+    static_dir = Path('web_static')
+    if not static_dir.exists():
+        log.warning("HMR: web_static directory not found")
+        return
+    
+    def watch_files():
+        """Poll for file changes and emit HMR events"""
+        log.info("HMR: Starting file watcher for %s", static_dir.absolute())
+        
+        # Initial scan
+        js_files = []
+        for root, dirs, files in os.walk(static_dir):
+            for file in files:
+                if file.endswith(('.js', '.html', '.css')):
+                    file_path = Path(root) / file
+                    rel_path = file_path.relative_to(static_dir)
+                    _hmr_file_times[str(rel_path)] = file_path.stat().st_mtime
+                    if file.endswith('.js'):
+                        js_files.append(str(rel_path))
+        
+        log.info("HMR: Watching %d files (%d JS files)", len(_hmr_file_times), len(js_files))
+        
+        while not _hmr_stop_event.is_set():
+            try:
+                for root, dirs, files in os.walk(static_dir):
+                    for file in files:
+                        if file.endswith(('.js', '.html', '.css')):
+                            file_path = Path(root) / file
+                            rel_path = str(file_path.relative_to(static_dir))
+                            
+                            try:
+                                current_mtime = file_path.stat().st_mtime
+                                if rel_path in _hmr_file_times:
+                                    if current_mtime > _hmr_file_times[rel_path]:
+                                        # File changed
+                                        log.info("HMR: File changed: %s", rel_path)
+                                        _hmr_file_times[rel_path] = current_mtime
+                                        
+                                        # Emit to all connected clients
+                                        socketio.emit('hmr:file_changed', {
+                                            'path': rel_path,
+                                            'timestamp': current_mtime
+                                        })
+                                else:
+                                    # New file
+                                    _hmr_file_times[rel_path] = current_mtime
+                            except (OSError, FileNotFoundError):
+                                # File might have been deleted or is inaccessible
+                                if rel_path in _hmr_file_times:
+                                    del _hmr_file_times[rel_path]
+                
+                # Poll every 500ms in debug mode
+                _hmr_stop_event.wait(0.5)
+            except Exception as e:
+                log.error("HMR watcher error: %s", e, exc_info=True)
+                _hmr_stop_event.wait(1.0)
+        
+        log.info("HMR: File watcher stopped")
+    
+    _hmr_watcher_thread = threading.Thread(target=watch_files, daemon=True, name="HMR-Watcher")
+    _hmr_watcher_thread.start()
+
 def main():
     """Main entry point for Poetry script. Production: use gunicorn + eventlet/gevent (see PRODUCTION.md)."""
     global _shutdown_stop_event
@@ -935,12 +1012,20 @@ def main():
         except Exception as e:
             log.warning("MQTT command subscriber skipped: %s", e)
 
+    # Start HMR file watcher (only in debug mode)
+    try:
+        _start_hmr_watcher()
+    except Exception as e:
+        log.warning("HMR watcher failed to start: %s", e)
+
     try:
         socketio.run(app, host=host, port=port, debug=get_debug(), allow_unsafe_werkzeug=True)
     except KeyboardInterrupt:
         log.info("Shutting down server...")
         if stop_event:
             stop_event.set()
+        if _hmr_stop_event:
+            _hmr_stop_event.set()
 
 if __name__ == '__main__':
     main()
