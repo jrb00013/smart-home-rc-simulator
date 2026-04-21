@@ -483,6 +483,18 @@ function updateTVScreen(state) {
                 } else if (appName === 'HBO Max') {
                     // HBO Max-style content
                     drawHBOMaxContent(ctx, canvas, brightness, time, state);
+                } else if (appName === 'Disney+') {
+                    // Disney+ style content with star animations
+                    drawDisneyPlusContent(ctx, canvas, brightness, time, state);
+                } else if (appName === 'Apple TV+') {
+                    // Apple TV+ style content with clean minimal aesthetic
+                    drawAppleTVContent(ctx, canvas, brightness, time, state);
+                } else if (appName === 'Hulu') {
+                    // Hulu style content with green accent
+                    drawHuluContent(ctx, canvas, brightness, time, state);
+                } else if (appName === 'Peacock') {
+                    // Peacock style content with gradient and peacock feather motif
+                    drawPeacockContent(ctx, canvas, brightness, time, state);
                 } else {
                     // Show TV show content based on channel
                     // This handles both explicit channel mode and when current_app is None/empty
@@ -1165,6 +1177,168 @@ function drawPrimeContent(ctx, canvas, brightness, time, state) {
         ctx.lineTo(x + cardWidth/2 + 12, y + cardHeight/2);
         ctx.closePath();
         ctx.fill();
+    }
+}
+
+function drawDisneyPlusContent(ctx, canvas, brightness, time, state) {
+    // Disney+ blue gradient background
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, `rgba(17, 60, 207, ${brightness * 0.8})`);
+    gradient.addColorStop(1, `rgba(0, 30, 120, ${brightness * 0.5})`);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Disney+ logo with golden star
+    ctx.fillStyle = `rgba(255, 215, 0, ${brightness})`;
+    ctx.font = 'bold 48px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Disney+', canvas.width / 2, 80);
+    
+    // Starfield animation
+    for (let i = 0; i < 30; i++) {
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * canvas.height;
+        const size = 2 + Math.sin(time * 3 + i) * 1;
+        const twinkle = Math.sin(time * 5 + i * 0.5) * 0.5 + 0.5;
+        ctx.fillStyle = `rgba(255, 215, 0, ${brightness * twinkle})`;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    
+    // Content sections
+    const sections = ['Disney', 'Pixar', 'Marvel', 'Star Wars', 'National Geographic'];
+    const sectionWidth = 120;
+    const sectionHeight = 160;
+    const sectionSpacing = 15;
+    const startX = (canvas.width - (sections.length * (sectionWidth + sectionSpacing) - sectionSpacing)) / 2;
+    const startY = 200;
+    
+    for (let i = 0; i < sections.length; i++) {
+        const x = startX + i * (sectionWidth + sectionSpacing);
+        const sectionBrightness = brightness * (0.8 + Math.sin(time * 2 + i) * 0.1);
+        ctx.fillStyle = `rgba(255, 255, 255, ${sectionBrightness * 0.2})`;
+        ctx.fillRect(x, startY, sectionWidth, sectionHeight);
+        ctx.fillStyle = `rgba(255, 255, 255, ${sectionBrightness})`;
+        ctx.font = '16px Arial';
+        ctx.fillText(sections[i], x + sectionWidth / 2, startY + sectionHeight + 25);
+    }
+}
+
+function drawAppleTVContent(ctx, canvas, brightness, time, state) {
+    // Apple TV+ clean minimal dark background
+    ctx.fillStyle = `rgba(0, 0, 0, ${brightness})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Apple TV+ logo
+    ctx.fillStyle = `rgba(255, 255, 255, ${brightness})`;
+    ctx.font = 'bold 42px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Apple TV+', canvas.width / 2, 100);
+    
+    // Featured content - clean cards
+    const cardWidth = 180;
+    const cardHeight = 250;
+    const cards = ['Originals', 'Movies', 'Series'];
+    const startX = (canvas.width - (cards.length * (cardWidth + 20) - 20)) / 2;
+    const startY = 180;
+    
+    for (let i = 0; i < cards.length; i++) {
+        const x = startX + i * (cardWidth + 20);
+        const cardBrightness = brightness * (0.9 + Math.sin(time * 2 + i) * 0.1);
+        ctx.fillStyle = `rgba(50, 50, 50, ${cardBrightness})`;
+        ctx.fillRect(x, startY, cardWidth, cardHeight);
+        
+        ctx.fillStyle = `rgba(255, 255, 255, ${cardBrightness})`;
+        ctx.font = '18px Arial';
+        ctx.fillText(cards[i], x + cardWidth / 2, startY + cardHeight + 25);
+    }
+}
+
+function drawHuluContent(ctx, canvas, brightness, time, state) {
+    // Hulu green gradient background
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, `rgba(28, 231, 131, ${brightness * 0.7})`);
+    gradient.addColorStop(1, `rgba(10, 100, 60, ${brightness * 0.4})`);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Hulu logo
+    ctx.fillStyle = `rgba(255, 255, 255, ${brightness})`;
+    ctx.font = 'bold 48px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('hulu', canvas.width / 2, 80);
+    
+    // Content carousel
+    const itemWidth = 140;
+    const itemHeight = 180;
+    const items = ['Popular', 'New', 'Expiring', 'Watchlist'];
+    const startX = (canvas.width - (items.length * (itemWidth + 15) - 15)) / 2;
+    const startY = 180;
+    
+    for (let i = 0; i < items.length; i++) {
+        const x = startX + i * (itemWidth + 15);
+        const itemBrightness = brightness * (0.8 + Math.sin(time * 2 + i) * 0.15);
+        ctx.fillStyle = `rgba(255, 255, 255, ${itemBrightness * 0.3})`;
+        ctx.fillRect(x, startY, itemWidth, itemHeight);
+        
+        ctx.fillStyle = `rgba(255, 255, 255, ${itemBrightness})`;
+        ctx.font = '16px Arial';
+        ctx.fillText(items[i], x + itemWidth / 2, startY + itemHeight + 22);
+    }
+}
+
+function drawPeacockContent(ctx, canvas, brightness, time, state) {
+    // Peacock gradient (dark blue to teal)
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    gradient.addColorStop(0, `rgba(0, 130, 180, ${brightness * 0.6})`);
+    gradient.addColorStop(0.5, `rgba(0, 80, 120, ${brightness * 0.5})`);
+    gradient.addColorStop(1, `rgba(0, 50, 80, ${brightness * 0.4})`);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Peacock logo
+    ctx.fillStyle = `rgba(255, 255, 255, ${brightness})`;
+    ctx.font = 'bold 36px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('peacock', canvas.width / 2, 80);
+    
+    // Peacock feather pattern
+    const featherColors = [
+        { r: 0, g: 130, b: 180 },
+        { r: 0, g: 180, b: 130 },
+        { r: 100, g: 200, b: 255 }
+    ];
+    
+    for (let i = 0; i < 12; i++) {
+        const angle = (i / 12) * Math.PI * 2;
+        const radius = 60 + Math.sin(time * 2 + i) * 10;
+        const centerX = canvas.width / 2 + Math.cos(angle) * radius;
+        const centerY = 180 + Math.sin(angle) * radius;
+        const color = featherColors[i % featherColors.length];
+        ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${brightness * 0.6})`;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 20 + Math.sin(time * 3 + i) * 5, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    
+    // Content grid
+    const gridCols = 4;
+    const gridRows = 2;
+    const itemWidth = 100;
+    const itemHeight = 130;
+    const itemSpacing = 12;
+    const gridStartX = (canvas.width - (gridCols * (itemWidth + itemSpacing) - itemSpacing)) / 2;
+    const gridStartY = 350;
+    
+    for (let row = 0; row < gridRows; row++) {
+        for (let col = 0; col < gridCols; col++) {
+            const x = gridStartX + col * (itemWidth + itemSpacing);
+            const y = gridStartY + row * (itemHeight + itemSpacing);
+            const itemBrightness = brightness * (0.7 + Math.sin(time + row + col) * 0.2);
+            ctx.fillStyle = `rgba(50, 100, 120, ${itemBrightness})`;
+            ctx.fillRect(x, y, itemWidth, itemHeight);
+        }
     }
 }
 

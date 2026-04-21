@@ -189,7 +189,14 @@ function highlightRemoteButton(buttonName) {
         'Netflix': 'Netflix',
         'Amazon Prime': 'Amazon Prime',
         'HBO Max': 'HBO Max',
+        'Disney+': 'Disney+',
+        'Apple TV+': 'Apple TV+',
+        'Hulu': 'Hulu',
+        'Peacock': 'Peacock',
         'Game Mode': 'Game Mode',
+        'Game 1': 'Game 1',
+        'Game 2': 'Game 2',
+        'Game 3': 'Game 3',
         '1': '1', '2': '2', '3': '3', '4': '4', '5': '5',
         '6': '6', '7': '7', '8': '8', '9': '9', '0': '0'
     };
