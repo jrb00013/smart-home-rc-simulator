@@ -47,7 +47,11 @@ function updateTVScreen(state) {
             'YouTube': '#FF0000',
             'Netflix': '#E50914',
             'Amazon Prime': '#00A8E1',
-            'HBO Max': '#800080'
+            'HBO Max': '#800080',
+            'Disney+': '#113CCF',
+            'Apple TV+': '#A2AAAD',
+            'Hulu': '#1CE783',
+            'Peacock': '#000000'
         };
         
         // Smooth color transition during app switch
@@ -897,12 +901,16 @@ function drawHomeScreen(ctx, canvas, brightness, time, state) {
     const startX = (canvas.width - (gridCols * (iconSize + spacing) - spacing)) / 2;
     const startY = (canvas.height - (gridRows * (iconSize + spacing) - spacing)) / 2;
     
-    const apps = ['YouTube', 'Netflix', 'Prime', 'HBO', 'Music', 'Games', 'Settings', 'Photos', 'Weather', 'News', 'Sports', 'Kids'];
+    const apps = ['YouTube', 'Netflix', 'Prime', 'HBO', 'Disney+', 'Apple TV+', 'Hulu', 'Peacock', 'Music', 'Games', 'Settings', 'Photos', 'Weather', 'News', 'Sports', 'Kids'];
     const appColors = [
         { r: 255, g: 0, b: 0 },      // YouTube
         { r: 229, g: 9, b: 20 },      // Netflix
         { r: 0, g: 168, b: 225 },     // Prime
         { r: 128, g: 0, b: 128 },     // HBO
+        { r: 17, g: 60, b: 207 },     // Disney+
+        { r: 162, g: 170, b: 173 },   // Apple TV+
+        { r: 28, g: 231, b: 131 },   // Hulu
+        { r: 0, g: 130, b: 180 },     // Peacock
         { r: 255, g: 165, b: 0 },     // Music
         { r: 76, g: 175, b: 80 },     // Games
         { r: 158, g: 158, b: 158 },   // Settings

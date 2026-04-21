@@ -47,6 +47,10 @@ const char* get_button_name(unsigned char button_code) {
         case BUTTON_NETFLIX: return "Netflix";
         case BUTTON_AMAZON_PRIME: return "Amazon Prime";
         case BUTTON_HBO_MAX: return "HBO Max";
+        case BUTTON_DISNEY_PLUS: return "Disney+";
+        case BUTTON_APPLE_TV: return "Apple TV+";
+        case BUTTON_HULU: return "Hulu";
+        case BUTTON_PEACOCK: return "Peacock";
         
         /* Basic Controls */
         case BUTTON_POWER: return "Power";
@@ -113,6 +117,11 @@ const char* get_button_name(unsigned char button_code) {
         case BUTTON_ASPECT: return "Aspect";
         case BUTTON_ZOOM: return "Zoom";
         case BUTTON_P_SIZE: return "Picture Size";
+        /* Recording & PVR */
+        case BUTTON_RECORD_LIST: return "Record List";
+        case BUTTON_SCHEDULE: return "Schedule";
+        case BUTTON_SLEEP_TIMER: return "Sleep Timer";
+        case BUTTON_TIMER_MENU: return "Timer Menu";
         
         /* Smart TV Features */
         case BUTTON_VOICE: return "Voice";
@@ -128,6 +137,10 @@ const char* get_button_name(unsigned char button_code) {
         
         /* Gaming Controls */
         case BUTTON_GAME_MODE: return "Game Mode";
+        case BUTTON_GAME1: return "Game 1";
+        case BUTTON_GAME2: return "Game 2";
+        case BUTTON_GAME3: return "Game 3";
+        case BUTTON_GAME_GUIDE: return "Game Guide";
         
         /* Picture Controls */
         case BUTTON_MOTION: return "Motion";
@@ -143,6 +156,11 @@ const char* get_button_name(unsigned char button_code) {
         case BUTTON_MULTI_VIEW: return "Multi View";
         case BUTTON_PIP: return "Picture in Picture";
         case BUTTON_SCREEN_MIRROR: return "Screen Mirror";
+        case BUTTON_CAST: return "Cast";
+        case BUTTON_SCREEN_SHARE: return "Screen Share";
+        case BUTTON_HDR_MODE: return "HDR Mode";
+        case BUTTON_HDR_GAME: return "HDR Game";
+        case BUTTON_HDR_FILM: return "HDR Film";
 
         /* Room / Smart Home Automation */
         case BUTTON_ROOM_SCENE_MOVIE: return "Room: Movie";

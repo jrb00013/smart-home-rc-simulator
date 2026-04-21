@@ -141,9 +141,16 @@ int system_handler_register_health_check(system_health_check_handler_t handler) 
  * @brief Initialize entire system
  */
 int system_init(void) {
+    if (system_state == SYSTEM_STATE_READY || 
+        system_state == SYSTEM_STATE_RUNNING) {
+        printf("[System] System already initialized\n");
+        return 0;
+    }
+    
     if (system_state != SYSTEM_STATE_UNINITIALIZED && 
-        system_state != SYSTEM_STATE_SHUTDOWN) {
-        fprintf(stderr, "[System] Error: System already initialized or in invalid state\n");
+        system_state != SYSTEM_STATE_SHUTDOWN &&
+        system_state != SYSTEM_STATE_INITIALIZING) {
+        fprintf(stderr, "[System] Error: System in invalid state\n");
         return -1;
     }
     

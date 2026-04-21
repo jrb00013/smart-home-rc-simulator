@@ -97,6 +97,10 @@ function getAppColor(appName) {
         'Netflix': { r: 229, g: 9, b: 20 },
         'Amazon Prime': { r: 0, g: 168, b: 225 },
         'HBO Max': { r: 128, g: 0, b: 128 },
+        'Disney+': { r: 17, g: 60, b: 207 },
+        'Apple TV+': { r: 162, g: 170, b: 173 },
+        'Hulu': { r: 28, g: 231, b: 131 },
+        'Peacock': { r: 0, g: 130, b: 180 },
         'Home': { r: 26, g: 26, b: 46 }
     };
     return colors[appName] || colors['Home'];
@@ -109,6 +113,10 @@ function getAppLogo(appName) {
         'Netflix': 'N',
         'Amazon Prime': 'PRIME',
         'HBO Max': 'HBO',
+        'Disney+': 'D+',
+        'Apple TV+': 'TV+',
+        'Hulu': 'H',
+        'Peacock': 'P',
         'Home': 'HOME'
     };
     return logos[appName] || appName;

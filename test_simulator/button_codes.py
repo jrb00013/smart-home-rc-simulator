@@ -14,6 +14,10 @@ BUTTON_CODES = {
     0x02: "Netflix",
     0x03: "Amazon Prime",
     0x04: "HBO Max",
+    0x05: "Disney+",
+    0x06: "Apple TV+",
+    0x07: "Hulu",
+    0x08: "Peacock",
     # Basic
     0x10: "Power",
     0x11: "Volume Up",
@@ -73,6 +77,11 @@ BUTTON_CODES = {
     0x79: "Aspect",
     0x7A: "Zoom",
     0x7B: "Picture Size",
+    # Recording & PVR
+    0x7C: "Record List",
+    0x7D: "Schedule",
+    0x7E: "Sleep Timer",
+    0x7F: "Timer Menu",
     # Smart TV
     0x80: "Voice",
     0x81: "Microphone",
@@ -85,6 +94,10 @@ BUTTON_CODES = {
     0x93: "E-Manual",
     # Gaming
     0xA0: "Game Mode",
+    0xA1: "Game 1",
+    0xA2: "Game 2",
+    0xA3: "Game 3",
+    0xA4: "Game Guide",
     # Picture
     0xB0: "Motion",
     0xB1: "Backlight",
@@ -97,6 +110,11 @@ BUTTON_CODES = {
     0xD0: "Multi View",
     0xD1: "Picture in Picture",
     0xD2: "Screen Mirror",
+    0xD3: "Cast",
+    0xD4: "Screen Share",
+    0xD5: "HDR Mode",
+    0xD6: "HDR Game",
+    0xD7: "HDR Film",
     # Room / Smart Home Automation (remote controls TV + room)
     0xE0: "Room: Movie",
     0xE1: "Room: Relax",

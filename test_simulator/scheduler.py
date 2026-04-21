@@ -151,7 +151,6 @@ def run_scheduler(config_path: str):
                 log.info("Trigger | time=%s preset=%s target=%s", rule.get("time"), preset_name, target)
                 apply_preset(presets, preset_name, target=target)
 
-            # Prune old keys to avoid unbounded growth
             if len(last_triggered) > 100:
                 last_triggered = {k: v for k, v in list(last_triggered.items())[-50:]}
 

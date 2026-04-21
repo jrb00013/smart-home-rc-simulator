@@ -152,7 +152,11 @@ let volumeStabilizer = {
         'YouTube': -5,          // Slightly quieter
         'Netflix': -3,          // Slightly quieter
         'Amazon Prime': -4,     // Slightly quieter
-        'HBO Max': -2           // Slightly quieter
+        'HBO Max': -2,          // Slightly quieter
+        'Disney+': -4,          // Slightly quieter
+        'Apple TV+': -3,        // Slightly quieter
+        'Hulu': -4,             // Slightly quieter
+        'Peacock': -3          // Slightly quieter
     },
     lastApp: 'Home',
     _lastStabilizedVolume: null,  // Track last volume we stabilized to (prevents feedback loop)
@@ -270,7 +274,46 @@ let tvShows = {
     97: { name: 'C-SPAN 2', type: 'news', genre: 'News', color: { r: 120, g: 120, b: 160 } },
     98: { name: 'Public Access', type: 'general', genre: 'Local', color: { r: 150, g: 150, b: 180 } },
     99: { name: 'Test Pattern', type: 'general', genre: 'Utility', color: { r: 200, g: 200, b: 200 } },
-    // Fallback for 100-999
+    // More streaming channels (100-115)
+    100: { name: 'Paramount+', type: 'streaming', genre: 'Streaming', color: { r: 0, g: 90, b: 180 } },
+    101: { name: 'Peacock TV', type: 'streaming', genre: 'Streaming', color: { r: 0, g: 130, b: 180 } },
+    102: { name: 'Hulu Originals', type: 'streaming', genre: 'Streaming', color: { r: 50, g: 180, b: 100 } },
+    103: { name: 'Apple TV+', type: 'streaming', genre: 'Streaming', color: { r: 200, g: 200, b: 200 } },
+    104: { name: 'Disney+', type: 'streaming', genre: 'Streaming', color: { r: 0, g: 50, b: 150 } },
+    105: { name: 'Starz', type: 'streaming', genre: 'Streaming', color: { r: 180, g: 100, b: 200 } },
+    106: { name: 'Showtime', type: 'streaming', genre: 'Streaming', color: { r: 200, g: 0, b: 50 } },
+    107: { name: 'ESPN+', type: 'streaming', genre: 'Sports', color: { r: 200, g: 0, b: 0 } },
+    108: { name: 'DAZN', type: 'streaming', genre: 'Sports', color: { r: 200, g: 100, b: 0 } },
+    109: { name: 'Discovery+', type: 'streaming', genre: 'Streaming', color: { r: 200, g: 150, b: 50 } },
+    110: { name: 'HBOMax', type: 'streaming', genre: 'Streaming', color: { r: 150, g: 0, b: 150 } },
+    111: { name: 'Crunchyroll', type: 'streaming', genre: 'Anime', color: { r: 255, g: 100, b: 50 } },
+    112: { name: 'Tubi', type: 'streaming', genre: 'Streaming', color: { r: 0, g: 100, b: 150 } },
+    113: { name: 'Pluto TV', type: 'streaming', genre: 'Streaming', color: { r: 200, g: 100, b: 0 } },
+    114: { name: 'Plex', type: 'streaming', genre: 'Streaming', color: { r: 100, g: 150, b: 200 } },
+    115: { name: 'Roku Channel', type: 'streaming', genre: 'Streaming', color: { r: 50, g: 150, b: 100 } },
+    // Gaming channels (116-125)
+    116: { name: 'Gaming Live', type: 'gaming', genre: 'Gaming', color: { r: 150, g: 50, b: 200 } },
+    117: { name: 'Esports TV', type: 'gaming', genre: 'Gaming', color: { r: 200, g: 0, b: 100 } },
+    118: { name: 'Twitch TV', type: 'gaming', genre: 'Gaming', color: { r: 100, g: 65, b: 180 } },
+    119: { name: 'Game Highlights', type: 'gaming', genre: 'Gaming', color: { r: 255, g: 100, b: 50 } },
+    120: { name: 'Retro Gaming', type: 'gaming', genre: 'Gaming', color: { r: 50, g: 100, b: 200 } },
+    121: { name: 'Speedruns', type: 'gaming', genre: 'Gaming', color: { r: 200, g: 50, b: 50 } },
+    122: { name: 'Indie Games', type: 'gaming', genre: 'Gaming', color: { r: 100, g: 200, b: 100 } },
+    123: { name: 'Fighting Games', type: 'gaming', genre: 'Gaming', color: { r: 200, g: 100, b: 50 } },
+    124: { name: 'RPG Realm', type: 'gaming', genre: 'Gaming', color: { r: 100, g: 100, b: 200 } },
+    125: { name: 'VR Gaming', type: 'gaming', genre: 'Gaming', color: { r: 50, g: 200, b: 200 } },
+    // Music channels (126-135)
+    126: { name: 'Vevo', type: 'music', genre: 'Music', color: { r: 255, g: 0, b: 50 } },
+    127: { name: 'Pandora', type: 'music', genre: 'Music', color: { r: 50, g: 150, b: 200 } },
+    128: { name: 'Spotify', type: 'music', genre: 'Music', color: { r: 30, g: 215, b: 90 } },
+    129: { name: 'Apple Music', type: 'music', genre: 'Music', color: { r: 250, g: 50, b: 100 } },
+    130: { name: 'Soundcloud', type: 'music', genre: 'Music', color: { r: 255, g: 100, b: 50 } },
+    131: { name: 'Deezer', type: 'music', genre: 'Music', color: { r: 50, g: 200, b: 150 } },
+    132: { name: 'Tidal', type: 'music', genre: 'Music', color: { r: 0, g: 0, b: 0 } },
+    133: { name: 'Amazon Music', type: 'music', genre: 'Music', color: { r: 0, g: 180, b: 255 } },
+    134: { name: 'YouTube Music', type: 'music', genre: 'Music', color: { r: 255, g: 0, b: 0 } },
+    135: { name: 'iHeartRadio', type: 'music', genre: 'Music', color: { r: 200, g: 50, b: 100 } },
+    // Fallback for 136-999
     default: { name: 'TV Channel', type: 'general', genre: 'General', color: { r: 100, g: 100, b: 150 } }
 };
 

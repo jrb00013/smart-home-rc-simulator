@@ -11,6 +11,10 @@
 #define BUTTON_NETFLIX     0x02
 #define BUTTON_AMAZON_PRIME 0x03
 #define BUTTON_HBO_MAX     0x04
+#define BUTTON_DISNEY_PLUS 0x05
+#define BUTTON_APPLE_TV   0x06
+#define BUTTON_HULU      0x07
+#define BUTTON_PEACOCK  0x08
 
 /* Basic Control Buttons */
 #define BUTTON_POWER       0x10
@@ -78,6 +82,12 @@
 #define BUTTON_ZOOM        0x7A
 #define BUTTON_P_SIZE      0x7B
 
+/* Recording & PVR Controls (Record already at 0x45 in Playback) */
+#define BUTTON_RECORD_LIST 0x7C
+#define BUTTON_SCHEDULE  0x7D
+#define BUTTON_SLEEP_TIMER 0x7E
+#define BUTTON_TIMER_MENU 0x7F
+
 /* Smart TV Features */
 #define BUTTON_VOICE       0x80
 #define BUTTON_MIC         0x81
@@ -92,6 +102,10 @@
 
 /* Gaming Controls */
 #define BUTTON_GAME_MODE   0xA0
+#define BUTTON_GAME1     0xA1
+#define BUTTON_GAME2     0xA2
+#define BUTTON_GAME3     0xA3
+#define BUTTON_GAME_GUIDE 0xA4
 
 /* Picture Controls */
 #define BUTTON_MOTION      0xB0
@@ -107,6 +121,11 @@
 #define BUTTON_MULTI_VIEW  0xD0
 #define BUTTON_PIP         0xD1
 #define BUTTON_SCREEN_MIRROR 0xD2
+#define BUTTON_CAST       0xD3
+#define BUTTON_SCREEN_SHARE 0xD4
+#define BUTTON_HDR_MODE  0xD5
+#define BUTTON_HDR_GAME  0xD6
+#define BUTTON_HDR_FILM 0xD7
 
 /* Room / Smart Home Automation (remote controls TV + room devices) */
 #define BUTTON_ROOM_SCENE_MOVIE  0xE0

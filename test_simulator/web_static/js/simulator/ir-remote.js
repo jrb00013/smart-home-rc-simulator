@@ -35,6 +35,28 @@ function getButtonSymbol(buttonCode, buttonName) {
         0x02: 'NF', // Netflix
         0x03: 'PR', // Amazon Prime
         0x04: 'HB', // HBO Max
+        0x05: 'DS', // Disney+
+        0x06: 'AP', // Apple TV+
+        0x07: 'HL', // Hulu
+        0x08: 'PC', // Peacock
+        // New features
+        0x7C: '📋', // Record List
+        0x7D: '📅', // Schedule
+        0x7E: '⏰', // Sleep Timer
+        0x7F: '⏱', // Timer Menu
+        // Gaming
+        0xA1: '🎮', // Game 1
+        0xA2: '🎮', // Game 2
+        0xA3: '🎮', // Game 3
+        0xA4: '📕', // Game Guide
+        // Connectivity
+        0xD3: '📱', // Cast
+        0xD4: '📲', // Screen Share
+        0xD5: 'HDR', // HDR Mode
+        0xD6: 'HG', // HDR Game
+        0xD7: 'HF', // HDR Film
+        // Picture
+        0xB0: '🎬', // Motion
         // Smart Home - Scenes
         0xE0: '🎬', // Movie
         0xE1: '😌', // Relax
@@ -227,8 +249,12 @@ function createRemoteControl() {
     const streamingButtons = [
         { name: 'YouTube', code: 0x01, color: 0xff0000 },
         { name: 'Netflix', code: 0x02, color: 0xe50914 },
-        { name: 'Amazon Prime', code: 0x03, color: 0x00a8e1 },
-        { name: 'HBO Max', code: 0x04, color: 0x800080 }
+        { name: 'Prime', code: 0x03, color: 0x00a8e1 },
+        { name: 'HBO', code: 0x04, color: 0x800080 },
+        { name: 'Disney+', code: 0x05, color: 0x113CCF },
+        { name: 'Apple TV', code: 0x06, color: 0xA2AAAD },
+        { name: 'Hulu', code: 0x07, color: 0x1CE783 },
+        { name: 'Peacock', code: 0x08, color: 0x000000 }
     ];
     
     for (let i = 0; i < streamingButtons.length; i++) {
