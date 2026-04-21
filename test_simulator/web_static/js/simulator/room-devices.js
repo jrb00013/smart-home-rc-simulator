@@ -41,8 +41,30 @@ function updateRoomDevicesFromTVState() {
         if (ambientOn && tvOn && tvState.current_app) {
             const c = getAppColor(tvState.current_app);
             mat.emissive.setRGB(c.r / 255, c.g / 255, c.b / 255);
-            mat.emissiveIntensity = 0.25 + Math.sin(time * 0.8) * 0.05;
+            // Pulse effect based on mode
+            const pulseMode = rs.ambient_pulse || 'breathe';
+            if (pulseMode === 'breathe') {
+                mat.emissiveIntensity = 0.25 + Math.sin(time * 0.8) * 0.05;
+            } else if (pulseMode === 'party') {
+                mat.emissiveIntensity = 0.4 + Math.sin(time * 4) * 0.2;
+            } else if (pulseMode === 'solid') {
+                mat.emissiveIntensity = 0.35;
+            } else if (pulseMode === 'wave') {
+                mat.emissiveIntensity = 0.2 + Math.sin(time * 2 + tvState.volume * 0.1) * 0.15;
+            } else {
+                mat.emissiveIntensity = 0.25;
+            }
         } else if (ambientOn && tvOn && tvState.channel !== undefined) {
+            // Channel-based colors (from tvShows)
+            const tvShow = getTVShow(tvState.channel);
+            if (tvShow && tvShow.color) {
+                mat.emissive.setRGB(tvShow.color.r / 255, tvShow.color.g / 255, tvShow.color.b / 255);
+            } else {
+                mat.emissive.setHex(0x4060a0);
+            }
+            mat.emissiveIntensity = 0.15;
+        } else if (ambientOn && tvOn) {
+            // Default cyan for live TV
             mat.emissive.setHex(0x4060a0);
             mat.emissiveIntensity = 0.15;
         } else {

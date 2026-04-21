@@ -495,6 +495,30 @@ function updateTVScreen(state) {
                 } else if (appName === 'Peacock') {
                     // Peacock style content with gradient and peacock feather motif
                     drawPeacockContent(ctx, canvas, brightness, time, state);
+                } else if (appName === 'Recordings') {
+                    // PVR recordings screen
+                    drawRecordingsScreen(ctx, canvas, brightness, time, state);
+                } else if (appName === 'Schedule') {
+                    // Recording schedule screen
+                    drawScheduleScreen(ctx, canvas, brightness, time, state);
+                } else if (appName === 'Sleep Timer') {
+                    // Sleep timer screen
+                    drawSleepTimerScreen(ctx, canvas, brightness, time, state);
+                } else if (appName === 'Calibration') {
+                    // Picture calibration screen
+                    drawCalibrationScreen(ctx, canvas, brightness, time, state);
+                } else if (appName === 'Cast') {
+                    // Cast/Screen share screen
+                    drawCastScreen(ctx, canvas, brightness, time, state);
+                } else if (appName === 'Gaming') {
+                    // Gaming dashboard
+                    drawGamingDashboardScreen(ctx, canvas, brightness, time, state);
+                } else if (appName === 'Music') {
+                    // Music player screen
+                    drawMusicPlayerScreen(ctx, canvas, brightness, time, state);
+                } else if (appName === 'Settings') {
+                    // Settings screen
+                    drawSettingsScreen(ctx, canvas, brightness, time, state);
                 } else {
                     // Show TV show content based on channel
                     // This handles both explicit channel mode and when current_app is None/empty
@@ -1286,6 +1310,360 @@ function drawHuluContent(ctx, canvas, brightness, time, state) {
         ctx.font = '16px Arial';
         ctx.fillText(items[i], x + itemWidth / 2, startY + itemHeight + 22);
     }
+}
+
+// PVR/Recording Screen
+function drawRecordingsScreen(ctx, canvas, brightness, time, state) {
+    ctx.fillStyle = `rgba(20, 20, 40, ${brightness})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = `rgba(255, 255, 255, ${brightness})`;
+    ctx.font = 'bold 42px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('My Recordings', canvas.width / 2, 80);
+    
+    // Sample recordings list
+    const recordings = [
+        { title: 'Movie: Action Film', duration: '1h 45m', date: 'Today' },
+        { title: 'Series: Drama Ep.5', duration: '45m', date: 'Yesterday' },
+        { title: 'Sports: Football', duration: '2h 30m', date: 'Last week' },
+        { title: 'Concert Live', duration: '3h', date: 'Last week' }
+    ];
+    
+    const itemHeight = 60;
+    const startY = 140;
+    for (let i = 0; i < recordings.length; i++) {
+        const y = startY + i * (itemHeight + 15);
+        const itemBright = brightness * (0.9 - i * 0.1);
+        ctx.fillStyle = `rgba(60, 60, 80, ${itemBright})`;
+        ctx.fillRect(50, y, canvas.width - 100, itemHeight);
+        
+        ctx.fillStyle = `rgba(255, 255, 255, ${itemBright})`;
+        ctx.font = '20px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText(recordings[i].title, 70, y + 25);
+        ctx.textAlign = 'right';
+        ctx.fillText(`${recordings[i].duration} • ${recordings[i].date}`, canvas.width - 70, y + 25);
+    }
+    
+    ctx.textAlign = 'center';
+    ctx.fillStyle = `rgba(100, 200, 100, ${brightness})`;
+    ctx.font = '18px Arial';
+    ctx.fillText('Press Record to schedule new recording', canvas.width / 2, canvas.height - 50);
+}
+
+// Schedule Screen
+function drawScheduleScreen(ctx, canvas, brightness, time, state) {
+    ctx.fillStyle = `rgba(30, 30, 50, ${brightness})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = `rgba(255, 255, 255, ${brightness})`;
+    ctx.font = 'bold 42px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Scheduled Recordings', canvas.width / 2, 80);
+    
+    // Sample schedule
+    const scheduled = [
+        { title: 'News at 6PM', channel: 'Channel 1', time: 'Today 6:00 PM' },
+        { title: 'Game Show', channel: 'Channel 82', time: 'Tomorrow 8:00 PM' },
+        { title: 'Movie', channel: 'Channel 32', time: 'Friday 9:00 PM' }
+    ];
+    
+    const itemHeight = 55;
+    const startY = 130;
+    for (let i = 0; i < scheduled.length; i++) {
+        const y = startY + i * (itemHeight + 12);
+        const itemBright = brightness * (0.9 - i * 0.15);
+        ctx.fillStyle = `rgba(80, 70, 60, ${itemBright})`;
+        ctx.fillRect(60, y, canvas.width - 120, itemHeight);
+        
+        ctx.fillStyle = `rgba(255, 220, 150, ${itemBright})`;
+        ctx.font = '18px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText(scheduled[i].title, 75, y + 22);
+        
+        ctx.fillStyle = `rgba(180, 180, 180, ${itemBright * 0.8})`;
+        ctx.font = '14px Arial';
+        ctx.fillText(`${scheduled[i].channel} • ${scheduled[i].time}`, canvas.width - 75, y + 22);
+    }
+}
+
+// Sleep Timer Screen
+function drawSleepTimerScreen(ctx, canvas, brightness, time, state) {
+    ctx.fillStyle = `rgba(10, 10, 25, ${brightness})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = `rgba(100, 150, 255, ${brightness})`;
+    ctx.font = 'bold 36px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Sleep Timer', canvas.width / 2, 100);
+    
+    // Timer circles
+    const timerOptions = ['15 min', '30 min', '45 min', '60 min', '90 min', '120 min'];
+    const centerX = canvas.width / 2;
+    const centerY = 280;
+    const radius = 50;
+    
+    for (let i = 0; i < timerOptions.length; i++) {
+        const angle = (i / timerOptions.length) * Math.PI * 2 - Math.PI / 2;
+        const x = centerX + Math.cos(angle) * 120;
+        const y = centerY + Math.sin(angle) * 100;
+        
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(50, 80, 150, ${brightness * 0.6})`;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(100, 150, 255, ${brightness})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        ctx.fillStyle = `rgba(255, 255, 255, ${brightness})`;
+        ctx.font = '14px Arial';
+        ctx.fillText(timerOptions[i], x, y + 5);
+    }
+    
+    ctx.fillStyle = `rgba(100, 200, 100, ${brightness})`;
+    ctx.font = '18px Arial';
+    ctx.fillText('Auto-off when timer ends', centerX, canvas.height - 80);
+}
+
+// Picture Settings/Calibration Screen
+function drawCalibrationScreen(ctx, canvas, brightness, time, state) {
+    ctx.fillStyle = `rgba(15, 15, 30, ${brightness})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = `rgba(255, 255, 255, ${brightness})`;
+    ctx.font = 'bold 38px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Picture Settings', canvas.width / 2, 70);
+    
+    // Picture mode selector
+    const modes = ['Standard', 'Movie', 'Game', 'HDR+', 'Dynamic', 'Natural'];
+    const modeWidth = 100;
+    const startX = (canvas.width - (modes.length * (modeWidth + 10) - 10)) / 2;
+    const startY = 130;
+    
+    for (let i = 0; i < modes.length; i++) {
+        const x = startX + i * (modeWidth + 10);
+        const modeBright = brightness * (0.85 - i * 0.08);
+        ctx.fillStyle = `rgba(80, 80, 120, ${modeBright})`;
+        ctx.fillRect(x, startY, modeWidth, 50);
+        
+        ctx.fillStyle = `rgba(255, 255, 255, ${brightness})`;
+        ctx.font = '16px Arial';
+        ctx.fillText(modes[i], x + modeWidth / 2, startY + 30);
+    }
+    
+    // Sliders
+    const sliderY = 250;
+    const sliders = [
+        { label: 'Brightness', value: 50 },
+        { label: 'Contrast', value: 50 },
+        { label: 'Sharpness', value: 50 },
+        { label: 'Color', value: 50 },
+        { label: 'Tint', value: 50 },
+        { label: 'Backlight', value: 50 }
+    ];
+    
+    for (let i = 0; i < sliders.length; i++) {
+        const y = sliderY + i * 45;
+        
+        ctx.fillStyle = `rgba(180, 180, 180, ${brightness * 0.8})`;
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText(sliders[i].label, 80, y + 20);
+        
+        ctx.fillStyle = `rgba(80, 80, 100, ${brightness * 0.4})`;
+        ctx.fillRect(200, y, canvas.width - 280, 25);
+        
+        const valueWidth = (sliders[i].value / 100) * (canvas.width - 280);
+        ctx.fillStyle = `rgba(100, 150, 255, ${brightness})`;
+        ctx.fillRect(200, y, valueWidth, 25);
+    }
+    
+    // HDR and Motion sections
+    ctx.textAlign = 'center';
+    ctx.fillText('HDR Mode: Auto | Game | Film', canvas.width / 2, sliderY + sliders.length * 45 + 40);
+    ctx.fillText('Motion: Clear | Auto | LED', canvas.width / 2, sliderY + sliders.length * 45 + 70);
+}
+
+// Music Player Screen
+function drawMusicPlayerScreen(ctx, canvas, brightness, time, state) {
+    ctx.fillStyle = `rgba(15, 15, 25, ${brightness})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Equalizer visualization
+    const barCount = 32;
+    const barWidth = canvas.width / barCount - 2;
+    for (let i = 0; i < barCount; i++) {
+        const barHeight = 30 + Math.sin(time * 4 + i * 0.3) * 25 + Math.random() * 15;
+        const x = i * (barWidth + 2);
+        const y = canvas.height - 150 - barHeight;
+        const gradient = ctx.createLinearGradient(0, y, 0, canvas.height - 150);
+        gradient.addColorStop(0, `rgba(100, 200, 100, ${brightness})`);
+        gradient.addColorStop(1, `rgba(50, 100, 50, ${brightness * 0.5})`);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(x, y, barWidth, barHeight);
+    }
+    
+    // Album art placeholder
+    ctx.fillStyle = `rgba(80, 80, 100, ${brightness * 0.5})`;
+    ctx.fillRect(50, 150, 120, 120);
+    
+    // Track info
+    ctx.fillStyle = `rgba(255, 255, 255, ${brightness})`;
+    ctx.font = 'bold 22px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText('Track Title', 190, 200);
+    
+    ctx.fillStyle = `rgba(180, 180, 180, ${brightness * 0.8})`;
+    ctx.font = '16px Arial';
+    ctx.fillText('Artist Name', 190, 230);
+    
+    // Progress bar
+    ctx.fillStyle = `rgba(100, 100, 120, ${brightness * 0.4})`;
+    ctx.fillRect(50, 300, canvas.width - 100, 8);
+    ctx.fillStyle = `rgba(100, 200, 100, ${brightness})`;
+    ctx.fillRect(50, 300, (canvas.width - 100) * 0.35, 8);
+    
+    // Controls
+    const controlX = canvas.width / 2;
+    const controlY = 350;
+    ctx.font = '32px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('⏮ | ▶ | ⏭', controlX, controlY);
+    
+    ctx.fillStyle = `rgba(150, 150, 180, ${brightness * 0.7})`;
+    ctx.font = '14px Arial';
+    ctx.fillText('0:45 ─────────────── 2:30', controlX, controlY + 35);
+}
+
+// Settings Screen
+function drawSettingsScreen(ctx, canvas, brightness, time, state) {
+    ctx.fillStyle = `rgba(20, 20, 35, ${brightness})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = `rgba(255, 255, 255, ${brightness})`;
+    ctx.font = 'bold 36px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Settings', canvas.width / 2, 60);
+    
+    const settings = [
+        { name: 'Network', icon: '📶', value: 'Connected' },
+        { name: 'Sound', icon: '🔊', value: 'Stereo' },
+        { name: 'Picture', icon: '🖼️', value: 'Standard' },
+        { name: 'General', icon: '⚙️', value: '' },
+        { name: 'Apps', icon: '📱', value: '' },
+        { name: 'System', icon: '💻', value: '' }
+    ];
+    
+    const itemHeight = 50;
+    const startY = 100;
+    for (let i = 0; i < settings.length; i++) {
+        const y = startY + i * (itemHeight + 10);
+        ctx.fillStyle = `rgba(60, 60, 90, ${brightness * 0.7})`;
+        ctx.fillRect(40, y, canvas.width - 80, itemHeight);
+        
+        ctx.font = '20px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText(settings[i].icon, 55, y + 32);
+        
+        ctx.fillStyle = `rgba(255, 255, 255, ${brightness})`;
+        ctx.fillText(settings[i].name, 100, y + 32);
+        
+        ctx.textAlign = 'right';
+        ctx.fillStyle = `rgba(150, 150, 180, ${brightness * 0.8})`;
+        ctx.fillText(settings[i].value || '>', canvas.width - 60, y + 32);
+    }
+    
+    // Version info
+    ctx.textAlign = 'center';
+    ctx.fillStyle = `rgba(100, 100, 130, ${brightness * 0.6})`;
+    ctx.font = '14px Arial';
+    ctx.fillText('Version 1.0.0 | Model: Phillips Smart TV', canvas.width / 2, canvas.height - 30);
+}
+
+// Cast/Screen Share Screen
+function drawCastScreen(ctx, canvas, brightness, time, state) {
+    ctx.fillStyle = `rgba(30, 30, 40, ${brightness})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = `rgba(255, 140, 0, ${brightness})`;
+    ctx.font = 'bold 48px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('🎬 Cast', canvas.width / 2, 100);
+    
+    // Cast icon animation
+    const pulse = Math.sin(time * 3) * 0.2 + 0.8;
+    ctx.beginPath();
+    ctx.arc(canvas.width / 2, 300, 80 * pulse, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255, 140, 0, ${brightness * 0.3})`;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(canvas.width / 2, 300, 50 * pulse, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255, 140, 0, ${brightness})`;
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    
+    ctx.fillStyle = `rgba(255, 255, 255, ${brightness})`;
+    ctx.font = '20px Arial';
+    ctx.fillText('Searching for devices...', canvas.width / 2, 450);
+    
+    // Device list simulation
+    const devices = ['Living Room TV', 'Bedroom TV', 'Soundbar'];
+    const startY = 520;
+    for (let i = 0; i < devices.length; i++) {
+        ctx.fillStyle = `rgba(100, 100, 120, ${brightness * 0.6})`;
+        ctx.fillRect(100, startY + i * 50, canvas.width - 200, 40);
+        ctx.fillStyle = `rgba(255, 255, 255, ${brightness})`;
+        ctx.font = '16px Arial';
+        ctx.fillText(devices[i], canvas.width / 2, startY + i * 50 + 25);
+    }
+}
+
+// Gaming Dashboard Screen
+function drawGamingDashboardScreen(ctx, canvas, brightness, time, state) {
+    ctx.fillStyle = `rgba(20, 20, 35, ${brightness})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = `rgba(150, 50, 200, ${brightness})`;
+    ctx.font = 'bold 42px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Gaming Hub', canvas.width / 2, 80);
+    
+    // Game categories
+    const games = [
+        { name: 'Cloud Gaming', icon: '☁️', color: '80, 150, 255' },
+        { name: 'Game Apps', icon: '🎮', color: '255, 80, 100' },
+        { name: 'Remote Play', icon: '📱', color: '100, 200, 80' },
+        { name: 'Steam Link', icon: '🎲', color: '80, 100, 200' }
+    ];
+    
+    const gameWidth = 140;
+    const gameHeight = 120;
+    const startX = (canvas.width - (games.length * (gameWidth + 15) - 15)) / 2;
+    const startY = 150;
+    
+    for (let i = 0; i < games.length; i++) {
+        const x = startX + i * (gameWidth + 15);
+        const gameBright = brightness * (0.9 + Math.sin(time * 2 + i) * 0.1);
+        ctx.fillStyle = `rgba(${games[i].color}, ${gameBright * 0.3})`;
+        ctx.fillRect(x, startY, gameWidth, gameHeight);
+        
+        ctx.font = '32px Arial';
+        ctx.fillStyle = `rgba(${games[i].color}, ${gameBright})`;
+        ctx.fillText(games[i].icon, x + gameWidth / 2, startY + 50);
+        
+        ctx.font = '14px Arial';
+        ctx.fillStyle = `rgba(255, 255, 255, ${gameBright})`;
+        ctx.fillText(games[i].name, x + gameWidth / 2, startY + 90);
+    }
+    
+    // Game mode settings
+    ctx.fillStyle = `rgba(255, 200, 50, ${brightness})`;
+    ctx.font = 'bold 24px Arial';
+    ctx.fillText('Game Mode: ON | Low Latency', canvas.width / 2, 350);
+    ctx.fillText('VRR / ALLM: Supported', canvas.width / 2, 385);
 }
 
 function drawPeacockContent(ctx, canvas, brightness, time, state) {
