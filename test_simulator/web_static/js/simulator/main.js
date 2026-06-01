@@ -540,6 +540,29 @@ function animate() {
         }
     }
 
+    // Ceiling fan rotation
+    if (window._fanBlades) {
+        window._fanBlades.rotation.y += dt * 1.5;
+    }
+
+    // Butterfly animation
+    if (window._butterflies) {
+        for (var bi2 = 0; bi2 < window._butterflies.length; bi2++) {
+            var b = window._butterflies[bi2];
+            var ud = b.userData;
+            ud.angle += dt * ud.speed * 0.3;
+            b.position.x += Math.cos(ud.angle) * dt * 0.3;
+            b.position.z += Math.sin(ud.angle) * dt * 0.3;
+            b.position.y = ud.yBase + Math.sin(ud.angle * 2 + ud.phase) * 0.3;
+            b.rotation.y = Math.atan2(Math.sin(ud.angle), Math.cos(ud.angle));
+            // Wing flap
+            var wing1 = b.children[0];
+            var wing2 = b.children[1];
+            if (wing1) wing1.rotation.z = Math.sin(ud.angle * 4 + ud.phase) * 0.3;
+            if (wing2) wing2.rotation.z = -Math.sin(ud.angle * 4 + ud.phase) * 0.3;
+        }
+    }
+
     renderer.render(scene, camera);
 }
 

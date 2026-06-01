@@ -905,6 +905,43 @@ function createNeighborhood() {
     sw.rotation.x = -Math.PI / 2; sw.position.set(-7, -0.02, 42);
     scene.add(sw);
 
+    // Manhole on street
+    var mhMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.9 });
+    var mh = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.35, 0.04, 16), mhMat);
+    mh.position.set(0, -0.01, 40); mh.rotation.x = 0;
+    scene.add(mh);
+    var mhCover = new THREE.Mesh(new THREE.CircleGeometry(0.25, 16), mhMat);
+    mhCover.rotation.x = -Math.PI / 2;
+    mhCover.position.set(0, 0.01, 40);
+    scene.add(mhCover);
+
+    // Street drain on sidewalk
+    var drainMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 });
+    var drain = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.02, 0.5), drainMat);
+    drain.position.set(-7, 0.01, 35);
+    scene.add(drain);
+    for (var di = 0; di < 4; di++) {
+        var dBar = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.03, 0.4), drainMat);
+        dBar.position.set(-7 + (-0.1 + di * 0.07), 0.02, 35);
+        scene.add(dBar);
+    }
+
+    // Park bench
+    var benchMat = new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.8 });
+    var benchMat2 = new THREE.MeshStandardMaterial({ color: 0x5a4a3a, roughness: 0.8 });
+    var bench = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.06, 0.4), benchMat);
+    bench.position.set(-35, 0.18, 44);
+    scene.add(bench);
+    var benchBack = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.25, 0.03), benchMat2);
+    benchBack.position.set(-35, 0.33, 43.82);
+    scene.add(benchBack);
+    var benchLeg1 = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.15, 0.35), benchMat);
+    benchLeg1.position.set(-35.5, 0.075, 44);
+    scene.add(benchLeg1);
+    var benchLeg2 = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.15, 0.35), benchMat);
+    benchLeg2.position.set(-34.5, 0.075, 44);
+    scene.add(benchLeg2);
+
     // Fence front
     var fenceMat = new THREE.MeshStandardMaterial({ color: 0xe8e0d4, roughness: 0.7 });
     var postMat = new THREE.MeshStandardMaterial({ color: 0xd8d0c4, roughness: 0.7 });
@@ -943,6 +980,22 @@ function createNeighborhood() {
     flag.position.set(-5, 1.15, 30.75); scene.add(flag);
     var ft = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.05, 0.02), flagMat);
     ft.position.set(-5, 1.22, 30.75); scene.add(ft);
+
+    // More mailboxes at neighbor houses
+    function makeMailbox(mx, mz, mcolor) {
+        var mp = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 1.0, 8),
+            new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.3, roughness: 0.5 }));
+        mp.position.set(mx, 0.5, mz); scene.add(mp);
+        var mb2 = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.15, 0.35),
+            new THREE.MeshStandardMaterial({ color: mcolor || 0x2020aa, roughness: 0.6 }));
+        mb2.position.set(mx, 1.05, mz); mb2.castShadow = true;
+        scene.add(mb2);
+        var fl2 = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.15, 0.02),
+            new THREE.MeshStandardMaterial({ color: 0xcc2222, roughness: 0.6 }));
+        fl2.position.set(mx, 1.15, mz + 0.25); scene.add(fl2);
+    }
+    makeMailbox(-40, 35.5, 0x22aa44);
+    makeMailbox(38, 33.5, 0xaa4444);
 
     // Street lights
     var poleMat = new THREE.MeshStandardMaterial({ color: 0x4a4a4a, metalness: 0.5, roughness: 0.5 });
@@ -1100,6 +1153,36 @@ function createNeighborhood() {
     makePine(32, 28, 0.7);
     makePine(-34, 20, 0.9);
     makePine(34, 18, 0.6);
+
+    // Butterflies in the garden
+    window._butterflies = [];
+    var bflyMat = new THREE.MeshStandardMaterial({ color: 0xff8833, roughness: 0.5, side: THREE.DoubleSide });
+    var bflyMat2 = new THREE.MeshStandardMaterial({ color: 0xff6633, roughness: 0.5, side: THREE.DoubleSide });
+    for (var bi = 0; bi < 6; bi++) {
+        var bfly = new THREE.Group();
+        var w1 = new THREE.Mesh(new THREE.PlaneGeometry(0.04, 0.025), bflyMat);
+        w1.position.set(-0.025, 0, 0);
+        w1.rotation.y = 0.3;
+        bfly.add(w1);
+        var w2 = new THREE.Mesh(new THREE.PlaneGeometry(0.04, 0.025), bflyMat2);
+        w2.position.set(0.025, 0, 0);
+        w2.rotation.y = -0.3;
+        bfly.add(w2);
+        bfly.position.set(
+            -12 + Math.random() * 24,
+            0.5 + Math.random() * 2,
+            -30 + Math.random() * 20
+        );
+        bfly.userData = {
+            angle: Math.random() * Math.PI * 2,
+            speed: 0.5 + Math.random() * 1.0,
+            radius: 1 + Math.random() * 3,
+            yBase: bfly.position.y,
+            phase: Math.random() * Math.PI * 2
+        };
+        scene.add(bfly);
+        window._butterflies.push(bfly);
+    }
 }
 
 // Chimney smoke particles
@@ -3647,6 +3730,30 @@ function createRoom() {
     scene.add(garageLight);
     roomLights.garage = garageLight;
 
+    // Pegboard on garage wall
+    var pegMat = new THREE.MeshStandardMaterial({ color: 0xc8b898, roughness: 0.7 });
+    var pegboard = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.2), pegMat);
+    pegboard.position.set(rx(-7.1), ry(2.0), rz(7.5));
+    pegboard.rotation.y = Math.PI / 2;
+    roomGroup.add(pegboard);
+    // Tools on pegboard
+    var toolMat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.6, roughness: 0.3 });
+    var toolMat2 = new THREE.MeshStandardMaterial({ color: 0x664422, roughness: 0.7 });
+    for (var ti = 0; ti < 3; ti++) {
+        var tool = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.25, 0.02), toolMat);
+        tool.position.set(rx(-7.1 + (-0.3 + ti * 0.3)), ry(2.1 + ti * 0.1), rz(7.5));
+        tool.rotation.y = Math.PI / 2;
+        roomGroup.add(tool);
+    }
+    // Items on workbench
+    var canMat = new THREE.MeshStandardMaterial({ color: 0x2266aa, metalness: 0.5, roughness: 0.3 });
+    var paintCan = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.08, 10), canMat);
+    paintCan.position.set(rx(-6.8), ry(0.92), rz(8.3));
+    roomGroup.add(paintCan);
+    var toolBox = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.06, 0.1), toolMat2);
+    toolBox.position.set(rx(-6.2), ry(0.96), rz(8.1));
+    roomGroup.add(toolBox);
+
     // ========== STAIRS TO MEZZANINE ==========
     var stairMat = new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.85 });
     var riserMat = new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.85 });
@@ -3806,18 +3913,21 @@ function createRoom() {
     pantryD.position.set(20.5, 0.8, 14.55);
     roomGroup.add(pantryD);
 
-    // Ceiling fan
+    // Ceiling fan (blades in group for animation)
     var fanMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.4, metalness: 0.3 });
     var fanBladeMat = new THREE.MeshStandardMaterial({ color: 0x8a7a5a, roughness: 0.7 });
     var fanMount = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, 0.15, 10), fanMat);
     fanMount.position.set(0, 13.8, 0);
     roomGroup.add(fanMount);
+    window._fanBlades = new THREE.Group();
+    window._fanBlades.position.set(0, 13.7, 0);
+    roomGroup.add(window._fanBlades);
     for (var fi = 0; fi < 5; fi++) {
         var a = fi * Math.PI * 2 / 5;
         var blade = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.01, 0.15), fanBladeMat);
-        blade.position.set(Math.cos(a) * 0.7, 13.7, Math.sin(a) * 0.7);
+        blade.position.set(Math.cos(a) * 0.7, 0, Math.sin(a) * 0.7);
         blade.rotation.y = -a;
-        roomGroup.add(blade);
+        window._fanBlades.add(blade);
     }
 
     // Pendant lights over kitchen island
