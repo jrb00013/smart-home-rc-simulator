@@ -3609,6 +3609,65 @@ function createRoom() {
     kiT.position.set(17, 0.9, 6.5);
     roomGroup.add(kiT);
 
+    // Countertop appliances
+    var micMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.3, metalness: 0.4 });
+    var micMat2 = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.4 });
+    var micDoor = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.2 });
+    // Microwave
+    var mw = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.2, 0.25), micMat);
+    mw.position.set(20.5, 1.02, -2.5); mw.castShadow = true;
+    roomGroup.add(mw);
+    var mwd = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.14, 0.02), micDoor);
+    mwd.position.set(20.5, 1.02, -2.35);
+    roomGroup.add(mwd);
+    // Toaster
+    var tt = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.12, 0.12), kmMat);
+    tt.position.set(20.5, 0.98, 0.5);
+    roomGroup.add(tt);
+    var tSlot = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.02, 0.1), ksMat);
+    tSlot.position.set(20.5, 1.05, 0.5);
+    roomGroup.add(tSlot);
+    // Coffee maker
+    var cm = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.18, 0.2), ksMat);
+    cm.position.set(20.5, 1.01, 8.5);
+    roomGroup.add(cm);
+    var cmCarafe = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, 0.08, 10),
+        new THREE.MeshStandardMaterial({ color: 0x88bbdd, transparent: true, opacity: 0.5 }));
+    cmCarafe.position.set(20.5, 0.96, 8.3);
+    roomGroup.add(cmCarafe);
+    // Pantry cabinet next to fridge
+    var pantry = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.6, 0.5), kwMat);
+    pantry.position.set(20.5, 0.8, 14.3); pantry.castShadow = true;
+    roomGroup.add(pantry);
+    var pantryD = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.4, 0.02), kwMat2);
+    pantryD.position.set(20.5, 0.8, 14.55);
+    roomGroup.add(pantryD);
+
+    // Ceiling fan
+    var fanMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.4, metalness: 0.3 });
+    var fanBladeMat = new THREE.MeshStandardMaterial({ color: 0x8a7a5a, roughness: 0.7 });
+    var fanMount = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, 0.15, 10), fanMat);
+    fanMount.position.set(0, 13.8, 0);
+    roomGroup.add(fanMount);
+    for (var fi = 0; fi < 5; fi++) {
+        var a = fi * Math.PI * 2 / 5;
+        var blade = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.01, 0.15), fanBladeMat);
+        blade.position.set(Math.cos(a) * 0.7, 13.7, Math.sin(a) * 0.7);
+        blade.rotation.y = -a;
+        roomGroup.add(blade);
+    }
+
+    // Pendant lights over kitchen island
+    var pMat = new THREE.MeshStandardMaterial({ color: 0xf0ece4, side: THREE.DoubleSide, roughness: 0.8 });
+    [-0.5, 0.5].forEach(function(oz) {
+        var p = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.25, 0.2, 14, 1, true), pMat);
+        p.position.set(17, 3.5, 6.5 + oz);
+        roomGroup.add(p);
+        var pLight = new THREE.PointLight(0xfff0e0, 0.4, 5);
+        pLight.position.set(17, 3.4, 6.5 + oz);
+        scene.add(pLight);
+    });
+
     // ========== DINING TABLE ==========
     var dtMat = new THREE.MeshStandardMaterial({ color: 0x5a3a1a, roughness: 0.7 });
     var dchMat = new THREE.MeshStandardMaterial({ color: 0x4a2a12, roughness: 0.75 });
@@ -3791,6 +3850,73 @@ function createRoom() {
     var fv = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.08, 0.5, 14), fvMat);
     fv.position.set(-18, 0.25, 10); fv.castShadow = true;
     roomGroup.add(fv);
+
+    // ========== LIVING ROOM DECOR ==========
+    // Throw pillows on sofa
+    var pMat2 = new THREE.MeshStandardMaterial({ color: 0x4488aa, roughness: 0.85 });
+    var pMat3 = new THREE.MeshStandardMaterial({ color: 0xaa6644, roughness: 0.85 });
+    var p1 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.08, 0.2), pMat2);
+    p1.position.set(-0.6, ry(0.6), rz(-2.55)); roomGroup.add(p1);
+    var p2 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.08, 0.2), pMat3);
+    p2.position.set(0.6, ry(0.6), rz(-2.55)); roomGroup.add(p2);
+    // Blanket draped over sofa arm
+    var blMat = new THREE.MeshStandardMaterial({ color: 0x886644, roughness: 0.9 });
+    var blanket = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.02, 0.35), blMat);
+    blanket.position.set(rx(-1.28), ry(0.7), rz(-2.9));
+    blanket.rotation.x = 0.15; roomGroup.add(blanket);
+    // Pet bed in corner
+    var pbMat = new THREE.MeshStandardMaterial({ color: 0x5a3a2a, roughness: 0.9 });
+    var pbMat2 = new THREE.MeshStandardMaterial({ color: 0x7a5a4a, roughness: 0.9 });
+    var pb = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.3, 0.08, 14), pbMat);
+    pb.position.set(-20, 0.04, 12); roomGroup.add(pb);
+    var pbPad = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.03, 14), pbMat2);
+    pbPad.position.set(-20, 0.08, 12); roomGroup.add(pbPad);
+
+    // ========== FOYER ADDITIONS ==========
+    // Mirror on entry wall
+    var mirMat = new THREE.MeshStandardMaterial({
+        color: 0x88bbdd, roughness: 0.02, metalness: 0.8,
+        transparent: true, opacity: 0.3
+    });
+    var mirFrame = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.0, 0.04),
+        new THREE.MeshStandardMaterial({ color: 0x8a7a5a, roughness: 0.6 }));
+    mirFrame.position.set(-21.8, 2.5, 20.5); mirFrame.rotation.y = Math.PI / 2;
+    roomGroup.add(mirFrame);
+    var mirGlass = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.8), mirMat);
+    mirGlass.position.set(-21.82, 2.5, 20.5); mirGlass.rotation.y = Math.PI / 2;
+    roomGroup.add(mirGlass);
+    // Shoe rack
+    var srMat = new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.75 });
+    var sr = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.4, 0.4), srMat);
+    sr.position.set(-12, 0.2, 20.5); roomGroup.add(sr);
+    for (var shi = 0; shi < 3; shi++) {
+        var shoe = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.04, 0.12),
+            new THREE.MeshStandardMaterial({ color: shi % 2 ? 0x1a1a1a : 0x442211, roughness: 0.8 }));
+        shoe.position.set(-12 + (-0.4 + shi * 0.4), 0.36, 20.5 + (-0.05 + (shi % 2) * 0.1));
+        roomGroup.add(shoe);
+    }
+    // Umbrella stand
+    var usMat = new THREE.MeshStandardMaterial({ color: 0x224466, roughness: 0.6 });
+    var us = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.4, 10), usMat);
+    us.position.set(-15, 0.2, 22.5);
+    roomGroup.add(us);
+
+    // ========== WALL ART ROUND 2 ==========
+    var artMat2 = new THREE.MeshStandardMaterial({ color: 0xf0ece4, roughness: 0.6 });
+    // Canvas prints on back wall
+    [[-4, 2.5], [4, 2.5]].forEach(function(p) {
+        var f = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.6, 0.02), artMat2);
+        f.position.set(p[0], ry(p[1]), -21.9); roomGroup.add(f);
+        var img = new THREE.Mesh(new THREE.PlaneGeometry(0.65, 0.45),
+            new THREE.MeshStandardMaterial({ color: p[0] < 0 ? 0x44aa88 : 0xaa8844, roughness: 0.5 }));
+        img.position.set(p[0], ry(p[1]), -21.88); roomGroup.add(img);
+    });
+    // Canvas on kitchen wall
+    var kArt = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.45, 0.02), artMat2);
+    kArt.position.set(21.9, 2.5, 0); roomGroup.add(kArt);
+    var kImg = new THREE.Mesh(new THREE.PlaneGeometry(0.45, 0.3),
+        new THREE.MeshStandardMaterial({ color: 0x66bbaa, roughness: 0.5 }));
+    kImg.position.set(21.9, 2.5, 0.02); roomGroup.add(kImg);
 
     // ========== AUTONOMOUS EVERYTHING: robot dogs, toaster, fridge, sensors, autonomous furniture, carpet bot ==========
     roomGroup.userData.roomScale = { rx, ry, rz };
