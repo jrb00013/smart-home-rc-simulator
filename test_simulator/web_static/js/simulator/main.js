@@ -512,6 +512,34 @@ function animate() {
         }
     }
     
+    // Animate clouds drifting (slow sky sphere rotation)
+    if (scene.children.length > 0) {
+        for (var si = 0; si < scene.children.length; si++) {
+            var child = scene.children[si];
+            if (child.isMesh && child.geometry && child.geometry.type === 'SphereGeometry' && child.material.side === THREE.BackSide) {
+                child.rotation.y += dt * 0.003;
+                break;
+            }
+        }
+    }
+
+    // Chimney smoke particles
+    if (window._smokeParticles) {
+        for (var pi = window._smokeParticles.length - 1; pi >= 0; pi--) {
+            var p = window._smokeParticles[pi];
+            p.position.y += dt * 0.4;
+            p.position.x += Math.sin(p.position.y * 2) * dt * 0.1;
+            p.position.z += Math.cos(p.position.y * 2) * dt * 0.1;
+            var s = p.scale.x + dt * 0.1;
+            p.scale.set(s, s, s);
+            p.material.opacity -= dt * 0.2;
+            if (p.material.opacity <= 0 || p.position.y > 24) {
+                scene.remove(p);
+                window._smokeParticles.splice(pi, 1);
+            }
+        }
+    }
+
     renderer.render(scene, camera);
 }
 

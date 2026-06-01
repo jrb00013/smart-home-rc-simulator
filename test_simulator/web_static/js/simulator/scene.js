@@ -487,6 +487,88 @@ function createExterior() {
         c.position.set(rx(x + 0.4), ry(4.5), -22.0);
         roomGroup.add(c);
     });
+
+    // Back deck
+    var dkMat = new THREE.MeshStandardMaterial({ color: 0x5a4a3a, roughness: 0.85 });
+    var deck = new THREE.Mesh(new THREE.PlaneGeometry(14, 10), dkMat);
+    deck.rotation.x = -Math.PI / 2; deck.position.set(-16, -0.02, -28); deck.receiveShadow = true;
+    roomGroup.add(deck);
+    // Deck posts
+    var dpMat = new THREE.MeshStandardMaterial({ color: 0x6a5a4a, roughness: 0.7 });
+    [[-22, -23], [-22, -33], [-9, -23], [-9, -33]].forEach(function(p) {
+        var dp = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.8, 8), dpMat);
+        dp.position.set(p[0], 0.4, p[1]); roomGroup.add(dp);
+    });
+    // Deck railing
+    var drMat = new THREE.MeshStandardMaterial({ color: 0x7a6a5a, roughness: 0.7 });
+    var dr = new THREE.Mesh(new THREE.BoxGeometry(13, 0.04, 0.04), drMat);
+    dr.position.set(-15.5, 0.75, -23); roomGroup.add(dr);
+    var dr2 = new THREE.Mesh(new THREE.BoxGeometry(13, 0.04, 0.04), drMat);
+    dr2.position.set(-15.5, 0.35, -23); roomGroup.add(dr2);
+
+    // Patio furniture
+    var patMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.5, metalness: 0.3 });
+    var patMat2 = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.8 });
+    // 2 chairs
+    [[-18, -28], [-14, -28]].forEach(function(p) {
+        var ch = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.1, 0.8), patMat2);
+        ch.position.set(p[0], 0.1, p[1]); roomGroup.add(ch);
+        var chb = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 0.05), patMat2);
+        chb.position.set(p[0], 0.35, p[1] - 0.45); roomGroup.add(chb);
+    });
+    // Small table between chairs
+    var pt = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.06, 0.6), patMat);
+    pt.position.set(-16, 0.08, -28); roomGroup.add(pt);
+
+    // BBQ grill
+    var bbqMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.7 });
+    var bbq = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.6, 0.5), bbqMat);
+    bbq.position.set(-12, 0.3, -26); bbq.castShadow = true;
+    roomGroup.add(bbq);
+    var bbqLid = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.05, 0.4), bbqMat);
+    bbqLid.position.set(-12, 0.63, -26); roomGroup.add(bbqLid);
+    var bbqLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.3, 8), bbqMat);
+    bbqLeg.position.set(-12, 0.15, -26); roomGroup.add(bbqLeg);
+
+    // Trash cans
+    var tcMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.8 });
+    [[14, 28], [15, 28.5]].forEach(function(p) {
+        var tc = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.2, 0.5, 12), tcMat);
+        tc.position.set(p[0], 0.25, p[1]); roomGroup.add(tc);
+        var tl = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.24, 0.04, 12), tcMat);
+        tl.position.set(p[0], 0.52, p[1]); roomGroup.add(tl);
+    });
+
+    // Porch swing
+    var swMat = new THREE.MeshStandardMaterial({ color: 0x6a5a4a, roughness: 0.8 });
+    var swingSeat = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.06, 0.6), swMat);
+    swingSeat.position.set(2.0, 2.2, 25.5); roomGroup.add(swingSeat);
+    var chainMat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.6, roughness: 0.3 });
+    [[2.0, 2.4, 25.2], [2.0, 2.4, 25.8]].forEach(function(p) {
+        var ch = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.8, 6), chainMat);
+        ch.position.set(p[0], 2.6, p[2]); roomGroup.add(ch);
+    });
+    var swMat2 = new THREE.MeshStandardMaterial({ color: 0x8a7a6a, roughness: 0.8 });
+    var swingBack = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.4, 0.04), swMat2);
+    swingBack.position.set(2.0, 2.5, 25.2); roomGroup.add(swingBack);
+
+    // Window boxes with flowers
+    var wbMat = new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.85 });
+    var wfMat = new THREE.MeshStandardMaterial({ color: 0xff4488, roughness: 0.8 });
+    [-7, 7].forEach(function(x) {
+        var wb = new THREE.Mesh(new THREE.BoxGeometry(rx(1.2), 0.1, 0.2), wbMat);
+        wb.position.set(rx(x), ry(3.8), -22.05); roomGroup.add(wb);
+        for (var fi = 0; fi < 4; fi++) {
+            var wf = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), wfMat);
+            wf.position.set(rx(x) + (Math.random() - 0.5) * rx(0.8), ry(3.9), -22.05 + (Math.random() - 0.5) * 0.1);
+            roomGroup.add(wf);
+        }
+    });
+
+    // Awning over front door window
+    var awMat = new THREE.MeshStandardMaterial({ color: 0x5a4a3a, roughness: 0.85 });
+    var awning = new THREE.Mesh(new THREE.BoxGeometry(3, 0.02, 0.8), awMat);
+    awning.position.set(0, 4.0, 24.1); roomGroup.add(awning);
 }
 
 function createPorch() {
@@ -764,7 +846,113 @@ function createNeighborhood() {
             scene.add(fl);
         }
     });
+
+    // Stop sign
+    var ssMat = new THREE.MeshStandardMaterial({ color: 0xcc2222, roughness: 0.6 });
+    var ssPole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 2, 8),
+        new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.5, roughness: 0.4 }));
+    ssPole.position.set(-30, 1, 42); scene.add(ssPole);
+    var ss = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.03), ssMat);
+    ss.position.set(-30, 2.1, 42); scene.add(ss);
+    var ssBorder = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.55, 0.02),
+        new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 }));
+    ssBorder.position.set(-30, 2.1, 42.01); scene.add(ssBorder);
+
+    // Street name sign
+    var snMat = new THREE.MeshStandardMaterial({ color: 0x1a4a1a, roughness: 0.6 });
+    var snPole = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 2, 8),
+        new THREE.MeshStandardMaterial({ color: 0x666666, metalness: 0.5 }));
+    snPole.position.set(28, 1, 42); scene.add(snPole);
+    var sn = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.15, 0.02), snMat);
+    sn.position.set(28, 2.1, 42); scene.add(sn);
+
+    // Pickup truck (at a neighbor's house)
+    var truck = new THREE.Group();
+    var tb = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.4, 0.9),
+        new THREE.MeshStandardMaterial({ color: 0xcc4422, roughness: 0.4 }));
+    tb.position.y = 0.25; tb.castShadow = true; truck.add(tb);
+    var tc = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.3, 0.8),
+        new THREE.MeshStandardMaterial({ color: 0xdd8855, transparent: true, opacity: 0.4 }));
+    tc.position.set(-0.45, 0.6, 0); truck.add(tc);
+    var tbed = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.3, 0.85), tb.material.clone());
+    tbed.position.set(0.35, 0.45, 0); truck.add(tbed);
+    var tireMat2 = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 });
+    [[-0.5, -0.4], [-0.5, 0.4], [0.5, -0.4], [0.5, 0.4]].forEach(function(p) {
+        var w = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.06, 10), tireMat2);
+        w.rotation.z = Math.PI / 2; w.position.set(p[0], 0.08, p[1]); w.castShadow = true;
+        truck.add(w);
+    });
+    truck.position.set(42, 0, 38); truck.rotation.y = Math.PI / 4;
+    scene.add(truck);
+
+    // Bicycle
+    var bikeMat = new THREE.MeshStandardMaterial({ color: 0x3366cc, roughness: 0.5, metalness: 0.3 });
+    var bike = new THREE.Group();
+    var bFrame = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.02, 8, 12), bikeMat);
+    bFrame.rotation.x = Math.PI / 2; bike.add(bFrame);
+    var bFrame2 = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.02, 8, 12), bikeMat);
+    bFrame2.rotation.x = Math.PI / 2; bFrame2.position.set(0.4, 0, 0); bike.add(bFrame2);
+    var bBar = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.4, 6), bikeMat);
+    bBar.position.set(0.2, 0, 0); bike.add(bBar);
+    var bSeat = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.02, 0.04), bikeMat);
+    bSeat.position.set(0.15, 0.27, 0); bike.add(bSeat);
+    bike.position.set(-6, 0.25, 35); bike.rotation.y = -0.3;
+    scene.add(bike);
+
+    // Dog house
+    var dhMat = new THREE.MeshStandardMaterial({ color: 0x6a4a2a, roughness: 0.85 });
+    var dhRoofMat = new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.85 });
+    var dh = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.4, 0.5), dhMat);
+    dh.position.set(-25, 0.2, 30); dh.castShadow = true; scene.add(dh);
+    var dhRoof = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.05, 0.6), dhRoofMat);
+    dhRoof.position.set(-25, 0.43, 30); scene.add(dhRoof);
+    var dhDoor = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.2, 0.01),
+        new THREE.MeshStandardMaterial({ color: 0x1a1a1a }));
+    dhDoor.position.set(-25, 0.15, 30.26); scene.add(dhDoor);
+
+    // Bird bath
+    var bbMat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.6, metalness: 0.3 });
+    var bbPole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.6, 8), bbMat);
+    bbPole.position.set(28, 0.3, 20); scene.add(bbPole);
+    var bbBowl = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 10, 0, Math.PI * 2, 0, Math.PI / 3),
+        bbMat);
+    bbBowl.position.set(28, 0.64, 20); scene.add(bbBowl);
+    var bbWater = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 10, 0, Math.PI * 2, 0, Math.PI / 3),
+        new THREE.MeshStandardMaterial({ color: 0x80c0e0, transparent: true, opacity: 0.5 }));
+    bbWater.position.set(28, 0.65, 20); scene.add(bbWater);
+
+    // More trees along street
+    function makePine(x, z, s) {
+        var pm = new THREE.MeshStandardMaterial({ color: 0x3a5a2a, roughness: 0.9 });
+        var trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.03 * s, 0.05 * s, 0.8 * s, 8), pm);
+        trunk.position.set(x, 0.4 * s, z); trunk.castShadow = true; scene.add(trunk);
+        for (var li = 0; li < 4; li++) {
+            var lvl = new THREE.Mesh(new THREE.ConeGeometry((0.3 - li * 0.05) * s, (0.4 - li * 0.06) * s, 8),
+                new THREE.MeshStandardMaterial({ color: 0x2a5a2a - li * 0x10000, roughness: 0.9 }));
+            lvl.position.set(x, (0.6 + li * 0.25) * s, z); lvl.castShadow = true;
+            scene.add(lvl);
+        }
+    }
+    makePine(-32, 30, 0.8);
+    makePine(32, 28, 0.7);
+    makePine(-34, 20, 0.9);
+    makePine(34, 18, 0.6);
 }
+
+// Chimney smoke particles
+    window._smokeParticles = [];
+    setInterval(function() {
+        if (typeof scene === 'undefined') return;
+        var smMat = new THREE.MeshBasicMaterial({
+            color: 0xcccccc, transparent: true, opacity: 0.3,
+            blending: THREE.AdditiveBlending, depthWrite: false
+        });
+        var smoke = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 6), smMat);
+        smoke.position.set(16, 20.5, -10);
+        smoke.scale.set(1, 1, 1);
+        scene.add(smoke);
+        window._smokeParticles.push(smoke);
+    }, 800);
 
 // Create 3D Remote Control
     createRemoteControl();
@@ -3357,6 +3545,252 @@ function createRoom() {
     var mrt = new THREE.Mesh(new THREE.BoxGeometry(16, 0.05, 0.04), mezzRailMat);
     mrt.position.set(-14, rise * numSteps + 0.8, -10.1);
     roomGroup.add(mrt);
+
+    // ========== KITCHEN ==========
+    var kwMat = new THREE.MeshStandardMaterial({ color: 0xf0ece4, roughness: 0.6 });
+    var kwMat2 = new THREE.MeshStandardMaterial({ color: 0xe8e0d4, roughness: 0.7 });
+    var ktMat = new THREE.MeshStandardMaterial({ color: 0x8a7a6a, roughness: 0.85 });
+    var kmMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.3, metalness: 0.5 });
+    var ksMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9 });
+    var kfMat = new THREE.MeshStandardMaterial({ color: 0xf8f8f8, roughness: 0.4 });
+    // Base cabinets
+    var kb = new THREE.Mesh(new THREE.BoxGeometry(3, 0.85, 16), kwMat);
+    kb.position.set(20.5, 0.425, 3); kb.castShadow = true; kb.receiveShadow = true;
+    roomGroup.add(kb);
+    // Countertop
+    var kt = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.06, 16.2), ktMat);
+    kt.position.set(20.5, 0.9, 3); kt.receiveShadow = true;
+    roomGroup.add(kt);
+    // Upper cabinets
+    var kc = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.8, 15.5), kwMat);
+    kc.position.set(20.3, 2.0, 3); kc.castShadow = true;
+    roomGroup.add(kc);
+    // Backsplash
+    var kspl = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.75, 16), kwMat2);
+    kspl.position.set(21.9, 0.52, 3);
+    roomGroup.add(kspl);
+    // Fridge
+    var fr = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.6, 0.9), kfMat);
+    fr.position.set(20.5, 0.8, 12.5); fr.castShadow = true;
+    roomGroup.add(fr);
+    var fh = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.02, 0.88), ktMat);
+    fh.position.set(20.5, 1.6, 12.5);
+    roomGroup.add(fh);
+    var fg = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.2, 0.02), ksMat);
+    fg.position.set(20.5, 0.7, 12.1);
+    roomGroup.add(fg);
+    // Stove on counter
+    var st = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.06, 0.7), ksMat);
+    st.position.set(20.5, 0.95, 6.5);
+    roomGroup.add(st);
+    for (var bi = 0; bi < 4; bi++) {
+        var brn = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.015, 8, 12), kmMat);
+        brn.position.set(20.5 + (-0.15 + (bi % 2) * 0.3), 0.98, 6.5 + (-0.15 + Math.floor(bi / 2) * 0.3));
+        roomGroup.add(brn);
+    }
+    // Sink on counter
+    var sk = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.04, 0.45), kmMat);
+    sk.position.set(20.5, 0.96, 2.5);
+    roomGroup.add(sk);
+    var skh = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.04, 0.4), ksMat);
+    skh.position.set(20.5, 0.93, 2.5);
+    roomGroup.add(skh);
+    var faucet = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.015, 0.15, 8), kmMat);
+    faucet.position.set(20.5, 0.99, 2.55);
+    roomGroup.add(faucet);
+    var faucetH = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.01, 8, 8, Math.PI), kmMat);
+    faucetH.rotation.x = Math.PI / 2; faucetH.position.set(20.5, 1.06, 2.65);
+    roomGroup.add(faucetH);
+    // Kitchen island
+    var ki = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.85, 1.5), kwMat);
+    ki.position.set(17, 0.425, 6.5); ki.castShadow = true;
+    roomGroup.add(ki);
+    var kiT = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.06, 1.6), ktMat);
+    kiT.position.set(17, 0.9, 6.5);
+    roomGroup.add(kiT);
+
+    // ========== DINING TABLE ==========
+    var dtMat = new THREE.MeshStandardMaterial({ color: 0x5a3a1a, roughness: 0.7 });
+    var dchMat = new THREE.MeshStandardMaterial({ color: 0x4a2a12, roughness: 0.75 });
+    var diningTable = new THREE.Mesh(new THREE.BoxGeometry(3, 0.08, 2), dtMat);
+    diningTable.position.set(13, 0.7, 10); diningTable.castShadow = true;
+    roomGroup.add(diningTable);
+    var dlMat = new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.7 });
+    [[-1.3, -0.8], [1.3, -0.8], [-1.3, 0.8], [1.3, 0.8]].forEach(function(p) {
+        var leg = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.65, 0.06), dlMat);
+        leg.position.set(13 + p[0], 0.35, 10 + p[1]); leg.castShadow = true;
+        roomGroup.add(leg);
+    });
+    // 4 chairs
+    [[-2.2, 0], [2.2, 0], [0, -1.5], [0, 1.5]].forEach(function(p) {
+        var cs = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.06, 0.6), dchMat);
+        cs.position.set(13 + p[0], 0.45, 10 + p[1]);
+        roomGroup.add(cs);
+        var cb = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.35, 0.06), dchMat);
+        cb.position.set(13 + p[0], 0.57, 10 + p[1] - 0.35);
+        roomGroup.add(cb);
+        [[-0.25, -0.25], [0.25, -0.25], [-0.25, 0.25], [0.25, 0.25]].forEach(function(lp) {
+            var cl = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.4, 0.03), dlMat);
+            cl.position.set(13 + p[0] + lp[0], 0.22, 10 + p[1] + lp[1]);
+            roomGroup.add(cl);
+        });
+    });
+    // Dining table centerpiece
+    var vase = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.05, 0.2, 12),
+        new THREE.MeshStandardMaterial({ color: 0x2255aa, roughness: 0.3 }));
+    vase.position.set(13, 0.78, 10);
+    roomGroup.add(vase);
+
+    // ========== FIREPLACE ==========
+    var fpMat = new THREE.MeshStandardMaterial({ color: 0x8a7a6a, roughness: 0.85 });
+    var fpMat2 = new THREE.MeshStandardMaterial({ color: 0x6a5a4a, roughness: 0.8 });
+    var fmMat = new THREE.MeshStandardMaterial({ color: 0x2a2010, roughness: 0.9 });
+    var fireplace = new THREE.Mesh(new THREE.BoxGeometry(2, 2.2, 0.5), fpMat);
+    fireplace.position.set(21.5, 1.1, -6); fireplace.castShadow = true;
+    roomGroup.add(fireplace);
+    var mantel = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.1, 0.6), fpMat2);
+    mantel.position.set(21.5, 2.25, -6);
+    roomGroup.add(mantel);
+    var firebox = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.9, 0.1), fmMat);
+    firebox.position.set(21.5, 0.6, -5.75);
+    roomGroup.add(firebox);
+    var hearth = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.06, 0.6), fpMat);
+    hearth.position.set(21.5, 0.03, -5.7);
+    roomGroup.add(hearth);
+    // Fire glow
+    var fgLight = new THREE.PointLight(0xff6600, 0.15, 3);
+    fgLight.position.set(21.5, 0.7, -5.8);
+    roomGroup.add(fgLight);
+    roomLights.fireplace = fgLight;
+
+    // ========== BOOKSHELF ==========
+    var bMat = new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.8 });
+    var shelf = new THREE.Mesh(new THREE.BoxGeometry(1.6, 2.4, 0.4), bMat);
+    shelf.position.set(21.5, 1.2, -13); shelf.castShadow = true;
+    roomGroup.add(shelf);
+    for (var si = 0; si < 4; si++) {
+        var sd = new THREE.Mesh(new THREE.BoxGeometry(0.03, 2.2, 0.35), bMat);
+        sd.position.set(21.5, 1.2, -13 + (-0.12 + si * 0.08));
+        roomGroup.add(sd);
+    }
+    // 5 shelves
+    for (var sh = 0; sh < 5; sh++) {
+        var sl = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.03, 0.35), bMat);
+        sl.position.set(21.5, 0.1 + sh * 0.5, -13);
+        roomGroup.add(sl);
+        // Books on each shelf
+        for (var bk = 0; bk < 5; bk++) {
+            var bc = 0x442200 + (bk * 200) + (sh * 50);
+            var bMat2 = new THREE.MeshStandardMaterial({ color: bc, roughness: 0.7 });
+            var book = new THREE.Mesh(new THREE.BoxGeometry(0.1 + Math.random() * 0.08, 0.05 + Math.random() * 0.25, 0.3), bMat2);
+            book.position.set(21.5 + (-0.6 + bk * 0.3), 0.12 + sh * 0.5 + book.geometry.parameters.height / 2, -12.85 + Math.random() * 0.05);
+            roomGroup.add(book);
+        }
+    }
+
+    // ========== WALL ART ==========
+    var artMat = new THREE.MeshStandardMaterial({ color: 0xf0ece4, roughness: 0.6 });
+    function addPicture(x, y, z, rotY, color) {
+        var f = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.9, 0.04), artMat);
+        f.position.set(x, y, z); if (rotY) f.rotation.y = rotY;
+        roomGroup.add(f);
+        var img = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.7),
+            new THREE.MeshStandardMaterial({ color: color || 0x4488aa, roughness: 0.6 }));
+        img.position.set(x, y, z + (rotY ? 0 : 0.025));
+        if (rotY) img.rotation.y = rotY;
+        roomGroup.add(img);
+    }
+    addPicture(0, 3.5, -21.9, 0, 0x6688aa);
+    addPicture(-21.9, 3.5, 5, 0, 0xaa6644);
+    addPicture(-21.9, 3.5, -5, 0, 0x44aa66);
+    addPicture(21.9, 5.5, -2, 0, 0xaa4488);
+    // Clock
+    var clockMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5, metalness: 0.3 });
+    var clock = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.04, 24), clockMat);
+    clock.position.set(-21.9, 4.0, 15); clock.rotation.x = Math.PI / 2;
+    roomGroup.add(clock);
+
+    // ========== ENTRY FOYER ==========
+    // Coat rack
+    var crMat = new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.7 });
+    var crPole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 1.6, 10), crMat);
+    crPole.position.set(-15, 0.8, 20); crPole.castShadow = true;
+    roomGroup.add(crPole);
+    var crBase = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.04, 10), crMat);
+    crBase.position.set(-15, 0.02, 20);
+    roomGroup.add(crBase);
+    for (var hi = 0; hi < 4; hi++) {
+        var hook = new THREE.Mesh(new THREE.TorusGeometry(0.03, 0.008, 6, 6), crMat);
+        hook.position.set(-15, 1.4 + hi * 0.1, 19.96);
+        roomGroup.add(hook);
+    }
+    // Entry table
+    var etMat = new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.7 });
+    var et = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.7, 0.5), etMat);
+    et.position.set(12, 0.35, 20); et.castShadow = true;
+    roomGroup.add(et);
+    var etT = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.04, 0.55), ktMat);
+    etT.position.set(12, 0.73, 20);
+    roomGroup.add(etT);
+    // Key bowl
+    var bowl = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12, 0, Math.PI * 2, 0, Math.PI / 2),
+        new THREE.MeshStandardMaterial({ color: 0x224488, roughness: 0.3 }));
+    bowl.position.set(12, 0.76, 20);
+    roomGroup.add(bowl);
+    // Entry rug
+    var erMat = new THREE.MeshStandardMaterial({ color: 0x2a1a0a, roughness: 0.95 });
+    var erug = new THREE.Mesh(new THREE.PlaneGeometry(3, 2), erMat);
+    erug.rotation.x = -Math.PI / 2; erug.position.set(0, 0.005, 20); erug.receiveShadow = true;
+    roomGroup.add(erug);
+
+    // ========== SPEAKER SYSTEM ==========
+    var spMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.4, metalness: 0.3 });
+    var spMat2 = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.5 });
+    // Soundbar under TV
+    var soundbar = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.08, 0.15), spMat);
+    soundbar.position.set(0, 1.0, -17.4);
+    roomGroup.add(soundbar);
+    // Subwoofer
+    var sub = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.4, 0.35), spMat2);
+    sub.position.set(1.5, 0.2, -17);
+    roomGroup.add(sub);
+    // Rear speakers
+    [[-16, -5], [16, -5]].forEach(function(p) {
+        var rs = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.25, 0.1), spMat);
+        rs.position.set(p[0], 1.0, p[1]);
+        roomGroup.add(rs);
+    });
+    // Game console near TV
+    var gcMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.2 });
+    var console = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.06, 0.3), gcMat);
+    console.position.set(-1.2, 0.9, -17.4);
+    roomGroup.add(console);
+    // Cable box
+    var cableBox = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.04, 0.2), gcMat);
+    cableBox.position.set(-1.2, 0.85, -17.4);
+    roomGroup.add(cableBox);
+
+    // ========== EXTRA DECOR ==========
+    // Large floor plant (tall)
+    var lpMat = new THREE.MeshStandardMaterial({ color: 0x5a3a1a, roughness: 0.9 });
+    var lPot = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.2, 0.3, 12), lpMat);
+    lPot.position.set(-18, 0.15, -5); lPot.castShadow = true;
+    roomGroup.add(lPot);
+    var lSoil = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.04, 12),
+        new THREE.MeshStandardMaterial({ color: 0x2a1a0a }));
+    lSoil.position.set(-18, 0.33, -5);
+    roomGroup.add(lSoil);
+    var lLeafMat = new THREE.MeshStandardMaterial({ color: 0x2a6a2a, roughness: 0.85 });
+    for (var li = 0; li < 8; li++) {
+        var lf = new THREE.Mesh(new THREE.SphereGeometry(0.2 + Math.random() * 0.15, 8, 8), lLeafMat);
+        lf.position.set(-18 + (Math.random() - 0.5) * 0.6, 0.5 + Math.random() * 0.4, -5 + (Math.random() - 0.5) * 0.6);
+        roomGroup.add(lf);
+    }
+    // Floor vase (decorative)
+    var fvMat = new THREE.MeshStandardMaterial({ color: 0x884422, roughness: 0.6 });
+    var fv = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.08, 0.5, 14), fvMat);
+    fv.position.set(-18, 0.25, 10); fv.castShadow = true;
+    roomGroup.add(fv);
 
     // ========== AUTONOMOUS EVERYTHING: robot dogs, toaster, fridge, sensors, autonomous furniture, carpet bot ==========
     roomGroup.userData.roomScale = { rx, ry, rz };
