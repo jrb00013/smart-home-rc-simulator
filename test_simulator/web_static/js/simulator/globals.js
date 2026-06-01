@@ -13,7 +13,7 @@ let playerPitch = 0;             // radians, up-down
 let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
 const WALK_SPEED = 4.5;
 const EYE_HEIGHT = 1.62;
-const ROOM_BOUND = 22;         // keep player inside walls (whole house - expanded for full exploration)
+const ROOM_BOUND = 40;         // keep player inside bounds (house + yard for full exploration)
 const TV_POSITION = { x: 0, y: 1.68, z: -17.6 };  // scaled for 44x44x14 room
 let tvFrame, tvPowerLED, tvGlowLight;
 let tvState = {};

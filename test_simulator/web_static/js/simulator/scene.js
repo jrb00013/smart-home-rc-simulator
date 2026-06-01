@@ -2,11 +2,11 @@ function initScene() {
     const container = document.getElementById('canvas-container');
     var preset = (typeof window.GRAPHICS_PRESET === 'object' && window.GRAPHICS_PRESET) ? window.GRAPHICS_PRESET : DEFAULT_GRAPHICS_PRESET;
 
-    // Scene - futuristic smart room (cool dark, blue fog)
+    // Scene - residential neighborhood with atmospheric sky
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x141820);
-    var fogFar = presetNum(preset, 'fogFar', 80);
-    scene.fog = new THREE.Fog(0x1a2030, 35, Math.max(50, fogFar));
+    scene.background = new THREE.Color(0x87CEEB);
+    var fogFar = presetNum(preset, 'fogFar', 120);
+    scene.fog = new THREE.Fog(0xb0c8e0, 60, Math.max(80, fogFar));
 
     // Camera (near plane 0.2 to avoid clipping into floor when looking down in walk mode)
     camera = new THREE.PerspectiveCamera(
@@ -36,49 +36,51 @@ function initScene() {
     if (renderer.outputEncoding !== undefined) renderer.outputEncoding = THREE.sRGBEncoding;
     container.appendChild(renderer.domElement);
 
-    // Lights - futuristic: cool white + blue accent + soft fill
-    const ambientLight = new THREE.AmbientLight(0xe0e8f8, 0.45);
+    // Lights - natural outdoor + supplementary interior
+    const ambientLight = new THREE.AmbientLight(0xc8d8e8, 0.35);
     scene.add(ambientLight);
-    const hemiLight = new THREE.HemisphereLight(0xe8f0ff, 0x1e2432, 0.48);
+    const hemiLight = new THREE.HemisphereLight(0x87CEEB, 0x3a5a2a, 0.55);
     scene.add(hemiLight);
 
-    const mainLight = new THREE.DirectionalLight(0xf0f4ff, 1.1);
-    mainLight.position.set(13, 15, 9);
-    mainLight.castShadow = preset.castShadow === true;
+    const sunLight = new THREE.DirectionalLight(0xffeedd, 1.4);
+    sunLight.position.set(80, 120, -150);
+    sunLight.castShadow = preset.castShadow === true;
     var mapSize = Math.max(256, Math.min(8192, presetNum(preset, 'shadowMapSize', 4096)));
-    mainLight.shadow.mapSize.width = mapSize;
-    mainLight.shadow.mapSize.height = mapSize;
-    mainLight.shadow.bias = -0.0001;
-    mainLight.shadow.normalBias = 0.015;
-    if (mainLight.shadow.radius !== undefined) mainLight.shadow.radius = Math.max(0, presetNum(preset, 'shadowRadius', 6));
-    const shadowCam = mainLight.shadow.camera;
-    shadowCam.left = -35;
-    shadowCam.right = 35;
-    shadowCam.top = 35;
-    shadowCam.bottom = -35;
+    sunLight.shadow.mapSize.width = mapSize;
+    sunLight.shadow.mapSize.height = mapSize;
+    sunLight.shadow.bias = -0.001;
+    sunLight.shadow.normalBias = 0.015;
+    if (sunLight.shadow.radius !== undefined) sunLight.shadow.radius = Math.max(0, presetNum(preset, 'shadowRadius', 8));
+    const shadowCam = sunLight.shadow.camera;
+    shadowCam.left = -50;
+    shadowCam.right = 50;
+    shadowCam.top = 50;
+    shadowCam.bottom = -50;
     shadowCam.near = 0.5;
-    shadowCam.far = 95;
-    scene.add(mainLight);
+    shadowCam.far = 200;
+    scene.add(sunLight);
     
-    const fillLight = new THREE.DirectionalLight(0xc8d8f0, 0.5);
-    fillLight.position.set(-13, 7, -9);
+    const fillLight = new THREE.DirectionalLight(0x88bbff, 0.3);
+    fillLight.position.set(-30, 40, -20);
     scene.add(fillLight);
     
-    const rimLight = new THREE.DirectionalLight(0xa0c8ff, 0.4);
-    rimLight.position.set(0, 8, -26);
+    const rimLight = new THREE.DirectionalLight(0xaaccff, 0.2);
+    rimLight.position.set(0, 20, -60);
     scene.add(rimLight);
     
-    const backKey = new THREE.DirectionalLight(0x80b0f0, 0.25);
-    backKey.position.set(0, 5.6, -31);
-    scene.add(backKey);
-    
-    const bounceLight = new THREE.PointLight(0xb0d0ff, 0.28, 12);
+    const bounceLight = new THREE.PointLight(0xb0d0ff, 0.15, 20);
     bounceLight.position.set(-6.6, 2.8, -9);
     scene.add(bounceLight);
     
-    const accentCyan = new THREE.PointLight(0x40e0f0, 0.12, 8);
+    const accentCyan = new THREE.PointLight(0x40e0f0, 0.08, 10);
     accentCyan.position.set(0, 2.1, -16.5);
     scene.add(accentCyan);
+    
+    // Porch light
+    const porchLight = new THREE.PointLight(0xffeedd, 0.4, 15);
+    porchLight.position.set(0, 5, 25);
+    scene.add(porchLight);
+    roomLights.porch = porchLight;
     
     // Point light for TV glow (will be animated, slight blue when on)
     const tvGlow = new THREE.PointLight(0xe0f0ff, 0, 10);
@@ -86,13 +88,685 @@ function initScene() {
     scene.add(tvGlow);
     tvGlowLight = tvGlow; // Store reference for animation
     
-    // Create room
+    // Create room (interior)
     createRoom();
+    
+    // Create exterior environment
+    createSky();
+    createGround();
+    createExterior();
+    createPorch();
+    createNeighborhood();
     
     // Create TV
     createTV();
     
-    // Create 3D Remote Control
+// ========== EXTERIOR ENVIRONMENT: sky, ground, house exterior, neighborhood ==========
+
+function createSky() {
+    var canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 512;
+    var ctx = canvas.getContext('2d');
+    var grad = ctx.createLinearGradient(0, 0, 0, 512);
+    grad.addColorStop(0, '#0f1a3a');
+    grad.addColorStop(0.1, '#1a3070');
+    grad.addColorStop(0.25, '#2a5aaa');
+    grad.addColorStop(0.4, '#4a8add');
+    grad.addColorStop(0.55, '#6ab0ee');
+    grad.addColorStop(0.7, '#8ac8f5');
+    grad.addColorStop(0.82, '#b0d8f5');
+    grad.addColorStop(0.92, '#d0e8f8');
+    grad.addColorStop(1, '#e8f0fa');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 1024, 512);
+    var cloudData = [
+        [120, 100, 90, 25], [350, 80, 70, 20], [600, 120, 100, 30],
+        [800, 90, 60, 18], [200, 150, 80, 22], [500, 140, 110, 28],
+        [700, 160, 65, 20], [900, 130, 85, 24], [150, 200, 55, 16],
+        [400, 180, 75, 20], [650, 200, 90, 25], [850, 170, 70, 18]
+    ];
+    cloudData.forEach(function(c) {
+        ctx.fillStyle = 'rgba(255,255,255,' + (0.08 + Math.random() * 0.1) + ')';
+        ctx.beginPath();
+        ctx.ellipse(c[0], c[1], c[2], c[3], 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,' + (0.05 + Math.random() * 0.06) + ')';
+        ctx.beginPath();
+        ctx.ellipse(c[0] + c[2] * 0.3, c[1] - c[3] * 0.2, c[2] * 0.6, c[3] * 0.7, 0, 0, Math.PI * 2);
+        ctx.fill();
+    });
+    var skyTex = new THREE.CanvasTexture(canvas);
+    var sky = new THREE.Mesh(
+        new THREE.SphereGeometry(350, 48, 32),
+        new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide })
+    );
+    sky.position.y = -10;
+    scene.add(sky);
+
+    var sunMat = new THREE.MeshBasicMaterial({ color: 0xfff0d0 });
+    var sun = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 16), sunMat);
+    sun.position.set(80, 130, -160);
+    scene.add(sun);
+
+    var gc = document.createElement('canvas');
+    gc.width = gc.height = 256;
+    var gctx = gc.getContext('2d');
+    var gg = gctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+    gg.addColorStop(0, 'rgba(255,240,200,0.5)');
+    gg.addColorStop(0.15, 'rgba(255,220,160,0.3)');
+    gg.addColorStop(0.4, 'rgba(255,200,120,0.1)');
+    gg.addColorStop(1, 'rgba(255,200,120,0)');
+    gctx.fillStyle = gg;
+    gctx.fillRect(0, 0, 256, 256);
+    var glow = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: new THREE.CanvasTexture(gc), transparent: true, blending: THREE.AdditiveBlending
+    }));
+    glow.position.copy(sun.position);
+    glow.scale.set(50, 50, 1);
+    scene.add(glow);
+}
+
+function createGround() {
+    var gc = document.createElement('canvas');
+    gc.width = gc.height = 1024;
+    var gctx = gc.getContext('2d');
+    gctx.fillStyle = '#4a7a3a';
+    gctx.fillRect(0, 0, 1024, 1024);
+    for (var i = 0; i < 60000; i++) {
+        var g = 90 + Math.random() * 70;
+        gctx.fillStyle = 'rgba(' + (30 + Math.random() * 50) + ',' + g + ',' + (25 + Math.random() * 45) + ',0.6)';
+        gctx.fillRect(Math.random() * 1024, Math.random() * 1024, 1 + Math.random() * 3, 1 + Math.random() * 3);
+    }
+    var gt = new THREE.CanvasTexture(gc);
+    gt.wrapS = gt.wrapT = THREE.RepeatWrapping;
+    gt.repeat.set(30, 30);
+    var gm = new THREE.MeshStandardMaterial({ map: gt, roughness: 0.95, metalness: 0 });
+    var ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), gm);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.05;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    var dc = document.createElement('canvas');
+    dc.width = 512; dc.height = 512;
+    var dctx = dc.getContext('2d');
+    dctx.fillStyle = '#3a3a3a';
+    dctx.fillRect(0, 0, 512, 512);
+    for (var i = 0; i < 2000; i++) {
+        dctx.fillStyle = 'rgba(50,50,50,' + (0.02 + Math.random() * 0.04) + ')';
+        dctx.fillRect(Math.random() * 512, Math.random() * 512, Math.random() * 4, 1);
+    }
+    var dt = new THREE.CanvasTexture(dc);
+    dt.wrapS = dt.wrapT = THREE.RepeatWrapping;
+    dt.repeat.set(2, 6);
+    var driveway = new THREE.Mesh(new THREE.PlaneGeometry(5, 18), new THREE.MeshStandardMaterial({ map: dt, roughness: 0.9, metalness: 0.05 }));
+    driveway.rotation.x = -Math.PI / 2;
+    driveway.position.set(-8, -0.02, 32);
+    driveway.receiveShadow = true;
+    roomGroup.add(driveway);
+
+    var wc = document.createElement('canvas');
+    wc.width = 256; wc.height = 512;
+    var wctx = wc.getContext('2d');
+    wctx.fillStyle = '#9a9a9a';
+    wctx.fillRect(0, 0, 256, 512);
+    for (var i = 0; i < 800; i++) {
+        wctx.fillStyle = 'rgba(140,140,140,' + (0.02 + Math.random() * 0.04) + ')';
+        wctx.fillRect(Math.random() * 256, Math.random() * 512, 2, 1 + Math.random() * 3);
+    }
+    var wt = new THREE.CanvasTexture(wc);
+    wt.wrapS = wt.wrapT = THREE.RepeatWrapping;
+    wt.repeat.set(1, 4);
+    var walkway = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 14), new THREE.MeshStandardMaterial({ map: wt, roughness: 0.9 }));
+    walkway.rotation.x = -Math.PI / 2;
+    walkway.position.set(0, -0.02, 29);
+    walkway.receiveShadow = true;
+    roomGroup.add(walkway);
+}
+
+function createExterior() {
+    // Scaling helpers (mirrored from createRoom: 44/20 = 2.2, 14/10 = 1.4)
+    const sx = 2.2, sy = 1.4, sz = 2.2;
+    const rx = (x) => x * sx, ry = (y) => y * sy, rz = (z) => z * sz;
+
+    var sc = document.createElement('canvas');
+    sc.width = 512; sc.height = 256;
+    var sctx = sc.getContext('2d');
+    sctx.fillStyle = '#d4c8b8';
+    sctx.fillRect(0, 0, 512, 256);
+    for (var y = 0; y < 256; y += 10) {
+        sctx.fillStyle = 'rgba(0,0,0,0.05)';
+        sctx.fillRect(0, y, 512, 1);
+        sctx.fillStyle = 'rgba(255,255,255,0.04)';
+        sctx.fillRect(0, y + 9, 512, 1);
+    }
+    for (var i = 0; i < 2000; i++) {
+        sctx.fillStyle = 'rgba(0,0,0,' + (0.005 + Math.random() * 0.015) + ')';
+        sctx.fillRect(Math.random() * 512, Math.random() * 256, 1 + Math.random() * 4, 1);
+    }
+    var sidingTex = new THREE.CanvasTexture(sc);
+    sidingTex.wrapS = sidingTex.wrapT = THREE.RepeatWrapping;
+    sidingTex.repeat.set(6, 2);
+    var sidingMat = new THREE.MeshStandardMaterial({ map: sidingTex, roughness: 0.8, metalness: 0 });
+    var trimMat = new THREE.MeshStandardMaterial({ color: 0xe8e0d4, roughness: 0.7 });
+    var foundMat = new THREE.MeshStandardMaterial({ color: 0x6a6a6a, roughness: 0.95 });
+
+    // Back exterior wall
+    var bw = new THREE.Mesh(new THREE.PlaneGeometry(44, 14), sidingMat);
+    bw.position.set(0, 7, -22.1); bw.receiveShadow = true;
+    roomGroup.add(bw);
+
+    // Left exterior wall
+    var lw = new THREE.Mesh(new THREE.PlaneGeometry(44, 14), sidingMat);
+    lw.rotation.y = Math.PI / 2; lw.position.set(-22.1, 7, 0); lw.receiveShadow = true;
+    roomGroup.add(lw);
+
+    // Right exterior wall
+    var rw = new THREE.Mesh(new THREE.PlaneGeometry(44, 14), sidingMat);
+    rw.rotation.y = -Math.PI / 2; rw.position.set(22.1, 7, 0); rw.receiveShadow = true;
+    roomGroup.add(rw);
+
+    // Front wall garage section
+    var fg = new THREE.Mesh(new THREE.PlaneGeometry(19, 14), sidingMat);
+    fg.rotation.y = Math.PI; fg.position.set(-12.5, 7, 24.1); fg.receiveShadow = true;
+    roomGroup.add(fg);
+
+    // Garage door
+    var gdMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.7, metalness: 0.1 });
+    var gd = new THREE.Mesh(new THREE.BoxGeometry(5, 2.4, 0.1), gdMat);
+    gd.position.set(-8, 1.2, 24.15); gd.castShadow = true;
+    roomGroup.add(gd);
+    var gdf = new THREE.Mesh(new THREE.BoxGeometry(5.3, 2.7, 0.15), trimMat);
+    gdf.position.set(-8, 1.35, 24.0);
+    roomGroup.add(gdf);
+    // Garage door panel lines
+    var panelMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.7 });
+    for (var pi = 0; pi < 4; pi++) {
+        var pl = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.02, 0.02), panelMat);
+        pl.position.set(-8, 0.25 + pi * 0.55, 24.2); roomGroup.add(pl);
+    }
+
+    // Front wall sections flanking the door
+    var fl = new THREE.Mesh(new THREE.PlaneGeometry(3, 14), sidingMat);
+    fl.rotation.y = Math.PI; fl.position.set(-4.5, 7, 24.1); fl.receiveShadow = true;
+    roomGroup.add(fl);
+    var fr = new THREE.Mesh(new THREE.PlaneGeometry(3, 14), sidingMat);
+    fr.rotation.y = Math.PI; fr.position.set(4.5, 7, 24.1); fr.receiveShadow = true;
+    roomGroup.add(fr);
+    var fa = new THREE.Mesh(new THREE.PlaneGeometry(3, 11), sidingMat);
+    fa.rotation.y = Math.PI; fa.position.set(0, 8.5, 24.1);
+    roomGroup.add(fa);
+    var frl = new THREE.Mesh(new THREE.PlaneGeometry(19, 14), sidingMat);
+    frl.rotation.y = Math.PI; frl.position.set(12.5, 7, 24.1); frl.receiveShadow = true;
+    roomGroup.add(frl);
+
+    // Foundation
+    var fGeo = new THREE.BoxGeometry(44.5, 0.5, 0.5);
+    var fb = new THREE.Mesh(fGeo, foundMat); fb.position.set(0, -0.25, -22.2); roomGroup.add(fb);
+    var ff = new THREE.Mesh(fGeo, foundMat); ff.position.set(0, -0.25, 24.2); roomGroup.add(ff);
+    var fs = new THREE.BoxGeometry(0.5, 0.5, 47);
+    var fl2 = new THREE.Mesh(fs, foundMat); fl2.position.set(-22.2, -0.25, 1); roomGroup.add(fl2);
+    var fr2 = new THREE.Mesh(fs, foundMat); fr2.position.set(22.2, -0.25, 1); roomGroup.add(fr2);
+
+    // Roof shingle texture
+    var shc = document.createElement('canvas');
+    shc.width = shc.height = 256;
+    var shctx = shc.getContext('2d');
+    shctx.fillStyle = '#4a3a2a';
+    shctx.fillRect(0, 0, 256, 256);
+    for (var y = 0; y < 256; y += 16) {
+        shctx.fillStyle = 'rgba(60,45,30,0.4)'; shctx.fillRect(0, y, 256, 8);
+        shctx.fillStyle = 'rgba(80,65,50,0.3)'; shctx.fillRect(0, y + 8, 256, 8);
+    }
+    for (var i = 0; i < 3000; i++) {
+        shctx.fillStyle = 'rgba(0,0,0,' + (0.01 + Math.random() * 0.03) + ')';
+        shctx.fillRect(Math.random() * 256, Math.random() * 256, 2, 1 + Math.random() * 2);
+    }
+    var shingleTex = new THREE.CanvasTexture(shc);
+    shingleTex.wrapS = shingleTex.wrapT = THREE.RepeatWrapping;
+    var shingleMat = new THREE.MeshStandardMaterial({ map: shingleTex, roughness: 0.85, metalness: 0 });
+
+    // Gable roof using BufferGeometry
+    var zs = -24, ze = 26;
+    function makeRoofPlane(x1, y1, x2, y2, zs, ze, mat) {
+        var g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
+            x1, y1, zs, x2, y2, zs, x1, y1, ze,
+            x1, y1, ze, x2, y2, zs, x2, y2, ze
+        ]), 3));
+        g.computeVertexNormals();
+        var m = new THREE.Mesh(g, mat);
+        m.receiveShadow = true; m.castShadow = true;
+        return m;
+    }
+    var roofL = makeRoofPlane(-22, 15, 0, 20, zs, ze, shingleMat);
+    roomGroup.add(roofL);
+    var roofR = makeRoofPlane(0, 20, 22, 15, zs, ze, shingleMat);
+    roomGroup.add(roofR);
+
+    // Gable ends
+    function makeGable(z, mat) {
+        var g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
+            -22, 15, z, 22, 15, z, 0, 20, z
+        ]), 3));
+        g.computeVertexNormals();
+        var m = new THREE.Mesh(g, mat);
+        m.receiveShadow = true;
+        return m;
+    }
+    roomGroup.add(makeGable(zs, sidingMat));
+    roomGroup.add(makeGable(ze, sidingMat));
+
+    // Chimney
+    var bc = document.createElement('canvas');
+    bc.width = bc.height = 64;
+    var bctx = bc.getContext('2d');
+    bctx.fillStyle = '#8a5a3a'; bctx.fillRect(0, 0, 64, 64);
+    for (var by = 0; by < 64; by += 8) {
+        for (var bx = 0; bx < 64; bx += 12) {
+            bctx.fillStyle = 'rgba(120,70,40,0.5)'; bctx.fillRect(bx, by, 11, 7);
+            bctx.fillStyle = 'rgba(60,40,30,0.2)'; bctx.fillRect(bx, by, 11, 1);
+        }
+    }
+    var brickTex = new THREE.CanvasTexture(bc);
+    brickTex.wrapS = brickTex.wrapT = THREE.RepeatWrapping;
+    var brickMat = new THREE.MeshStandardMaterial({ map: brickTex, roughness: 0.9 });
+    var chimney = new THREE.Mesh(new THREE.BoxGeometry(0.8, 5, 0.8), brickMat);
+    chimney.position.set(16, 18, -10); chimney.castShadow = true;
+    roomGroup.add(chimney);
+    var chimneyCap = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.15, 0.95),
+        new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.8 }));
+    chimneyCap.position.set(16, 20.5, -10);
+    roomGroup.add(chimneyCap);
+
+    // Gutters
+    var gutterMat = new THREE.MeshStandardMaterial({ color: 0x5a5a5a, roughness: 0.5, metalness: 0.3 });
+    var gutterGeo = new THREE.BoxGeometry(44.5, 0.06, 0.1);
+    var gf = new THREE.Mesh(gutterGeo, gutterMat); gf.position.set(0, 14.1, 22.15); roomGroup.add(gf);
+    var gb = new THREE.Mesh(gutterGeo, gutterMat); gb.position.set(0, 14.1, -22.15); roomGroup.add(gb);
+    var dGeo = new THREE.BoxGeometry(0.08, 14.5, 0.08);
+    [-21, 21].forEach(function(x) {
+        [-22.15, 24.15].forEach(function(z) {
+            var d = new THREE.Mesh(dGeo, gutterMat); d.position.set(x, 7, z); roomGroup.add(d);
+        });
+    });
+
+    // Exterior windows with frames
+    var wgMat = new THREE.MeshStandardMaterial({ color: 0xb0d8f0, transparent: true, opacity: 0.15, roughness: 0.02, metalness: 0.1 });
+    var efMat = new THREE.MeshStandardMaterial({ color: 0xe8e0d4, roughness: 0.7 });
+    var sillMat = new THREE.MeshStandardMaterial({ color: 0xd8d0c4, roughness: 0.7 });
+
+    function addExtWindow(x, y, z, rotY) {
+        var f = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.8, 0.08), efMat);
+        f.position.set(x, y, z); f.castShadow = true; if (rotY) f.rotation.y = rotY;
+        roomGroup.add(f);
+        var gl = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.6), wgMat);
+        gl.position.set(x, y, z + (rotY ? 0 : 0.05));
+        if (rotY) gl.rotation.y = rotY;
+        roomGroup.add(gl);
+        var s = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.06, 0.15), sillMat);
+        s.position.set(x, y - 0.9, z);
+        if (rotY) s.rotation.y = rotY;
+        roomGroup.add(s);
+    }
+    [-7, 7].forEach(function(x) { addExtWindow(rx(x), ry(4.5), -22.1, 0); });
+    [-5, 5].forEach(function(z) { addExtWindow(22.2, ry(4.5), rz(z), -Math.PI/2); });
+    [-5, 5].forEach(function(z) { addExtWindow(-22.2, ry(4.5), rz(z), Math.PI/2); });
+
+    // Shutters on some windows
+    var shutMat = new THREE.MeshStandardMaterial({ color: 0x3a4a3a, roughness: 0.8 });
+    [-7, 7].forEach(function(x) {
+        [-1.1, 1.1].forEach(function(ox) {
+            var sh = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.5, 0.3), shutMat);
+            sh.position.set(rx(x + ox*0.4), ry(4.5), -22.0);
+            roomGroup.add(sh);
+        });
+    });
+
+    // Front door
+    var doorMat = new THREE.MeshStandardMaterial({ color: 0x5a3a1a, roughness: 0.85 });
+    var doorTrimMat = new THREE.MeshStandardMaterial({ color: 0xe8e0d4, roughness: 0.7 });
+    var door = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2.6, 0.08), doorMat);
+    door.position.set(0, 1.3, 24.15); door.castShadow = true;
+    roomGroup.add(door);
+    var doorFrame = new THREE.Mesh(new THREE.BoxGeometry(2.8, 2.8, 0.12), doorTrimMat);
+    doorFrame.position.set(0, 1.3, 24.0);
+    roomGroup.add(doorFrame);
+    var doorKnob = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8),
+        new THREE.MeshStandardMaterial({ color: 0xccccaa, metalness: 0.7, roughness: 0.2 }));
+    doorKnob.position.set(1.15, 1.2, 24.2);
+    roomGroup.add(doorKnob);
+    var doorGlass = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.6),
+        new THREE.MeshStandardMaterial({ color: 0xb0d8f0, transparent: true, opacity: 0.15 }));
+    doorGlass.position.set(0, 1.7, 24.2);
+    roomGroup.add(doorGlass);
+    var doorStep = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.12, 0.5),
+        new THREE.MeshStandardMaterial({ color: 0x6a6a6a, roughness: 0.95 }));
+    doorStep.position.set(0, 0.06, 24.5);
+    roomGroup.add(doorStep);
+
+    // House numbers
+    var numMat = new THREE.MeshStandardMaterial({ color: 0xccccbb, metalness: 0.6, roughness: 0.3 });
+    var nums = [new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.25, 0.02), numMat),
+                new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.25, 0.02), numMat)];
+    nums[0].position.set(-0.2, 3.0, 24.2); roomGroup.add(nums[0]);
+    nums[1].position.set(0.2, 3.0, 24.2); roomGroup.add(nums[1]);
+
+    // Second floor exterior windows
+    var wg2Mat = new THREE.MeshStandardMaterial({ color: 0xb0d8f0, transparent: true, opacity: 0.15, roughness: 0.02, metalness: 0.1 });
+    var ef2Mat = new THREE.MeshStandardMaterial({ color: 0xe8e0d4, roughness: 0.7 });
+    var sill2Mat = new THREE.MeshStandardMaterial({ color: 0xd8d0c4, roughness: 0.7 });
+    function addUpWindow(x, y, z, rotY) {
+        var f = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.4, 0.08), ef2Mat);
+        f.position.set(x, y, z); f.castShadow = true; if (rotY) f.rotation.y = rotY;
+        roomGroup.add(f);
+        var gl = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.2), wg2Mat);
+        gl.position.set(x, y, z + (rotY ? 0 : 0.05));
+        if (rotY) gl.rotation.y = rotY;
+        roomGroup.add(gl);
+        var s = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.05, 0.12), sill2Mat);
+        s.position.set(x, y - 0.7, z);
+        if (rotY) s.rotation.y = rotY;
+        roomGroup.add(s);
+    }
+    [-7, 7].forEach(function(x) { addUpWindow(rx(x), 11.5, -22.1, 0); });
+    [-5, 5].forEach(function(z) { addUpWindow(22.2, 11.5, rz(z), -Math.PI/2); });
+    [-5, 5].forEach(function(z) { addUpWindow(-22.2, 11.5, rz(z), Math.PI/2); });
+
+    // Curtains visible through windows from outside
+    var curtMat = new THREE.MeshStandardMaterial({ color: 0xe8e0d8, roughness: 0.88, side: THREE.DoubleSide, transparent: true, opacity: 0.5 });
+    [-7, 7].forEach(function(x) {
+        var c = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 1.6), curtMat);
+        c.position.set(rx(x - 0.4), ry(4.5), -22.0);
+        roomGroup.add(c);
+    });
+    [-7, 7].forEach(function(x) {
+        var c = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 1.6), curtMat);
+        c.position.set(rx(x + 0.4), ry(4.5), -22.0);
+        roomGroup.add(c);
+    });
+}
+
+function createPorch() {
+    var woodMat = new THREE.MeshStandardMaterial({ color: 0x6a5a4a, roughness: 0.85 });
+    var whiteMat = new THREE.MeshStandardMaterial({ color: 0xf0ece4, roughness: 0.7 });
+
+    // Porch floor
+    var pf = new THREE.Mesh(new THREE.PlaneGeometry(4, 3), woodMat);
+    pf.rotation.x = -Math.PI / 2; pf.position.set(0, 0.05, 25.5); pf.receiveShadow = true;
+    roomGroup.add(pf);
+
+    // Welcome mat
+    var matMat = new THREE.MeshStandardMaterial({ color: 0x3a1a0a, roughness: 0.95 });
+    var welcomeMat = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.03, 0.7), matMat);
+    welcomeMat.position.set(0, 0.065, 24.7);
+    roomGroup.add(welcomeMat);
+
+    // Steps
+    for (var i = 0; i < 3; i++) {
+        var s = new THREE.Mesh(new THREE.BoxGeometry(3 - i * 0.3, 0.15, 0.5 - i * 0.05), woodMat);
+        s.position.set(0, 0.075 + i * 0.15, 27 + i * 0.35); s.castShadow = true;
+        roomGroup.add(s);
+    }
+
+    // Columns
+    [-1.5, 1.5].forEach(function(x) {
+        var c = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 3, 12), whiteMat);
+        c.position.set(x, 1.55, 24.5); c.castShadow = true;
+        roomGroup.add(c);
+    });
+
+    // Porch roof
+    var pr = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.1, 2.5),
+        new THREE.MeshStandardMaterial({ color: 0xe8e0d4, roughness: 0.7 }));
+    pr.position.set(0, 3.1, 24.8); pr.castShadow = true;
+    roomGroup.add(pr);
+
+    // Railing
+    var railMat = new THREE.MeshStandardMaterial({ color: 0xf0ece4, roughness: 0.7 });
+    var railTop = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.06, 0.06), railMat);
+    railTop.position.set(0, 1.6, 26.0); roomGroup.add(railTop);
+    var railBot = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.06, 0.06), railMat);
+    railBot.position.set(0, 1.0, 26.0); roomGroup.add(railBot);
+    for (var i = 0; i < 6; i++) {
+        var b = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.6, 0.04), railMat);
+        b.position.set(-1.6 + i * 0.64, 1.3, 26.0); roomGroup.add(b);
+    }
+
+    // Porch light fixture
+    var plf = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.15, 12),
+        new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.5, roughness: 0.4 }));
+    plf.position.set(0, 3.0, 24.0);
+    roomGroup.add(plf);
+    var pg = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8),
+        new THREE.MeshStandardMaterial({ color: 0xfff0d0, emissive: 0xffdd88, emissiveIntensity: 0.4 }));
+    pg.position.set(0, 2.95, 24.0);
+    roomGroup.add(pg);
+    roomDeviceRefs.porch_light = pg;
+}
+
+function createNeighborhood() {
+    function makeTree(x, z, scale, color) {
+        var tm = new THREE.MeshStandardMaterial({ color: 0x5a3a1a, roughness: 0.9 });
+        var t = new THREE.Mesh(new THREE.CylinderGeometry(0.08 * scale, 0.12 * scale, 1.5 * scale, 8), tm);
+        t.position.set(x, 0.75 * scale, z); t.castShadow = true;
+        scene.add(t);
+        var c = color || 0x2a6a2a;
+        var lm1 = new THREE.MeshStandardMaterial({ color: c, roughness: 0.9 });
+        var lm2 = new THREE.MeshStandardMaterial({ color: c + 0x100000, roughness: 0.9 });
+        var f1 = new THREE.Mesh(new THREE.SphereGeometry(0.8 * scale, 8, 8), lm1);
+        f1.position.set(x, 1.8 * scale, z); f1.castShadow = true;
+        scene.add(f1);
+        var f2 = new THREE.Mesh(new THREE.SphereGeometry(0.6 * scale, 8, 8), lm2);
+        f2.position.set(x + 0.3 * scale, 1.3 * scale, z - 0.2 * scale); f2.castShadow = true;
+        scene.add(f2);
+        var f3 = new THREE.Mesh(new THREE.SphereGeometry(0.5 * scale, 8, 8), lm1);
+        f3.position.set(x - 0.25 * scale, 1.5 * scale, z + 0.3 * scale); f3.castShadow = true;
+        scene.add(f3);
+    }
+    function makeBush(x, z, s) {
+        var bm = new THREE.MeshStandardMaterial({ color: 0x2a6a2a, roughness: 0.9 });
+        var b1 = new THREE.Mesh(new THREE.SphereGeometry(0.4 * s, 8, 8), bm);
+        b1.position.set(x, 0.3 * s, z); b1.castShadow = true;
+        scene.add(b1);
+    }
+
+    // Trees
+    makeTree(-14, 18, 1.2, 0x2a6a2a);
+    makeTree(15, 20, 1.0, 0x3a7a3a);
+    makeTree(18, 15, 0.9, 0x2a5a2a);
+    makeTree(-18, 22, 1.1, 0x3a6a3a);
+    makeTree(-15, -20, 1.3, 0x2a6a2a);
+    makeTree(14, -18, 1.0, 0x3a7a3a);
+    makeTree(0, -25, 1.5, 0x2a5a2a);
+    makeTree(-28, 35, 0.8, 0x3a7a3a);
+    makeTree(-20, 38, 0.7, 0x4a8a4a);
+    makeTree(20, 37, 0.8, 0x2a6a2a);
+    makeTree(28, 36, 0.9, 0x3a7a3a);
+
+    // Foundation bushes
+    makeBush(-18, 24.5, 0.8);
+    makeBush(-15, 24.5, 0.7);
+    makeBush(12, 24.5, 0.8);
+    makeBush(16, 24.5, 0.7);
+    makeBush(-20, -22, 0.8);
+    makeBush(18, -22, 0.7);
+
+    // Neighboring houses
+    function makeHouse(x, z, color, w, d) {
+        w = w || 12; d = d || 10;
+        var hm = new THREE.MeshStandardMaterial({ color: color || 0xc8b8a8, roughness: 0.85 });
+        var rm = new THREE.MeshStandardMaterial({ color: 0x5a4a3a, roughness: 0.85 });
+        var wm = new THREE.MeshStandardMaterial({ color: 0x80b8e0, transparent: true, opacity: 0.2 });
+        var body = new THREE.Mesh(new THREE.BoxGeometry(w, 6, d), hm);
+        body.position.set(x, 3, z); body.castShadow = true; body.receiveShadow = true;
+        scene.add(body);
+
+        var r1 = new THREE.Mesh(new THREE.BufferGeometry(), rm);
+        var rw = Math.sqrt((w/2)*(w/2) + 3*3);
+        r1.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
+            x - w/2, 6, z - d/2, x, 9, z - d/2, x - w/2, 6, z + d/2,
+            x - w/2, 6, z + d/2, x, 9, z - d/2, x, 9, z + d/2
+        ]), 3));
+        r1.geometry.computeVertexNormals();
+        r1.receiveShadow = true; r1.castShadow = true;
+        scene.add(r1);
+
+        var r2 = new THREE.Mesh(new THREE.BufferGeometry(), rm);
+        r2.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
+            x + w/2, 6, z - d/2, x, 9, z - d/2, x + w/2, 6, z + d/2,
+            x + w/2, 6, z + d/2, x, 9, z - d/2, x, 9, z + d/2
+        ]), 3));
+        r2.geometry.computeVertexNormals();
+        r2.receiveShadow = true; r2.castShadow = true;
+        scene.add(r2);
+
+        // Windows
+        var lm = new THREE.MeshStandardMaterial({ color: 0xffeecc, emissive: 0xffdd88, emissiveIntensity: 0.15 });
+        [-2, 2].forEach(function(wx) {
+            var win = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.5), wm);
+            win.position.set(x + wx, 3.5, z + d/2 + 0.01); scene.add(win);
+            var li = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.8), lm);
+            li.position.set(x + wx, 3.5, z + d/2 + 0.02); scene.add(li);
+        });
+        var doorMat = new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.8 });
+        var door = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.8, 0.05), doorMat);
+        door.position.set(x, 1.5, z + d/2 + 0.03); scene.add(door);
+    }
+    makeHouse(-40, 35, 0xc8b8a8, 12, 10);
+    makeHouse(38, 33, 0xd4c4ac, 14, 11);
+    makeHouse(-42, 10, 0xd0c0b0, 10, 9);
+    makeHouse(40, 8, 0xc0b0a0, 11, 10);
+
+    // Street
+    var roadMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.95 });
+    var road = new THREE.Mesh(new THREE.PlaneGeometry(10, 30), roadMat);
+    road.rotation.x = -Math.PI / 2; road.position.set(0, -0.03, 42); road.receiveShadow = true;
+    scene.add(road);
+
+    // Road dashes
+    var lineMat = new THREE.MeshStandardMaterial({ color: 0xcccc44, roughness: 0.8 });
+    for (var i = 0; i < 10; i++) {
+        var dash = new THREE.Mesh(new THREE.PlaneGeometry(0.15, 1.5), lineMat);
+        dash.rotation.x = -Math.PI / 2; dash.position.set(0, -0.02, 30 + i * 2.8);
+        scene.add(dash);
+    }
+
+    // Sidewalk along street
+    var swMat = new THREE.MeshStandardMaterial({ color: 0x9a9a9a, roughness: 0.9 });
+    var sw = new THREE.Mesh(new THREE.PlaneGeometry(4, 30), swMat);
+    sw.rotation.x = -Math.PI / 2; sw.position.set(-7, -0.02, 42);
+    scene.add(sw);
+
+    // Fence front
+    var fenceMat = new THREE.MeshStandardMaterial({ color: 0xe8e0d4, roughness: 0.7 });
+    var postMat = new THREE.MeshStandardMaterial({ color: 0xd8d0c4, roughness: 0.7 });
+    for (var i = -18; i <= 18; i += 3) {
+        if (Math.abs(i) < 2 || (i > -10 && i < -5)) continue;
+        var p = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.8, 0.06), postMat);
+        p.position.set(i, 0.4, 30); scene.add(p);
+    }
+    var rt = new THREE.Mesh(new THREE.BoxGeometry(36, 0.04, 0.04), fenceMat);
+    rt.position.set(0, 0.75, 30); scene.add(rt);
+    var rb = new THREE.Mesh(new THREE.BoxGeometry(36, 0.04, 0.04), fenceMat);
+    rb.position.set(0, 0.35, 30); scene.add(rb);
+
+    // Side fences
+    [-19, 19].forEach(function(x) {
+        for (var z = 0; z <= 30; z += 3) {
+            var p = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.8, 0.06), postMat);
+            p.position.set(x, 0.4, z); scene.add(p);
+        }
+        var rt = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 30), fenceMat);
+        rt.position.set(x, 0.75, 15); scene.add(rt);
+        var rb = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 30), fenceMat);
+        rb.position.set(x, 0.35, 15); scene.add(rb);
+    });
+
+    // Mailbox
+    var mbPost = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 1.0, 8),
+        new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.3, roughness: 0.5 }));
+    mbPost.position.set(-5, 0.5, 30.5); scene.add(mbPost);
+    var mbBox = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.15, 0.35),
+        new THREE.MeshStandardMaterial({ color: 0x2020aa, roughness: 0.6 }));
+    mbBox.position.set(-5, 1.05, 30.5); mbBox.castShadow = true;
+    scene.add(mbBox);
+    var flagMat = new THREE.MeshStandardMaterial({ color: 0xcc2222, roughness: 0.6 });
+    var flag = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.15, 0.02), flagMat);
+    flag.position.set(-5, 1.15, 30.75); scene.add(flag);
+    var ft = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.05, 0.02), flagMat);
+    ft.position.set(-5, 1.22, 30.75); scene.add(ft);
+
+    // Street lights
+    var poleMat = new THREE.MeshStandardMaterial({ color: 0x4a4a4a, metalness: 0.5, roughness: 0.5 });
+    var lampMat = new THREE.MeshStandardMaterial({ color: 0xffeecc, emissive: 0xffdd88, emissiveIntensity: 0.3 });
+    function makeLight(x, z) {
+        var p = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 5, 8), poleMat);
+        p.position.set(x, 2.5, z); p.castShadow = true; scene.add(p);
+        var a = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.04, 0.04), poleMat);
+        a.position.set(x + 0.25, 5, z); scene.add(a);
+        var bulb = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), lampMat);
+        bulb.position.set(x + 0.5, 4.95, z); scene.add(bulb);
+        var l = new THREE.PointLight(0xffeedd, 0.5, 12);
+        l.position.set(x + 0.5, 4.8, z); scene.add(l);
+    }
+    makeLight(-15, 38); makeLight(15, 38);
+    makeLight(-15, 48); makeLight(15, 48);
+
+    // Parked car
+    var car = new THREE.Group();
+    var cb = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.35, 0.9),
+        new THREE.MeshStandardMaterial({ color: 0x2255aa, roughness: 0.3, metalness: 0.5 }));
+    cb.position.y = 0.25; cb.castShadow = true; car.add(cb);
+    var cc = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.25, 0.8),
+        new THREE.MeshStandardMaterial({ color: 0x88bbee, transparent: true, opacity: 0.4 }));
+    cc.position.set(0.2, 0.55, 0); car.add(cc);
+    var cr = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.04, 0.75), cb.material.clone());
+    cr.position.set(0.2, 0.67, 0); car.add(cr);
+    [-0.25, 0.25].forEach(function(z) {
+        var hl = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, 0.06),
+            new THREE.MeshStandardMaterial({ color: 0xff4422, emissive: 0xff2200, emissiveIntensity: 0.2 }));
+        hl.position.set(0.92, 0.22, z); car.add(hl);
+        var tl = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, 0.06),
+            new THREE.MeshStandardMaterial({ color: 0xcc2222, emissive: 0xaa1111, emissiveIntensity: 0.1 }));
+        tl.position.set(-0.92, 0.22, z); car.add(tl);
+    });
+    var tireMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 });
+    [[-0.6, -0.48], [-0.6, 0.48], [0.6, -0.48], [0.6, 0.48]].forEach(function(p) {
+        var w = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.06, 12), tireMat);
+        w.rotation.z = Math.PI / 2; w.position.set(p[0], 0.08, p[1]); w.castShadow = true;
+        car.add(w);
+    });
+    car.position.set(-4, 0, 40); car.rotation.y = -Math.PI / 2;
+    scene.add(car);
+
+    // Fire hydrant
+    var hydMat = new THREE.MeshStandardMaterial({ color: 0xdd3333, roughness: 0.6 });
+    var hb = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.35, 10), hydMat);
+    hb.position.set(-12, 0.175, 33); hb.castShadow = true; scene.add(hb);
+    var ht = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), hydMat);
+    ht.position.set(-12, 0.38, 33); scene.add(ht);
+    var hn = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.06, 8),
+        new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.6 }));
+    hn.position.set(-12, 0.2, 33.1); scene.add(hn);
+
+    // Flower beds
+    var fbMat = new THREE.MeshStandardMaterial({ color: 0x5a2a1a, roughness: 0.95 });
+    var flowerMat = new THREE.MeshStandardMaterial({ color: 0xff4488, roughness: 0.8 });
+    [-16, 16].forEach(function(x) {
+        var bed = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.08, 1.5), fbMat);
+        bed.position.set(x, 0.04, 26); scene.add(bed);
+        for (var i = 0; i < 5; i++) {
+            var fl = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), flowerMat);
+            fl.position.set(x + (Math.random() - 0.5) * 0.2, 0.12 + Math.random() * 0.08, 26 + (Math.random() - 0.5) * 1.2);
+            scene.add(fl);
+        }
+    });
+}
+
+// Create 3D Remote Control
     createRemoteControl();
     
     // Initialize raycasting for interaction
@@ -380,9 +1054,9 @@ function createRoom() {
     const windowGlass = new THREE.Mesh(
         new THREE.PlaneGeometry(2.05, 1.65),
         new THREE.MeshStandardMaterial({
-            color: 0x90b8e0,
+            color: 0xb0d8f0,
             transparent: true,
-            opacity: 0.7,
+            opacity: 0.18,
             roughness: 0.02,
             metalness: 0.14
         })
@@ -1694,7 +2368,7 @@ function createRoom() {
     // Bedroom window
     const bedroomWindow = new THREE.Mesh(
         new THREE.PlaneGeometry(0.8, 1.0),
-        new THREE.MeshStandardMaterial({ color: 0x90b8e0, transparent: true, opacity: 0.7 })
+        new THREE.MeshStandardMaterial({ color: 0xb0d8f0, transparent: true, opacity: 0.2 })
     );
     bedroomWindow.position.set(rx(-16.15), ry(1.0), rz(-5.5));
     roomGroup.add(bedroomWindow);
@@ -1956,7 +2630,7 @@ function createRoom() {
     // Office window
     const officeWindow = new THREE.Mesh(
         new THREE.PlaneGeometry(1.2, 1.5),
-        new THREE.MeshStandardMaterial({ color: 0x90b8e0, transparent: true, opacity: 0.7 })
+        new THREE.MeshStandardMaterial({ color: 0xb0d8f0, transparent: true, opacity: 0.2 })
     );
     officeWindow.position.set(rx(8.95), ry(1.0), rz(2));
     roomGroup.add(officeWindow);
@@ -2155,7 +2829,7 @@ function createRoom() {
     // Upstairs bedroom window
     const upstairsWindow = new THREE.Mesh(
         new THREE.PlaneGeometry(0.8, 1.0),
-        new THREE.MeshStandardMaterial({ color: 0x90b8e0, transparent: true, opacity: 0.7 })
+        new THREE.MeshStandardMaterial({ color: 0xb0d8f0, transparent: true, opacity: 0.2 })
     );
     upstairsWindow.position.set(rx(-13.95), ry(10.5), rz(-6));
     roomGroup.add(upstairsWindow);
@@ -2621,6 +3295,68 @@ function createRoom() {
     garageLight.position.set(rx(-4), ry(9), rz(8));
     scene.add(garageLight);
     roomLights.garage = garageLight;
+
+    // ========== STAIRS TO MEZZANINE ==========
+    var stairMat = new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.85 });
+    var riserMat = new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.85 });
+    var railMatInt = new THREE.MeshStandardMaterial({ color: 0x6a5a4a, roughness: 0.7 });
+    var numSteps = 22;
+    var rise = 0.3;
+    var tread = 0.55;
+    var stairWidth = 1.6;
+    var stairStartX = -21.5;
+    var stairStartZ = 2;
+    for (var si = 0; si < numSteps; si++) {
+        var t = new THREE.Mesh(new THREE.BoxGeometry(stairWidth, 0.04, tread), stairMat);
+        t.position.set(stairStartX, rise * si + 0.02, stairStartZ - tread * si);
+        t.castShadow = true; t.receiveShadow = true;
+        roomGroup.add(t);
+        var r = new THREE.Mesh(new THREE.BoxGeometry(stairWidth, rise, 0.04), riserMat);
+        r.position.set(stairStartX, rise * si + rise / 2, stairStartZ - tread * si + tread / 2 - 0.02);
+        roomGroup.add(r);
+    }
+    // Stair railing (left wall side is open)
+    var railPosts = 8;
+    for (var ri = 0; ri < railPosts; ri++) {
+        var p = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.9, 0.04), railMatInt);
+        var t0 = ri / (railPosts - 1);
+        p.position.set(stairStartX + stairWidth / 2 + 0.15, 0.1 + t0 * rise * numSteps * 0.85, stairStartZ - t0 * tread * numSteps);
+        roomGroup.add(p);
+    }
+    var railBar = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, tread * numSteps + 0.5), railMatInt);
+    railBar.position.set(stairStartX + stairWidth / 2 + 0.15, rise * numSteps * 0.85 + 0.05, stairStartZ - tread * numSteps / 2);
+    roomGroup.add(railBar);
+
+    // Mezzanine floor
+    var mezzMat = new THREE.MeshStandardMaterial({ color: 0x8a7a6a, roughness: 0.85 });
+    var mezzFloor = new THREE.Mesh(new THREE.PlaneGeometry(16, 12), mezzMat);
+    mezzFloor.rotation.x = -Math.PI / 2;
+    mezzFloor.position.set(-14, rise * numSteps, -16);
+    mezzFloor.receiveShadow = true;
+    roomGroup.add(mezzFloor);
+
+    // Mezzanine railing
+    var mezzRailMat = new THREE.MeshStandardMaterial({ color: 0x6a5a4a, roughness: 0.7 });
+    var mezzPosts = 12;
+    for (var mi = 0; mi < mezzPosts; mi++) {
+        var mp = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.8, 0.04), mezzRailMat);
+        mp.position.set(-22.1, rise * numSteps + 0.4, -22 + mi * 1.8);
+        roomGroup.add(mp);
+    }
+    for (var mi = 0; mi < 9; mi++) {
+        var mp = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.8, 0.04), mezzRailMat);
+        mp.position.set(-22 + mi * 1.8, rise * numSteps + 0.4, -10.1);
+        roomGroup.add(mp);
+    }
+    var mrb = new THREE.Mesh(new THREE.BoxGeometry(16, 0.05, 0.04), mezzRailMat);
+    mrb.position.set(-14, rise * numSteps + 0.8, -22.1);
+    roomGroup.add(mrb);
+    var mrl = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.05, 12), mezzRailMat);
+    mrl.position.set(-22.1, rise * numSteps + 0.8, -16);
+    roomGroup.add(mrl);
+    var mrt = new THREE.Mesh(new THREE.BoxGeometry(16, 0.05, 0.04), mezzRailMat);
+    mrt.position.set(-14, rise * numSteps + 0.8, -10.1);
+    roomGroup.add(mrt);
 
     // ========== AUTONOMOUS EVERYTHING: robot dogs, toaster, fridge, sensors, autonomous furniture, carpet bot ==========
     roomGroup.userData.roomScale = { rx, ry, rz };
