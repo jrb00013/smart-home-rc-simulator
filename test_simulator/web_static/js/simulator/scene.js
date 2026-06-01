@@ -447,6 +447,36 @@ function createExterior() {
     doorStep.position.set(0, 0.06, 24.5);
     roomGroup.add(doorStep);
 
+    // Door knocker
+    var knockMat = new THREE.MeshStandardMaterial({ color: 0xccbbaa, metalness: 0.6, roughness: 0.3 });
+    var knockPlate = new THREE.Mesh(new THREE.CircleGeometry(0.04, 10), knockMat);
+    knockPlate.position.set(0.5, 1.3, 24.2);
+    roomGroup.add(knockPlate);
+    var knockRing = new THREE.Mesh(new THREE.TorusGeometry(0.025, 0.006, 6, 12), knockMat);
+    knockRing.position.set(0.5, 1.28, 24.21);
+    knockRing.rotation.x = Math.PI / 2;
+    roomGroup.add(knockRing);
+
+    // Doorbell button
+    var dbMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.4 });
+    var dbBtn = new THREE.Mesh(new THREE.CircleGeometry(0.018, 8), dbMat);
+    dbBtn.position.set(-0.25, 1.5, 24.2);
+    roomGroup.add(dbBtn);
+    var dbGlow = new THREE.Mesh(new THREE.CircleGeometry(0.014, 8),
+        new THREE.MeshStandardMaterial({ color: 0x4488ff, emissive: 0x4488ff, emissiveIntensity: 0.3 }));
+    dbGlow.position.set(-0.25, 1.5, 24.21);
+    roomGroup.add(dbGlow);
+
+    // Welcome sign on wall next to door
+    var wsMat = new THREE.MeshStandardMaterial({ color: 0x4a2a1a, roughness: 0.85 });
+    var ws = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.3, 0.03), wsMat);
+    ws.position.set(-1.8, 1.8, 24.2);
+    roomGroup.add(ws);
+    var wsText = new THREE.Mesh(new THREE.PlaneGeometry(0.45, 0.15),
+        new THREE.MeshStandardMaterial({ color: 0xe8dcc8, roughness: 0.5 }));
+    wsText.position.set(-1.8, 1.8, 24.22);
+    roomGroup.add(wsText);
+
     // House numbers
     var numMat = new THREE.MeshStandardMaterial({ color: 0xccccbb, metalness: 0.6, roughness: 0.3 });
     var nums = [new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.25, 0.02), numMat),
@@ -569,6 +599,111 @@ function createExterior() {
     var awMat = new THREE.MeshStandardMaterial({ color: 0x5a4a3a, roughness: 0.85 });
     var awning = new THREE.Mesh(new THREE.BoxGeometry(3, 0.02, 0.8), awMat);
     awning.position.set(0, 4.0, 24.1); roomGroup.add(awning);
+
+    // ========== BACKYARD FENCE ==========
+    var fenceMat = new THREE.MeshStandardMaterial({ color: 0x6a5a4a, roughness: 0.8 });
+    var fenceMat2 = new THREE.MeshStandardMaterial({ color: 0x7a6a5a, roughness: 0.8 });
+    // Back fence (horizontal)
+    var backFence = new THREE.Mesh(new THREE.BoxGeometry(28, 0.06, 0.04), fenceMat);
+    backFence.position.set(-2, 0.5, -33); roomGroup.add(backFence);
+    var backFence2 = new THREE.Mesh(new THREE.BoxGeometry(28, 0.06, 0.04), fenceMat);
+    backFence2.position.set(-2, 0.85, -33); roomGroup.add(backFence2);
+    // Fence posts along back
+    for (var fpi = -14; fpi <= 14; fpi += 2.5) {
+        var fp = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.9, 0.04), fenceMat2);
+        fp.position.set(fpi, 0.45, -33); roomGroup.add(fp);
+    }
+    // Left side fence
+    var leftFence = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, 12), fenceMat);
+    leftFence.position.set(-23, 0.5, -27); roomGroup.add(leftFence);
+    var leftFence2 = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, 12), fenceMat);
+    leftFence2.position.set(-23, 0.85, -27); roomGroup.add(leftFence2);
+    for (var fpi2 = -33; fpi2 <= -21; fpi2 += 2) {
+        var fp2 = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.9, 0.04), fenceMat2);
+        fp2.position.set(-23, 0.45, fpi2); roomGroup.add(fp2);
+    }
+    // Right side fence (partial)
+    var rightFence = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, 10), fenceMat);
+    rightFence.position.set(23, 0.5, -28); roomGroup.add(rightFence);
+    var rightFence2 = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, 10), fenceMat);
+    rightFence2.position.set(23, 0.85, -28); roomGroup.add(rightFence2);
+    for (var fpi3 = -33; fpi3 <= -23; fpi3 += 2) {
+        var fp3 = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.9, 0.04), fenceMat2);
+        fp3.position.set(23, 0.45, fpi3); roomGroup.add(fp3);
+    }
+
+    // ========== SIDE GATE ==========
+    var gateMat = new THREE.MeshStandardMaterial({ color: 0x7a6a5a, roughness: 0.8 });
+    var gate = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.9, 1.8), gateMat);
+    gate.position.set(-23, 0.45, -20.5);
+    roomGroup.add(gate);
+    var gateMat2 = new THREE.MeshStandardMaterial({ color: 0x8a7a6a, roughness: 0.8 });
+    var gateRail = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.05, 1.6), gateMat2);
+    gateRail.position.set(-23.01, 0.75, -20.5);
+    roomGroup.add(gateRail);
+    var gateRail2 = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.05, 1.6), gateMat2);
+    gateRail2.position.set(-23.01, 0.25, -20.5);
+    roomGroup.add(gateRail2);
+
+    // ========== GARDEN PATH ==========
+    var gpMat = new THREE.MeshStandardMaterial({ color: 0x8a7a6a, roughness: 0.9 });
+    for (var gpi = 0; gpi < 7; gpi++) {
+        var gp = new THREE.Mesh(new THREE.BoxGeometry(0.3 + Math.random() * 0.2, 0.02, 0.25 + Math.random() * 0.2), gpMat);
+        gp.position.set(-16 + (Math.random() - 0.5) * 1.0, 0.01, -33.5 - gpi * 0.7);
+        gp.rotation.y = (Math.random() - 0.5) * 0.3;
+        roomGroup.add(gp);
+    }
+
+    // ========== PATIO UMBRELLA ==========
+    var uMat = new THREE.MeshStandardMaterial({ color: 0xcc6644, roughness: 0.8 });
+    var uPole = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 1.8, 8),
+        new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.3, roughness: 0.5 }));
+    uPole.position.set(-16, 0.9, -28);
+    roomGroup.add(uPole);
+    var uCanopy = new THREE.Mesh(new THREE.ConeGeometry(1.2, 0.01, 12, 1, true), uMat);
+    uCanopy.position.set(-16, 1.8, -28);
+    uCanopy.rotation.x = Math.PI;
+    roomGroup.add(uCanopy);
+    // Ribs on umbrella
+    var uRibMat = new THREE.MeshStandardMaterial({ color: 0xaa5533, roughness: 0.7 });
+    for (var ri = 0; ri < 12; ri++) {
+        var ra = ri * Math.PI * 2 / 12;
+        var rib = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.005, 1.1), uRibMat);
+        rib.position.set(-16 + Math.cos(ra) * 0.6, 1.79, -28 + Math.sin(ra) * 0.6);
+        rib.rotation.x = -Math.PI / 6;
+        rib.rotation.z = -ra;
+        roomGroup.add(rib);
+    }
+
+    // ========== STRING LIGHTS ==========
+    var slMat = new THREE.MeshStandardMaterial({ color: 0xffffdd, emissive: 0xffeeaa, emissiveIntensity: 0.15 });
+    var slWireMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.8 });
+    // String across from house to fence post
+    var numLights = 6;
+    for (var sli = 0; sli < numLights; sli++) {
+        var t = (sli + 0.5) / numLights;
+        var sx2 = -16 + t * 14;
+        var sz2 = -22 - t * 10;
+        var sy2 = 6 - t * 2;
+        var slBulb = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), slMat);
+        slBulb.position.set(sx2, sy2, sz2);
+        roomGroup.add(slBulb);
+        var slWire = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.12, 4), slWireMat);
+        slWire.position.set(sx2, sy2 - 0.06, sz2);
+        roomGroup.add(slWire);
+    }
+    // Another string across the back
+    for (var sli2 = 0; sli2 < 5; sli2++) {
+        var t2 = (sli2 + 0.5) / 5;
+        var sx3 = -20 + t2 * 20;
+        var sy3 = 5 - t2 * 2;
+        var slBulb2 = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), slMat);
+        slBulb2.position.set(sx3, sy3, -32);
+        roomGroup.add(slBulb2);
+        var slWire2 = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.12, 4), slWireMat);
+        slWire2.position.set(sx3, sy3 - 0.06, -32);
+        roomGroup.add(slWire2);
+    }
 }
 
 function createPorch() {
@@ -616,6 +751,34 @@ function createPorch() {
         var b = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.6, 0.04), railMat);
         b.position.set(-1.6 + i * 0.64, 1.3, 26.0); roomGroup.add(b);
     }
+
+    // Flower pots on porch
+    var potMat = new THREE.MeshStandardMaterial({ color: 0x993333, roughness: 0.8 });
+    var plantMat = new THREE.MeshStandardMaterial({ color: 0x2a7a2a, roughness: 0.9 });
+    [[-1.2, 24.0], [1.2, 24.0]].forEach(function(pp) {
+        var pot = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.06, 0.12, 8), potMat);
+        pot.position.set(pp[0], 0.06, pp[1]); roomGroup.add(pot);
+        var plant = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), plantMat);
+        plant.position.set(pp[0], 0.16, pp[1]); roomGroup.add(plant);
+    });
+
+    // Rocking chair on porch
+    var rcMat = new THREE.MeshStandardMaterial({ color: 0x6a4a2a, roughness: 0.85 });
+    var rcSeat = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.04, 0.4), rcMat);
+    rcSeat.position.set(-1.5, 0.18, 25.8);
+    roomGroup.add(rcSeat);
+    var rcBack = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.3, 0.03), rcMat);
+    rcBack.position.set(-1.5, 0.35, 25.62);
+    roomGroup.add(rcBack);
+    // Rockers (curved rails)
+    var rcRock1 = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.08, 0.5), rcMat);
+    rcRock1.position.set(-1.5, 0.04, 25.9);
+    rcRock1.rotation.x = 0.2;
+    roomGroup.add(rcRock1);
+    var rcRock2 = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.08, 0.5), rcMat);
+    rcRock2.position.set(-1.5, 0.04, 25.7);
+    rcRock2.rotation.x = -0.2;
+    roomGroup.add(rcRock2);
 
     // Porch light fixture
     var plf = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.15, 12),
