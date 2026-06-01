@@ -675,6 +675,24 @@ function createExterior() {
         roomGroup.add(rib);
     }
 
+    // ========== GARDEN SPIGOT ==========
+    var spigotMat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.5, roughness: 0.3 });
+    var spigot = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.02, 0.06, 8), spigotMat);
+    spigot.position.set(22.15, 0.4, -10);
+    spigot.rotation.z = Math.PI / 2;
+    roomGroup.add(spigot);
+    var spigotHandle = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.04, 0.02), spigotMat);
+    spigotHandle.position.set(22.15, 0.43, -10);
+    roomGroup.add(spigotHandle);
+    // Garden hose coiled nearby
+    var hoseMat = new THREE.MeshStandardMaterial({ color: 0x228833, roughness: 0.7 });
+    for (var hi = 0; hi < 4; hi++) {
+        var hose = new THREE.Mesh(new THREE.TorusGeometry(0.08 + hi * 0.01, 0.01, 6, 12), hoseMat);
+        hose.position.set(22.2, 0.03 + hi * 0.02, -8.5);
+        hose.rotation.x = Math.PI / 2;
+        roomGroup.add(hose);
+    }
+
     // ========== STRING LIGHTS ==========
     var slMat = new THREE.MeshStandardMaterial({ color: 0xffffdd, emissive: 0xffeeaa, emissiveIntensity: 0.15 });
     var slWireMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.8 });
@@ -2965,7 +2983,26 @@ function createRoom() {
     laundryShelf.position.set(rx(9.75), ry(1.2), rz(-1.5));
     laundryShelf.castShadow = true;
     roomGroup.add(laundryShelf);
-    
+
+    // Detergent bottles on shelf
+    var detMat = new THREE.MeshStandardMaterial({ color: 0x4488cc, roughness: 0.6 });
+    var detMat2 = new THREE.MeshStandardMaterial({ color: 0xcc8844, roughness: 0.6 });
+    var det1 = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.1, 8), detMat);
+    det1.position.set(rx(9.5), ry(1.26), rz(-1.5));
+    roomGroup.add(det1);
+    var det2 = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.08, 8), detMat2);
+    det2.position.set(rx(10), ry(1.24), rz(-1.5));
+    roomGroup.add(det2);
+    // Laundry basket on floor
+    var lbMat = new THREE.MeshStandardMaterial({ color: 0xaa8844, roughness: 0.8 });
+    var lb = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.12, 0.2, 10, 1, true), lbMat);
+    lb.position.set(rx(9.3), ry(0.12), rz(-0.8));
+    roomGroup.add(lb);
+    var lbFill = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6),
+        new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.9 }));
+    lbFill.position.set(rx(9.3), ry(0.22), rz(-0.8));
+    roomGroup.add(lbFill);
+
     // --- Office/Study (right side of living room, with doorway) ---
     const officeFloor = new THREE.Mesh(
         new THREE.PlaneGeometry(6, 5),
@@ -3815,6 +3852,34 @@ function createRoom() {
     var mrt = new THREE.Mesh(new THREE.BoxGeometry(16, 0.05, 0.04), mezzRailMat);
     mrt.position.set(-14, rise * numSteps + 0.8, -10.1);
     roomGroup.add(mrt);
+
+    // Mezzanine lounge area
+    var mlMat = new THREE.MeshStandardMaterial({ color: 0x5a4a3a, roughness: 0.85 });
+    var mlRug = new THREE.Mesh(new THREE.PlaneGeometry(4, 3),
+        new THREE.MeshStandardMaterial({ color: 0x8a3a3a, roughness: 0.9 }));
+    mlRug.rotation.x = -Math.PI / 2;
+    mlRug.position.set(-14, rise * numSteps + 0.01, -18);
+    roomGroup.add(mlRug);
+    // Low table
+    var lt = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.7), mlMat);
+    lt.position.set(-14, rise * numSteps + 0.08, -18);
+    roomGroup.add(lt);
+    // Floor cushions
+    var cusMat = new THREE.MeshStandardMaterial({ color: 0x446688, roughness: 0.85 });
+    [[-15.5, -18.8], [-12.5, -18.8], [-14, -16.5]].forEach(function(cp) {
+        var cu = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.06, 0.4), cusMat);
+        cu.position.set(cp[0], rise * numSteps + 0.07, cp[1]);
+        roomGroup.add(cu);
+    });
+    // Floor plant
+    var fpMat = new THREE.MeshStandardMaterial({ color: 0x5a3a2a, roughness: 0.8 });
+    var fpPot = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.06, 0.15, 10), fpMat);
+    fpPot.position.set(-10, rise * numSteps + 0.075, -17);
+    roomGroup.add(fpPot);
+    var fpLeaf = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8),
+        new THREE.MeshStandardMaterial({ color: 0x2a6a2a, roughness: 0.9 }));
+    fpLeaf.position.set(-10, rise * numSteps + 0.2, -17);
+    roomGroup.add(fpLeaf);
 
     // ========== KITCHEN ==========
     var kwMat = new THREE.MeshStandardMaterial({ color: 0xf0ece4, roughness: 0.6 });
