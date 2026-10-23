@@ -233,7 +233,8 @@ int main(void) {
 
 ## See Also
 
+- [C_REMOTE.md](C_REMOTE.md) - C remote overview and build targets
 - `include/io_mode.h` - I/O mode API reference
 - `src/io_mode.c` - I/O mode implementation
-- `docs/ASSEMBLY_INTEGRATION.md` - Assembly timing details
+- [ASSEMBLY_INTEGRATION.md](ASSEMBLY_INTEGRATION.md) - Assembly timing details
 

@@ -322,6 +322,7 @@ int main(void) {
 
 ## See Also
 
+- [C_REMOTE.md](C_REMOTE.md) - C remote overview and build targets
 - `include/system_handler.h` - System handler API reference
 - `src/system_handler.c` - System handler implementation
 - `examples/system_handler_example.c` - Complete example

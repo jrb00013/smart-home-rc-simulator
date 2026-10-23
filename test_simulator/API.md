@@ -1,18 +1,20 @@
-# API Documentation
+# API Reference
 
-Complete API reference for the Virtual TV Simulator.
+REST and WebSocket API of the web simulator (`web_server.py`). The machine-readable spec is
+[`openapi.yaml`](openapi.yaml), also served at `GET /api/openapi.yaml` and as JSON at
+`GET /api/openapi` / `GET /api/openapi.json`.
 
-## Overview
+## Basics
 
-The TV Simulator provides both REST API endpoints and WebSocket events for real-time communication.
+- **Base URL:** `http://localhost:5000` (set by `TV_REMOTE_HOST` / `TV_REMOTE_PORT`).
+- **Auth:** none by default. If an API key is configured (`TV_REMOTE_API_KEY` or `api_key` in
+  `service_config.json`), every `/api/*` request and every Socket.IO connection must present it as
+  `X-API-Key: <key>`, `Authorization: Bearer <key>`, `?api_key=<key>`, or (Socket.IO only) the
+  connect payload `{"api_key": "<key>"}`. See [docs/SERVICE_AND_AUTOMATION.md](docs/SERVICE_AND_AUTOMATION.md).
+- **Button codes:** integers 0–255; JSON bodies may also use a decimal or `"0x10"`-style string.
+  Full list: [docs/BUTTONS.md](../docs/BUTTONS.md).
 
 ## REST API
-
-### Base URL
-
-```
-http://localhost:5000
-```
 
 ### Endpoints
 
@@ -22,18 +24,33 @@ http://localhost:5000
 GET /api/state
 ```
 
-**Response:**
+**Response** (abridged):
 ```json
 {
-  "power": true,
+  "powered_on": false,
   "volume": 50,
   "channel": 1,
-  "mute": false,
-  "app": "TV",
+  "muted": false,
+  "current_app": null,
+  "input_source": "HDMI 1",
+  "picture_mode": "Standard",
+  "sound_mode": "Standard",
   "game_mode": false,
-  "input": "HDMI 1"
+  "brightness": 50,
+  "backlight": 50,
+  "show_menu": false,
+  "show_info": false,
+  "show_settings": false,
+  "channel_input": "",
+  "last_button": null,
+  "notification": null,
+  "detected_brand": null,
+  "detected_brand_id": 0,
+  "room_state": { "scene": "default", "lights_main": 100, "smart_plug_1": true, "...": "..." }
 }
 ```
+
+`current_app` is `null` for live TV, `"Home"` for the home screen, or an app name such as `"Netflix"`.
 
 **Example:**
 ```bash
@@ -54,18 +71,15 @@ Content-Type: application/json
 }
 ```
 
+Optional `"from_hardware": true|false` (default `true`) controls whether the server also emits
+the `hardware_interrupt` / `button_press_interrupt` WebSocket events.
+
 **Response:**
 ```json
-{
-  "success": true,
-  "button_code": 16,
-  "state": {
-    "power": true,
-    "volume": 50,
-    "channel": 1
-  }
-}
+{"status": "success", "button_code": 16}
 ```
+
+Invalid bodies or codes return `400` with `{"status": "error", "message": "..."}`.
 
 **Example:**
 ```bash
@@ -94,7 +108,7 @@ Content-Type: application/json
 {
   "brand": "Samsung",
   "brand_id": 1,
-  "confidence": 0.85
+  "confidence": 0.93
 }
 ```
 
@@ -254,9 +268,9 @@ When running as a **remote-as-a-service** (see [docs/SERVICE_AND_AUTOMATION.md](
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/health` | Health check: `{ "status": "ok", "service": "tv_remote", "version": "1.0.0" }` |
+| GET | `/api/health` | Health check: `{ "status": "ok", "service": "tv_remote", "version": "1.0.0", "simulator": true }` |
 | GET | `/api/presets` | List presets and default_target from autonomous_config |
-| POST | `/api/preset/<name>/trigger` | Run preset; body/query `target` (default simulator) |
+| POST | `/api/preset/<name>/trigger` | Run preset; body/query `target` (default simulator; unknown targets return 400) |
 | GET | `/api/backends` | List backend names (simulator, broadlink, samsung, lg, cec) |
 | GET | `/api/backends/status` | Backend availability: `{ name: { name, available } }` |
 | POST | `/api/backends/broadlink/learn` | Learn IR code; body `{ "host": "IP", "timeout_sec": 10 }` → `{ "ir_hex": "..." }` |
@@ -275,103 +289,38 @@ OpenAPI 3.0 spec: `GET /api/openapi.yaml` or `GET /api/openapi` (JSON).
 
 ## WebSocket Events
 
-### Connection
-
-Connect to the WebSocket server:
+Socket.IO on the same host and port.
 
 ```javascript
 const socket = io('http://localhost:5000');
+// With an API key configured:
+// const socket = io('http://localhost:5000', {auth: {api_key: KEY}});
 ```
 
-### Client → Server Events
+### Client → server
 
-#### Button Press
+| Event | Payload | Effect |
+|-------|---------|--------|
+| `button_press` | `{button_code: 16}` | Press a button (treated as a UI press, no interrupt events) |
+| `request_state` | none | Server replies with `tv_state_update` and `graphics_preset` |
+| `update_volume` | `{volume: 0-100}` | Set the volume directly |
+| `frame_update` | `{frame_data: <base64>, width, height, format}` | Store the latest TV frame for the streaming API (the 3D page sends this about every 200 ms) |
+
+### Server → client
+
+| Event | When | Payload |
+|-------|------|---------|
+| `connected` | On connect | `{message}` |
+| `tv_state_update` | On connect and after every state change | Full TV state (same shape as `GET /api/state`) |
+| `graphics_preset` | On connect and on `request_state` | Graphics preset; `_tier`, `_gpu_name`, `_vram_gb` describe the GPU |
+| `hardware_interrupt` | Button press from REST/C (`from_hardware` true) | `{type: "gpio", button_code, button_name, timestamp}` |
+| `button_press_interrupt` | Same as above | `{button_code, button_name, timestamp}` |
+| `hmr:file_changed` | Debug mode only, when a file under `web_static/` changes | `{path, timestamp}` |
 
 ```javascript
-socket.emit('button_press', {
-  button_code: 16  // Power button
-});
+socket.on('tv_state_update', (state) => console.log(state.powered_on, state.current_app));
+socket.on('graphics_preset', (p) => console.log('tier', p._tier, 'GPU', p._gpu_name));
 ```
-
-**Parameters:**
-- `button_code` (number): Button code (hexadecimal or decimal)
-
-### Server → Client Events
-
-#### TV State Update
-
-Emitted when the TV state changes.
-
-```javascript
-socket.on('tv_state_update', (data) => {
-  console.log('TV State:', data);
-  // {
-  //   power: true,
-  //   volume: 50,
-  //   channel: 1,
-  //   mute: false,
-  //   app: "TV",
-  //   game_mode: false,
-  //   input: "HDMI 1"
-  // }
-});
-```
-
-#### Graphics Preset
-
-Emitted on connect and when the client sends `request_state`. Contains the GPU-based graphics preset (tier, GPU name, VRAM, and all preset keys) used by the 3D simulator at runtime.
-
-```javascript
-socket.on('graphics_preset', (preset) => {
-  console.log('Graphics tier:', preset._tier, 'GPU:', preset._gpu_name);
-});
-```
-
-#### Button Press (Echo)
-
-Emitted when a button is pressed (echo of the button press event).
-
-```javascript
-socket.on('button_press', (data) => {
-  console.log('Button pressed:', data.button_code);
-});
-```
-
-## Button Codes
-
-All button codes match `include/remote_buttons.h`:
-
-### Basic Controls
-- `0x10` = Power
-- `0x11` = Volume Up
-- `0x12` = Volume Down
-- `0x13` = Mute
-- `0x14` = Channel Up
-- `0x15` = Channel Down
-
-### Navigation
-- `0x20` = Home
-- `0x21` = Menu
-- `0x22` = Back
-- `0x23` = Info
-
-### Streaming Services
-- `0x01` = YouTube
-- `0x02` = Netflix
-- `0x03` = Amazon Prime
-- `0x04` = HBO Max
-
-### Input/Source
-- `0x25` = Input
-- `0x26` = Source
-
-### Number Pad
-- `0x30` = 0
-- `0x31` = 1
-- `0x32` = 2
-- ... (up to 9)
-
-See `include/remote_buttons.h` for complete list.
 
 ## Streaming API
 
@@ -387,13 +336,14 @@ See `include/remote_buttons.h` for complete list.
 - **Frame Rate**: Frames are captured at ~5 FPS (every 200ms) to avoid overloading the server
 - **Memory**: Latest frame only is stored (not a buffer)
 - **Format**: Default is PNG (512x512 pixels)
+- **No frame yet**: until a browser has sent a frame, `GET /api/frame` returns a black placeholder PNG (512x512 with Pillow, 1x1 without) and `/api/frame/info` reports `"has_frame": false`
 - **Latency**: Frame age is typically < 1 second
 
 ### Requirements
 
 - **Basic**: Works out of the box with PNG format
-- **JPEG Support**: Install Pillow: `pip install Pillow`
-- **Server**: Must be running (`poetry run web-server` or `python web_server.py`)
+- **JPEG Support**: Install Pillow: `pip install Pillow` (included in `requirements-dev.txt`)
+- **Server**: Must be running (`python web_server.py` or `poetry run web-server`)
 - **Client**: Browser must be connected to capture frames
 
 ## Integration Examples
@@ -486,9 +436,14 @@ fetch('/api/button', {
 ## API Status Codes
 
 - `200`: Success
-- `400`: Bad request
+- `400`: Bad request (malformed JSON, invalid button code, unknown preset target, bad `timeout_sec`)
+- `401`: Missing or wrong API key (only when a key is configured)
+- `404`: Preset not found
+- `408`: Broadlink learning timed out
+- `429`: Rate limit exceeded (`TV_REMOTE_RATE_LIMIT`)
 - `500`: Server error
-- `501`: Feature not available (e.g., JPEG without Pillow)
+- `501`: Feature not available (JPEG without Pillow, Broadlink library not installed)
+- `503`: Broadlink device not found
 
 ## Troubleshooting
 
@@ -506,9 +461,9 @@ fetch('/api/button', {
 - Check TV state: `curl http://localhost:5000/api/state`
 
 ### WebSocket connection fails
-- Make sure server is running
-- Check firewall settings
-- Verify port 5000 is accessible
+- Make sure the server is running and the port is reachable
+- If an API key is configured, pass it in the Socket.IO `auth` payload
+- Cross-origin pages need `TV_REMOTE_CORS_ORIGINS` (default is same-origin only)
 
 ## Testing
 

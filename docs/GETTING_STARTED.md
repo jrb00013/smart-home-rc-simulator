@@ -1,170 +1,164 @@
 # Getting Started
 
-Quick run guide: prerequisites, simulator options, C remote build, troubleshooting.
+Set up and run each part of the project: the C remote, the 3D web simulator, the 2D desktop
+simulator, and the scheduler. For a five-minute version see the [README](../README.md#quick-start).
 
----
+- [Prerequisites](#prerequisites)
+- [Build the C remote](#build-the-c-remote)
+- [Install the Python simulator](#install-the-python-simulator)
+- [Run the web simulator](#run-the-web-simulator)
+- [Run the desktop simulator](#run-the-desktop-simulator)
+- [Connect the C remote to a simulator](#connect-the-c-remote-to-a-simulator)
+- [Run the scheduler](#run-the-scheduler)
+- [Troubleshooting](#troubleshooting)
 
-## Prerequisites: Install Poetry
+## Prerequisites
 
-Modern Linux (Ubuntu 23.04+, Debian 12+) blocks direct `pip install`. Poetry uses isolated virtual environments.
+| For | You need |
+|-----|----------|
+| C remote | `gcc` or `clang` and GNU `make` (MinGW/MSYS2 on Windows) |
+| Simulators | Python 3.10+ (the CI targets 3.10+; `pyproject.toml` allows 3.8.1+) and either `pip` + `venv` or [Poetry](https://python-poetry.org/) |
+| Web simulator | A browser with WebGL |
 
-**Windows (PowerShell):**
-```powershell
-(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
-```
+## Build the C remote
 
-**WSL/Linux/Mac:**
+From the repository root:
+
 ```bash
-curl -sSL https://install.python-poetry.org | python3 -
+make                  # bin/remote_control
+make examples         # bin/*_example and bin/latency_probe
+./bin/remote_control  # bin\remote_control.exe on Windows
 ```
 
-**Verify:**
+Details, targets and known issues: [C_REMOTE.md](C_REMOTE.md).
+
+## Install the Python simulator
+
+Everything Python lives in `test_simulator/`. Pick one of the two options.
+
+**pip + venv** (works everywhere, including Debian/Ubuntu where system `pip install` is blocked
+with `externally-managed-environment`):
+
 ```bash
-poetry --version
+cd test_simulator
+python3 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements.txt    # add -r requirements-dev.txt for pytest and ruff
 ```
 
-If not found, add to PATH (`~/.bashrc` or `~/.zshrc`):
-```bash
-export PATH="$HOME/.local/bin:$PATH"
-source ~/.bashrc
-```
+**Poetry:**
 
----
-
-## Option 1: Web 3D Simulator
-
-### Step 1: Install dependencies
 ```bash
 cd test_simulator
 poetry install
 ```
 
-### Step 2: Start the web server
+`pyproject.toml` defines console scripts, so with Poetry you can use `poetry run web-server`
+and `poetry run desktop-simulator`. With pip, run the modules directly (`python web_server.py`,
+`python main.py`). There is no `poetry.lock` in the repository, so Poetry resolves fresh versions.
+
+Installing Poetry, if you want it:
+
 ```bash
-poetry run web-server
-```
-Or: `poetry run python web_server.py`
-
-You should see:
-```
-============================================================
-  Virtual TV Simulator - Web Server
-============================================================
-Access the 3D TV interface at: http://localhost:5000
+curl -sSL https://install.python-poetry.org | python3 -        # Linux / macOS / WSL
+# Windows PowerShell:
+# (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
+export PATH="$HOME/.local/bin:$PATH"                             # if `poetry` is not found
 ```
 
-### Step 3: Open in browser
-Open `http://localhost:5000`. You get: 3D remote control, IR signal visualization, button feedback, camera views (1-4), status panel.
+`requirements.txt` also pulls in optional extras (GPUtil for GPU detection, PyYAML for the
+OpenAPI JSON endpoint, paho-mqtt for MQTT). Pillow (JPEG frames) and the device adapters'
+libraries (`broadlink`, `samsungtvws`, `pylgtv`, `cec`) are optional and not installed by default.
 
-### Step 4: Connect C remote (optional)
-In a new terminal:
-```bash
-cd ..   # project root
-make clean
-make SIMULATOR=1 WEB=1
-./bin/remote_control
-```
-(Windows: `bin\remote_control.exe`)
+## Run the web simulator
 
-The remote connects to the web server. If the server is not running, the program warns but continues.
-
----
-
-## Option 2: Desktop Simulator (2D Pygame)
-
-### Step 1: Install dependencies
 ```bash
 cd test_simulator
-poetry install
+python web_server.py          # or: poetry run web-server   or: ./run_web_server.sh
 ```
 
-### Step 2: Run simulator
+Open <http://localhost:5000>. You get the 3D house with the TV and a clickable remote. The server
+binds to `127.0.0.1:5000` by default; change it with `TV_REMOTE_HOST` / `TV_REMOTE_PORT` (all
+settings: [PRODUCTION.md](../test_simulator/PRODUCTION.md#environment-variables)).
+
+Try it from another terminal:
+
 ```bash
-poetry run desktop-simulator
-```
-Or: `poetry run python main.py`
-
-### Step 3: Keyboard shortcuts
-- P = Power, U = Volume Up, D = Volume Down, M = Mute
-- Arrow Up/Down = Channel Up/Down
-- H = Home, N = Menu, ESC = Exit
-
-### Step 4: Connect C remote (optional)
-```bash
-cd ..
-make clean
-make SIMULATOR=1
-./bin/remote_control
-```
-
----
-
-## Quick test commands
-
-**Browser console (F12 at http://localhost:5000):**
-```javascript
-socket.emit('button_press', {button_code: 0x10});  // Power
-```
-
-**REST API:**
-```bash
+curl http://localhost:5000/api/health
 curl -X POST http://localhost:5000/api/button -H "Content-Type: application/json" -d '{"button_code":16}'
+curl http://localhost:5000/api/state
 ```
 
-**PowerShell:**
+PowerShell:
+
 ```powershell
 Invoke-RestMethod -Uri http://localhost:5000/api/button -Method POST -ContentType "application/json" -Body '{"button_code":16}'
 ```
 
----
+Or from the browser console (F12) on the simulator page:
+
+```javascript
+socket.emit('button_press', {button_code: 0x10});  // Power
+```
+
+Mouse, keyboard and walk-mode controls are in
+[FEATURES.md](../test_simulator/FEATURES.md#keyboard-and-mouse). The full API is in
+[API.md](../test_simulator/API.md).
+
+## Run the desktop simulator
+
+A 2D Pygame window that shows the same TV state:
+
+```bash
+cd test_simulator
+python main.py                # or: poetry run desktop-simulator   or: ./run_simulator.sh
+```
+
+Desktop keys: `P` power, `U`/`D` volume, `M` mute, `↑`/`↓` channel, `H` home, `N` menu, `B` back,
+`I` info, `1`–`5` channels, `Y` YouTube, `T` Netflix, `A` Prime, `G` game mode, `Esc` quit.
+
+## Connect the C remote to a simulator
+
+Start the simulator first, then from the repository root:
+
+| Simulator | Build | Transport |
+|-----------|-------|-----------|
+| Web | `make clean && make SIMULATOR=1 WEB=1` | HTTP `POST /api/button` to `TV_REMOTE_HOST`:`TV_REMOTE_PORT` (default `localhost:5000`), with `TV_REMOTE_API_KEY` if set |
+| Desktop, or web via IPC | `make clean && make SIMULATOR=1` | Unix socket `/tmp/phillips_remote_tv.sock` (Windows named pipe `\\.\pipe\phillips_remote_tv`) |
+
+```bash
+./bin/remote_control
+```
+
+With the web build you should see `[Simulator] Connected to web server (3D TV interface)`. The
+web server also starts the IPC listener, so a `SIMULATOR=1` build can talk to it too. If the
+simulator is not running, the C program warns and continues.
+
+## Run the scheduler
+
+Applies presets at set times (for example, "evening preset at 19:00"). With the web server
+running:
+
+```bash
+cd test_simulator
+python scheduler.py           # or: poetry run python scheduler.py
+```
+
+Rules and presets are in `autonomous_config.json`. See
+[SERVICE_AND_AUTOMATION.md](../test_simulator/docs/SERVICE_AND_AUTOMATION.md).
 
 ## Troubleshooting
 
-**"externally-managed-environment" (WSL/Linux)**  
-Use Poetry. Do not use `pip install` for project dependencies.
+| Symptom | Fix |
+|---------|-----|
+| `error: externally-managed-environment` | Use a venv or Poetry (see [Install](#install-the-python-simulator)); don't `pip install` into system Python. |
+| `ModuleNotFoundError` | Activate the venv / use `poetry run`, and run from `test_simulator/`. |
+| `poetry: command not found` | Add `~/.local/bin` to `PATH`, or use pip + venv instead. |
+| Port 5000 in use | `TV_REMOTE_PORT=5001 python web_server.py`, and export the same `TV_REMOTE_PORT` for the C web client. |
+| Can't reach the server from another machine | It binds to `127.0.0.1` by default; set `TV_REMOTE_HOST=0.0.0.0` (and read the [security checklist](../test_simulator/PRODUCTION.md#security-checklist)). |
+| Blank browser page | Check the browser console (F12); WebGL and JavaScript must be enabled. |
+| C program can't connect (web) | Start the server first; build with `SIMULATOR=1 WEB=1`; check the firewall. |
+| C program can't connect (IPC, Unix) | Remove a stale `/tmp/phillips_remote_tv.sock` and run only one simulator. |
+| Server status | `curl http://localhost:5000/api/health`, or `lsof -i :5000` / `Get-NetTCPConnection -LocalPort 5000`. |
 
-**Module not found**  
-Run from `test_simulator`: `poetry install`
-
-**Poetry not found**  
-Install Poetry (see Prerequisites), then `poetry --version` and `poetry install`
-
-**Port 5000 in use**  
-In `web_server.py` change `port=5000` to e.g. `port=5001`
-
-**Web server won't start**  
-Ensure Python 3.7+ and run `poetry install` in `test_simulator`
-
-**Browser blank**  
-Check console (F12); enable JavaScript; try another browser
-
-**C program can't connect**  
-Start web server first; build with `make SIMULATOR=1 WEB=1`; on Windows check firewall
-
----
-
-## What you should see
-
-**Web:** 3D TV and room, status panel (right), controls (bottom left), orbit camera on drag.
-
-**Desktop:** 2D TV, status panel, keyboard shortcuts.
-
----
-
-## Automated tests
-
-With server running (for API/functional tests):
-```bash
-cd test_simulator
-poetry run pytest
-```
-See [README_TESTS.md](../test_simulator/README_TESTS.md) for structure.
-
----
-
-## Further documentation
-
-- [Simulator overview](../test_simulator/README.md)
-- [REST/WebSocket API](../test_simulator/API.md)
-- [Test suite](../test_simulator/README_TESTS.md), [manual testing](../test_simulator/TESTING.md)
-- [Documentation index](README.md)
+Testing: [test_simulator/TESTING.md](../test_simulator/TESTING.md).
