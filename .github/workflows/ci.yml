@@ -20,13 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - cc: gcc
-            allow-failure: false
-          # clang currently fails on an implicit usleep() declaration in
-          # src/connection.c; set allow-failure to false once that is fixed.
-          - cc: clang
-            allow-failure: true
+        cc: [gcc, clang]
     env:
       CC: ${{ matrix.cc }}
     steps:
@@ -38,37 +32,18 @@ jobs:
           make --version | head -1
 
       - name: Build
-        id: build
-        continue-on-error: ${{ matrix.allow-failure }}
         run: make CC="$CC"
 
       - name: Build examples
-        id: examples
-        continue-on-error: ${{ matrix.allow-failure }}
         run: make examples CC="$CC"
 
-      - name: Report allowed failures
-        if: steps.build.outcome == 'failure' || steps.examples.outcome == 'failure'
-        run: echo "::warning::${{ matrix.cc }} build failed (allowed via matrix.allow-failure; known src/connection.c usleep issue)."
+      - name: Unit tests
+        run: make test CC="$CC"
 
-      - name: Unit tests (make test)
-        if: steps.build.outcome == 'success'
+      - name: Sanitizers (ASan + UBSan)
         run: |
-          if make -n test >/dev/null 2>&1; then
-            make test CC="$CC"
-          else
-            echo "::notice::No 'make test' target yet; skipping."
-          fi
-
-      - name: Sanitizers (make sanitize)
-        if: steps.build.outcome == 'success'
-        run: |
-          if make -n sanitize >/dev/null 2>&1; then
-            make clean
-            make sanitize CC="$CC"
-          else
-            echo "::notice::No 'make sanitize' target yet; skipping."
-          fi
+          make clean
+          make sanitize CC="$CC"
 
   python:
     name: Python ${{ matrix.python-version }}

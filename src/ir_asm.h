@@ -142,5 +142,17 @@ void ir_led_off(void);
  */
 int ir_hw_init(uint8_t pin);
 
+/**
+ * @brief Waveform trace hook (C fallback only)
+ * @param level LED level (1 = carrier on, 0 = off) held for the duration
+ * @param duration_us Duration of the delay in microseconds
+ *
+ * When a hook is installed, delay_us() reports each delay to it instead of
+ * sleeping. Intended for tests and simulators; pass NULL to restore real
+ * sleeping.
+ */
+typedef void (*ir_trace_hook_t)(int level, uint32_t duration_us);
+void ir_set_trace_hook(ir_trace_hook_t hook);
+
 #endif /* IR_ASM_H */
 

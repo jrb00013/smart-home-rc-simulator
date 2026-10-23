@@ -1,18 +1,15 @@
-#define _POSIX_C_SOURCE 199309L
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
 #include "../include/connection.h"
 #include "../include/handlers.h"
 #include "../include/remote_buttons.h"
+#include "time_util.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <unistd.h>
-#include <sys/time.h>
-#endif
 
 /* Connection State */
 static connection_status_t connection_status = CONNECTION_DISCONNECTED;
@@ -31,30 +28,6 @@ connection_config_t connection_config = {
     .auto_reconnect = CONNECTION_DEFAULT_AUTO_RECONNECT,
     .verify_on_send = CONNECTION_DEFAULT_VERIFY_ON_SEND
 };
-
-/**
- * @brief Get current timestamp in milliseconds
- */
-static uint32_t get_timestamp_ms(void) {
-#ifdef _WIN32
-    return (uint32_t)GetTickCount();
-#else
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (uint32_t)(ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
-#endif
-}
-
-/**
- * @brief Delay in milliseconds
- */
-static void delay_ms(uint32_t ms) {
-#ifdef _WIN32
-    Sleep(ms);
-#else
-    usleep(ms * 1000);
-#endif
-}
 
 /**
  * @brief Calculate connection quality based on statistics
@@ -155,7 +128,7 @@ int connection_establish(unsigned char device_type) {
     for (attempt = 0; attempt <= connection_config.max_retries; attempt++) {
         if (attempt > 0) {
             printf("[Connection] Connection test retry %d/%d...\n", attempt, connection_config.max_retries);
-            delay_ms(connection_config.retry_delay_ms);
+            tu_sleep_ms(connection_config.retry_delay_ms);
         }
         
         test_result = connection_test(BUTTON_POWER);
@@ -168,7 +141,7 @@ int connection_establish(unsigned char device_type) {
     if (test_result == 0) {
         connection_status = CONNECTION_CONNECTED;
         connected_device = device_type;
-        last_verify_time = get_timestamp_ms();
+        last_verify_time = tu_monotonic_ms();
         connection_stats.last_success_time = last_verify_time;
         connection_stats.quality = QUALITY_GOOD;
         
@@ -177,7 +150,7 @@ int connection_establish(unsigned char device_type) {
         return 0;
     } else {
         connection_status = CONNECTION_FAILED;
-        connection_stats.last_failure_time = get_timestamp_ms();
+        connection_stats.last_failure_time = tu_monotonic_ms();
         fprintf(stderr, "[Connection] Failed to connect to %s (device %d) after %d attempts\n", 
                 device_name, device_type, connection_config.max_retries + 1);
         handler_trigger_error(ERROR_TRANSMISSION_FAILED, "Connection establishment failed");
@@ -198,7 +171,7 @@ int connection_verify(void) {
     }
     
     /* Check if verification interval has passed */
-    uint32_t current_time = get_timestamp_ms();
+    uint32_t current_time = tu_monotonic_ms();
     if (current_time - last_verify_time < connection_config.verify_interval_ms) {
         return 0;  /* Still within verification interval */
     }
@@ -313,16 +286,19 @@ int connection_reconnect(void) {
         return -1;
     }
     
-    printf("[Connection] Reconnecting to device %d...\n", connected_device);
+    /* Remember the target: connection_disconnect() clears connected_device */
+    unsigned char device = connected_device;
+    
+    printf("[Connection] Reconnecting to device %d...\n", device);
     
     /* Disconnect first */
     connection_disconnect();
     
     /* Wait before reconnecting */
-    delay_ms(connection_config.retry_delay_ms);
+    tu_sleep_ms(connection_config.retry_delay_ms);
     
     /* Attempt to reconnect */
-    return connection_establish(connected_device);
+    return connection_establish(device);
 }
 
 /**
@@ -344,6 +320,12 @@ void connection_disconnect(void) {
 int connection_send_with_retry(ir_code_t code) {
     if (!connection_initialized) {
         handler_trigger_error(ERROR_IR_NOT_INITIALIZED, "Connection system not initialized");
+        return -1;
+    }
+    
+    /* A zero code can never be transmitted; retrying would only add delay */
+    if (code.code == 0) {
+        handler_trigger_error(ERROR_INVALID_IR_CODE, "No IR code mapped for this button");
         return -1;
     }
     
@@ -369,25 +351,26 @@ int connection_send_with_retry(ir_code_t code) {
     for (attempt = 0; attempt <= connection_config.max_retries; attempt++) {
         if (attempt > 0) {
             printf("[Connection] Retry attempt %d/%d\n", attempt, connection_config.max_retries);
-            delay_ms(connection_config.retry_delay_ms);
+            tu_sleep_ms(connection_config.retry_delay_ms);
         }
         
         result = ir_send(code);
+        connection_stats.total_transmissions++;
         
         if (result == 0) {
             connection_stats.successful_transmissions++;
-            connection_stats.total_transmissions++;
-            connection_stats.last_success_time = get_timestamp_ms();
+            connection_stats.last_success_time = tu_monotonic_ms();
             connection_stats.quality = calculate_quality();
             return 0;
-        } else {
-            connection_stats.failed_transmissions++;
+        }
+        
+        connection_stats.failed_transmissions++;
+        if (attempt < connection_config.max_retries) {
             connection_stats.retry_count++;
         }
     }
     
-    connection_stats.total_transmissions++;
-    connection_stats.last_failure_time = get_timestamp_ms();
+    connection_stats.last_failure_time = tu_monotonic_ms();
     connection_stats.quality = calculate_quality();
     
     handler_trigger_error(ERROR_TRANSMISSION_FAILED, "IR transmission failed after retries");

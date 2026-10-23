@@ -33,6 +33,10 @@ typedef struct {
 #define IR_NETFLIX        0x12345679
 #define IR_AMAZON_PRIME   0x1234567A
 #define IR_HBO_MAX        0x1234567B
+#define IR_DISNEY_PLUS    0x1234567C
+#define IR_APPLE_TV       0x1234567D
+#define IR_HULU           0x1234567E
+#define IR_PEACOCK        0x1234567F
 
 /* Basic Control IR Codes */
 #define IR_POWER          0x00000001
