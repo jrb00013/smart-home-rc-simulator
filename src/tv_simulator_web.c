@@ -25,6 +25,13 @@
 #define WEB_SERVER_PORT 5000
 #define WEB_SERVER_PATH "/api/button"
 
+#ifndef _WIN32
+/* Don't let a closed simulator socket kill the process with SIGPIPE */
+#ifndef MSG_NOSIGNAL
+#define MSG_NOSIGNAL 0
+#endif
+#endif
+
 static int web_connected = 0;
 static int socket_fd = -1;
 
@@ -132,8 +139,22 @@ int tv_simulator_send_button(unsigned char button_code) {
         WEB_SERVER_PATH, WEB_SERVER_HOST, WEB_SERVER_PORT,
         strlen(json_body), json_body);
     
-    // Send request
-    int sent = send(socket_fd, request, strlen(request), 0);
+    // Send request (handle partial writes)
+    size_t len = strlen(request);
+    size_t off = 0;
+    int sent = 0;
+    while (off < len) {
+#ifdef _WIN32
+        sent = send(socket_fd, request + off, (int)(len - off), 0);
+#else
+        sent = (int)send(socket_fd, request + off, len - off, MSG_NOSIGNAL);
+#endif
+        if (sent <= 0) {
+            sent = -1;
+            break;
+        }
+        off += (size_t)sent;
+    }
     if (sent < 0) {
 #ifdef _WIN32
         int error = WSAGetLastError();
@@ -156,9 +177,15 @@ int tv_simulator_send_button(unsigned char button_code) {
         return -1;
     }
     
-    // Read response (simple, don't wait for full response)
+    // Drain whatever response bytes are already available so keep-alive
+    // replies don't accumulate in the socket buffer (don't block for them)
     char response[256];
-    recv(socket_fd, response, sizeof(response) - 1, MSG_DONTWAIT);
+#ifndef _WIN32
+    while (recv(socket_fd, response, sizeof(response), MSG_DONTWAIT) > 0) {
+    }
+#else
+    (void)response;
+#endif
     
     return 0;
 }
