@@ -33,3 +33,13 @@ graphics_config.json
 # Service config (API key, webhook URL, MQTT credentials - do not commit)
 service_config.json
 
+
+# Test / lint / coverage caches
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# JS tooling
+node_modules/
