@@ -1,0 +1,5 @@
+# Test / lint dependencies (CI: pip install -r requirements.txt -r requirements-dev.txt)
+pytest>=7.0.0
+ruff>=0.4.0
+# Optional at runtime; installed for tests so JPEG frame conversion is exercised
+Pillow>=9.0.0
