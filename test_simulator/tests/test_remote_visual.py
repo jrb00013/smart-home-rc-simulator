@@ -1,105 +1,55 @@
 """
 Tests to ensure the remote works and that button presses trigger the visual
 animation pipeline (WebSocket state updates so the 3D remote shows green
-highlight and press animation).
+highlight and press animation). In-process via flask_socketio's test client.
 """
-import pytest
-import time
-import requests
-import socketio
-from tests.conftest import (
-    BASE_URL,
-    API_URL,
-    STATE_URL,
-    BUTTON_CODES,
-    press_button,
-    get_state,
-)
+from tests.conftest import API_URL, BUTTON_CODES, press_button, get_state, received_events
 
 
 class TestRemoteWorks:
     """Verify the remote accepts button presses and state updates."""
 
-    def test_remote_accepts_button_press(self, server_running):
-        """Remote must accept a button press and return success."""
-        response = requests.post(
-            API_URL,
-            json={"button_code": BUTTON_CODES["Power"]},
-            headers={"Content-Type": "application/json"},
-            timeout=5,
-        )
+    def test_remote_accepts_button_press(self, client):
+        response = client.post(API_URL, json={"button_code": BUTTON_CODES["Power"]})
         assert response.status_code == 200
 
-    def test_remote_state_updates_after_button(self, server_running, ensure_tv_on):
-        """Pressing a button must update TV state (remote has effect)."""
-        initial = get_state()
-        initial_vol = initial.get("volume", 0) if initial else 0
-
-        press_button(BUTTON_CODES["Volume Up"], delay=0.3)
-        new = get_state()
-        new_vol = new.get("volume", 0) if new else 0
-
-        assert new is not None
-        assert new_vol >= initial_vol
+    def test_remote_state_updates_after_button(self, client, ensure_tv_on):
+        initial_vol = get_state()["volume"]
+        press_button(BUTTON_CODES["Volume Up"])
+        assert get_state()["volume"] == initial_vol + 1
 
 
 class TestVisualAnimationPipeline:
-    """
-    Verify that button presses trigger the pipeline that drives visual
-    animation: server broadcasts tv_state_update so the client can run
-    highlightRemoteButton (green glow + press-in) and IR/state animations.
-    """
+    """Button presses must broadcast tv_state_update so the client can animate."""
 
-    def test_websocket_receives_state_update_on_button_press(
-        self, server_running, ensure_tv_on
-    ):
-        """Button press must cause server to broadcast tv_state_update (visual animation)."""
-        sio = socketio.Client()
-        updates = []
+    def test_websocket_receives_state_update_on_button_press(self, client, ensure_tv_on, sio_client):
+        """REST button press broadcasts tv_state_update to Socket.IO clients."""
+        before = get_state()["volume"]
+        press_button(BUTTON_CODES["Volume Up"])
+        updates = received_events(sio_client, "tv_state_update")
+        assert len(updates) >= 1
+        assert updates[-1]["volume"] == before + 1
+        assert updates[-1]["last_button"] == "Volume Up"
 
-        @sio.on("tv_state_update")
-        def on_state(data):
-            updates.append(data)
+    def test_rest_press_emits_hardware_interrupt(self, client, sio_client):
+        """API presses default to from_hardware=True and emit interrupt events."""
+        press_button(BUTTON_CODES["Power"])
+        names = [m["name"] for m in sio_client.get_received()]
+        assert "hardware_interrupt" in names
+        assert "button_press_interrupt" in names
 
-        try:
-            sio.connect(BASE_URL, wait_timeout=5)
-            time.sleep(0.5)
+    def test_websocket_button_press_triggers_state_broadcast(self, client, ensure_tv_on, sio_client):
+        """Emitting button_press over WebSocket results in tv_state_update."""
+        before = get_state()["channel"]
+        sio_client.emit("button_press", {"button_code": BUTTON_CODES["Channel Up"]})
+        updates = received_events(sio_client, "tv_state_update")
+        assert len(updates) >= 1
+        assert updates[-1]["channel"] == before + 1
 
-            # Press button via API (same as clicking remote in UI)
-            press_button(BUTTON_CODES["Volume Up"], delay=0.2)
-            time.sleep(0.5)
-
-            assert len(updates) >= 1, (
-                "Expected at least one tv_state_update so the client can show "
-                "button visual animation (green highlight + press effect)"
-            )
-            state = updates[-1]
-            assert isinstance(state, dict)
-            assert "volume" in state or "powered_on" in state
-        finally:
-            sio.disconnect()
-
-    def test_websocket_button_press_triggers_state_broadcast(
-        self, server_running, ensure_tv_on
-    ):
-        """Emitting button_press over WebSocket must result in tv_state_update."""
-        sio = socketio.Client()
-        updates = []
-
-        @sio.on("tv_state_update")
-        def on_state(data):
-            updates.append(data)
-
-        try:
-            sio.connect(BASE_URL, wait_timeout=5)
-            time.sleep(0.5)
-
-            sio.emit("button_press", {"button_code": BUTTON_CODES["Channel Up"]})
-            time.sleep(0.5)
-
-            assert len(updates) >= 1, (
-                "WebSocket button_press should cause tv_state_update for "
-                "remote visual animation (highlight + channel animation)"
-            )
-        finally:
-            sio.disconnect()
+    def test_websocket_invalid_button_ignored(self, client, ensure_tv_on, sio_client):
+        before = get_state()
+        for bad in ("nope", 999, -1, True, None, [1]):
+            sio_client.emit("button_press", {"button_code": bad})
+        sio_client.emit("button_press", "not a dict")
+        assert sio_client.is_connected()
+        assert get_state() == before

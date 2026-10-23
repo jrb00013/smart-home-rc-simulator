@@ -51,9 +51,8 @@ class BroadlinkAdapter(RemoteBackend):
                         d.auth()
                         self._device = d
                         break
-                if self._device is None and devices:
-                    devices[0].auth()
-                    self._device = devices[0]
+                # Never fall back to "whatever device answered first": that sent IR
+                # codes to the wrong blaster when the configured host was offline.
             except Exception:
                 pass
         return self._device

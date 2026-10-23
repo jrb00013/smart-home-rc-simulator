@@ -1,169 +1,121 @@
 """
-Integration tests for REST API endpoints
+Integration tests for REST API endpoints (in-process Flask test client).
 """
-import pytest
-import requests
-import time
-from tests.conftest import BASE_URL, API_URL, STATE_URL, FRAME_URL, BUTTON_CODES, press_button, get_state
+from tests.conftest import API_URL, STATE_URL, FRAME_URL, BUTTON_CODES, press_button, get_state
 
 
 class TestServerConnection:
     """Test server connection and basic endpoints"""
-    
-    def test_server_running(self, server_running):
-        """Test server is running and responding"""
-        response = requests.get(STATE_URL, timeout=5)
+
+    def test_server_running(self, client):
+        """Server app responds"""
+        response = client.get(STATE_URL)
         assert response.status_code == 200
-    
-    def test_state_endpoint(self, server_running):
+
+    def test_state_endpoint(self, client):
         """Test /api/state endpoint returns valid JSON"""
-        response = requests.get(STATE_URL, timeout=5)
+        response = client.get(STATE_URL)
         assert response.status_code == 200
-        data = response.json()
+        data = response.get_json()
         assert isinstance(data, dict)
-        assert 'powered_on' in data or 'power' in data
-    
-    def test_button_endpoint_exists(self, server_running):
-        """Test /api/button endpoint exists"""
-        response = requests.post(
-            API_URL,
-            json={'button_code': 0x10},
-            headers={'Content-Type': 'application/json'},
-            timeout=5
-        )
-        # Should return 200 or 400 (400 if invalid, but endpoint exists)
-        assert response.status_code in [200, 400]
+        assert 'powered_on' in data
+
+    def test_button_endpoint_exists(self, client):
+        """Test /api/button endpoint exists and accepts a valid code"""
+        response = client.post(API_URL, json={'button_code': 0x10})
+        assert response.status_code == 200
 
 
 class TestButtonAPI:
     """Test button press API"""
-    
-    def test_power_button(self, server_running):
+
+    def test_power_button(self, client):
         """Test Power button press"""
-        response = requests.post(
-            API_URL,
-            json={'button_code': BUTTON_CODES['Power']},
-            headers={'Content-Type': 'application/json'},
-            timeout=5
-        )
+        response = client.post(API_URL, json={'button_code': BUTTON_CODES['Power']})
         assert response.status_code == 200
-        data = response.json()
-        assert 'status' in data or 'success' in data or 'button_code' in data
-    
-    def test_volume_up(self, server_running, ensure_tv_on):
+        data = response.get_json()
+        assert data == {'status': 'success', 'button_code': BUTTON_CODES['Power']}
+        assert get_state()['powered_on'] is True
+
+    def test_volume_up(self, client, ensure_tv_on):
         """Test Volume Up button"""
-        initial_state = get_state()
-        initial_volume = initial_state.get('volume', 0) if initial_state else 0
-        
-        press_button(BUTTON_CODES['Volume Up'])
-        
-        new_state = get_state()
-        new_volume = new_state.get('volume', 0) if new_state else 0
-        
-        # Volume should increase (or be at max)
-        assert new_volume >= initial_volume
-    
-    def test_volume_down(self, server_running, ensure_tv_on):
+        initial_volume = get_state()['volume']
+        assert press_button(BUTTON_CODES['Volume Up'])
+        assert get_state()['volume'] == min(100, initial_volume + 1)
+
+    def test_volume_down(self, client, ensure_tv_on):
         """Test Volume Down button"""
-        initial_state = get_state()
-        initial_volume = initial_state.get('volume', 100) if initial_state else 100
-        
-        press_button(BUTTON_CODES['Volume Down'])
-        
-        new_state = get_state()
-        new_volume = new_state.get('volume', 0) if new_state else 0
-        
-        # Volume should decrease (or be at min)
-        assert new_volume <= initial_volume
-    
-    def test_channel_up(self, server_running, ensure_tv_on):
+        initial_volume = get_state()['volume']
+        assert press_button(BUTTON_CODES['Volume Down'])
+        assert get_state()['volume'] == max(0, initial_volume - 1)
+
+    def test_channel_up(self, client, ensure_tv_on):
         """Test Channel Up button"""
-        initial_state = get_state()
-        initial_channel = initial_state.get('channel', 1) if initial_state else 1
-        
-        press_button(BUTTON_CODES['Channel Up'])
-        
-        new_state = get_state()
-        new_channel = new_state.get('channel', 1) if new_state else 1
-        
-        # Channel should increase
-        assert new_channel >= initial_channel
-    
-    def test_mute_button(self, server_running, ensure_tv_on):
+        initial_channel = get_state()['channel']
+        assert press_button(BUTTON_CODES['Channel Up'])
+        assert get_state()['channel'] == initial_channel + 1
+
+    def test_mute_button(self, client, ensure_tv_on):
         """Test Mute button toggles mute state"""
-        initial_state = get_state()
-        initial_muted = initial_state.get('muted', False) if initial_state else False
-        
-        # Press Mute twice so we can assert a state change (avoids flake when already muted)
+        initial_muted = get_state()['muted']
         press_button(BUTTON_CODES['Mute'])
-        time.sleep(0.3)
+        assert get_state()['muted'] is (not initial_muted)
         press_button(BUTTON_CODES['Mute'])
-        
-        new_state = get_state()
-        new_muted = new_state.get('muted', False) if new_state else False
-        
-        # After two toggles we must be back to initial
-        assert new_muted == initial_muted
+        assert get_state()['muted'] is initial_muted
+
+    def test_buttons_ignored_when_off(self, client):
+        """Volume/channel buttons do nothing while the TV is off"""
+        before = get_state()
+        assert before['powered_on'] is False
+        press_button(BUTTON_CODES['Volume Up'])
+        press_button(BUTTON_CODES['Channel Up'])
+        after = get_state()
+        assert after['volume'] == before['volume']
+        assert after['channel'] == before['channel']
 
 
 class TestStreamingAPI:
     """Test streaming/frame API endpoints"""
-    
-    def test_frame_info_endpoint(self, server_running):
+
+    def test_frame_info_endpoint(self, client):
         """Test /api/frame/info endpoint"""
-        response = requests.get(f"{FRAME_URL}/info", timeout=5)
-        # May return 200 or 404/500 if no frame available yet
-        assert response.status_code in [200, 404, 500]
-    
-    def test_frame_png_endpoint(self, server_running, ensure_tv_on):
-        """Test /api/frame endpoint returns PNG"""
-        time.sleep(1)  # Wait for frame capture
-        response = requests.get(FRAME_URL, timeout=5)
-        # May return 200 or 404/500 if no frame available yet
-        assert response.status_code in [200, 404, 500]
-        if response.status_code == 200:
-            assert response.headers.get('content-type', '').startswith('image/')
-    
-    def test_frame_json_endpoint(self, server_running, ensure_tv_on):
+        response = client.get(f"{FRAME_URL}/info")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['has_frame'] is False
+        assert data['frames_processed'] == 0
+
+    def test_frame_png_endpoint(self, client, ensure_tv_on):
+        """Test /api/frame endpoint returns PNG placeholder without a frame"""
+        response = client.get(FRAME_URL)
+        assert response.status_code == 200
+        assert response.headers.get('content-type', '').startswith('image/png')
+        assert response.data.startswith(b'\x89PNG')
+
+    def test_frame_json_endpoint(self, client, ensure_tv_on):
         """Test /api/frame?format=json endpoint"""
-        time.sleep(1)  # Wait for frame capture
-        response = requests.get(f"{FRAME_URL}?format=json", timeout=5)
-        # May return 200 or 404/500 if no frame available yet
-        assert response.status_code in [200, 404, 500]
-        if response.status_code == 200:
-            ct = (response.headers.get("content-type") or "").lower()
-            assert "application/json" in ct, f"Expected JSON for format=json, got content-type: {ct}"
-            data = response.json()
-            assert isinstance(data, dict)
+        response = client.get(f"{FRAME_URL}?format=json")
+        assert response.status_code == 200
+        assert "application/json" in response.headers.get("content-type", "").lower()
+        data = response.get_json()
+        assert isinstance(data, dict)
+        assert data['frame'] is None
 
 
 class TestStateConsistency:
     """Test state consistency across API calls"""
-    
-    def test_state_persists(self, server_running):
-        """Test state persists across requests"""
-        state1 = get_state()
-        time.sleep(0.5)
-        state2 = get_state()
-        
-        # State should be consistent (same structure)
-        assert state1 is not None
-        assert state2 is not None
-        assert isinstance(state1, dict)
-        assert isinstance(state2, dict)
-    
-    def test_state_updates(self, server_running, ensure_tv_on):
-        """Test state updates after button press"""
-        initial_state = get_state()
-        initial_volume = initial_state.get('volume', 0) if initial_state else 0
-        
-        press_button(BUTTON_CODES['Volume Up'])
-        
-        new_state = get_state()
-        new_volume = new_state.get('volume', 0) if new_state else 0
-        
-        # State should have updated
-        assert new_state is not None
-        # Volume should have changed (or be at max)
-        assert new_volume >= initial_volume
 
+    def test_state_persists(self, client):
+        """State is stable across requests with no input"""
+        state1 = get_state()
+        state2 = get_state()
+        assert isinstance(state1, dict)
+        assert state1 == state2
+
+    def test_state_updates(self, client, ensure_tv_on):
+        """Test state updates after button press"""
+        initial_volume = get_state()['volume']
+        press_button(BUTTON_CODES['Volume Up'])
+        new_state = get_state()
+        assert new_state['volume'] == initial_volume + 1
+        assert new_state['last_button'] == 'Volume Up'
