@@ -9,20 +9,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Protocol timing constants */
-#define RC5_BIT_TIME        889
-#define RC5_REPEAT_DELAY    114000
-#define RC6_BIT_TIME        444
-#define RC6_LEADER_PULSE    2666
-#define RC6_LEADER_SPACE    889
-#define RC6_REPEAT_DELAY    108000
-
-/* Forward declarations from ir_protocol.c */
-extern void ir_send_rc5(uint16_t code);
-extern void ir_send_rc6(uint32_t code);
-extern uint16_t ir_code_to_rc5(uint32_t code);
-extern uint32_t ir_code_to_rc6(uint32_t code);
-
 /* IR Hardware State */
 static int ir_initialized = 0;
 
@@ -49,6 +35,18 @@ ir_code_t get_ir_code(unsigned char button_code) {
             break;
         case BUTTON_HBO_MAX:
             ir.code = IR_HBO_MAX;
+            break;
+        case BUTTON_DISNEY_PLUS:
+            ir.code = IR_DISNEY_PLUS;
+            break;
+        case BUTTON_APPLE_TV:
+            ir.code = IR_APPLE_TV;
+            break;
+        case BUTTON_HULU:
+            ir.code = IR_HULU;
+            break;
+        case BUTTON_PEACOCK:
+            ir.code = IR_PEACOCK;
             break;
         
         /* Basic Controls */
@@ -302,6 +300,13 @@ ir_code_t get_ir_code(unsigned char button_code) {
 }
 
 /**
+ * @brief Check whether the IR transmitter is initialized and ready
+ */
+int ir_is_ready(void) {
+    return ir_initialized;
+}
+
+/**
  * @brief Initialize IR transmission hardware
  * 
  * Initializes hardware using assembly functions for GPIO control.
@@ -376,8 +381,9 @@ int ir_send(ir_code_t code) {
         return -1;
     }
     
-    printf("[IR] Sending code: 0x%08X (Protocol: %d, Freq: %d Hz, Repeats: %d)\n",
-           code.code, code.protocol, code.frequency, code.repeat_count);
+    printf("[IR] Sending code: 0x%08X (Protocol: %u, Freq: %u Hz, Repeats: %u)\n",
+           (unsigned)code.code, (unsigned)code.protocol, (unsigned)code.frequency,
+           (unsigned)code.repeat_count);
     
     /* Measure latency: IR transmission */
     uint64_t ir_start = LATENCY_MEASURE_START();
@@ -395,11 +401,16 @@ int ir_send(ir_code_t code) {
         }
     }
     
-    /* Send IR code using appropriate protocol */
+    /* Send IR code using appropriate protocol (always at least once) */
+    int repeats = code.repeat_count > 0 ? code.repeat_count : 1;
     int i;
     int transmission_success = 1;
-    for (i = 0; i < code.repeat_count; i++) {
+    for (i = 0; i < repeats; i++) {
         switch (code.protocol) {
+            case IR_PROTOCOL_NEC:
+                ir_send_nec(code.code);
+                break;
+            
             case IR_PROTOCOL_RC5:
                 {
                     uint16_t rc5_code = ir_code_to_rc5(code.code);
@@ -434,7 +445,7 @@ int ir_send(ir_code_t code) {
         }
         
         /* Repeat delay between transmissions */
-        if (i < code.repeat_count - 1) {
+        if (i < repeats - 1) {
             if (code.protocol == IR_PROTOCOL_RC6) {
                 delay_us(RC6_REPEAT_DELAY);
             } else {

@@ -1,15 +1,10 @@
 """
 Environment and structure tests: imports, file layout, syntax, HTML/JS structure.
-No server required (except TestSimulatorBundleServed). Integrates checks from the former tests_archive test_all.py.
+No running server required (TestSimulatorBundleServed uses the Flask test client). Integrates checks from the former tests_archive test_all.py.
 """
 import os
 import sys
 import pytest
-
-try:
-    import requests
-except ImportError:
-    requests = None
 
 # Simulator root = parent of tests/
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -198,44 +193,29 @@ class TestSimulatorBundle:
 
 
 class TestSimulatorBundleServed:
-    """When server is running, main page and simulator JS are served and loadable (infra)."""
+    """Main page and simulator JS are served and loadable (in-process test client)."""
 
-    BASE = "http://localhost:5000"
-
-    def _get(self, path, timeout=3):
-        if requests is None:
-            pytest.skip("requests not installed")
-        try:
-            r = requests.get(self.BASE + path, timeout=timeout)
-            return r
-        except Exception:
-            return None
-
-    def test_main_page_returns_200(self):
+    def test_main_page_returns_200(self, client):
         """GET / returns 200 and HTML with canvas-container."""
-        r = self._get("/")
-        if r is None or r.status_code != 200:
-            pytest.skip("Server not running (start with: poetry run web-server)")
+        r = client.get("/")
+        assert r.status_code == 200
         assert "text/html" in (r.headers.get("content-type") or "").lower()
-        assert b"canvas-container" in r.content or b"canvas" in r.content
+        assert b"canvas-container" in r.data or b"canvas" in r.data
 
-    def test_simulator_js_modules_served(self):
+    def test_simulator_js_modules_served(self, client):
         """Simulator JS modules are served with 200 and non-empty body."""
-        r = self._get("/")
-        if r is None or r.status_code != 200:
-            pytest.skip("Server not running")
         for name in TestSimulatorBundle.REQUIRED_MODULES:
             path = f"/static/js/simulator/{name}"
-            js = self._get(path)
-            if js is None:
-                pytest.skip("Server not running")
+            js = client.get(path)
             assert js.status_code == 200, f"{path} should return 200, got {js.status_code}"
-            assert len(js.content) > 0, f"{path} should be non-empty"
+            body = js.data
+            js.close()
+            assert len(body) > 0, f"{path} should be non-empty"
             # Stub files (e.g. shows.js) may be comment-only; any non-empty .js is valid
             assert (
-                b"function" in js.content
-                or b"var " in js.content
-                or b"const " in js.content
-                or b"/*" in js.content
-                or b"//" in js.content
+                b"function" in body
+                or b"var " in body
+                or b"const " in body
+                or b"/*" in body
+                or b"//" in body
             ), f"{path} should look like JS (code or comment)"

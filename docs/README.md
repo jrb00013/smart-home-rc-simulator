@@ -1,64 +1,45 @@
 # Documentation Index
 
-Single entry point for project documentation. Links are relative to this directory (`docs/`). Simulator docs live in `test_simulator/` and are linked from the last section.
+Start with the [project README](../README.md), then [GETTING_STARTED.md](GETTING_STARTED.md).
 
-**Contents of docs/:** GETTING_STARTED, ASSEMBLY_INTEGRATION, CONNECTION, HANDLERS, IO_MODE, SYSTEM_HANDLER, LATENCY_OPTIMIZATION, LATENCY_IMPLEMENTATION, ML_CV_AI_AUDIT, REVOLUTIONARY, AI_DETECTION_AND_REVOLUTIONARY_PLAN, README (this file).
-
----
-
-## Getting started
+## Using the project
 
 | Document | Description |
 |----------|-------------|
-| [GETTING_STARTED.md](GETTING_STARTED.md) | Quick run: Poetry, web/desktop simulator, C remote, troubleshooting |
+| [GETTING_STARTED.md](GETTING_STARTED.md) | Install and run the C remote, web and desktop simulators, scheduler; troubleshooting |
+| [BUTTONS.md](BUTTONS.md) | Every button code, and what each part of the system does with it |
+| [../test_simulator/FEATURES.md](../test_simulator/FEATURES.md) | 3D scene, animations, keyboard and mouse controls |
+| [../test_simulator/API.md](../test_simulator/API.md) | REST and WebSocket API |
+| [../test_simulator/docs/SERVICE_AND_AUTOMATION.md](../test_simulator/docs/SERVICE_AND_AUTOMATION.md) | API keys, webhooks, MQTT, device adapters, scheduler config |
+| [../test_simulator/docs/HOME_ASSISTANT_NODE_RED.md](../test_simulator/docs/HOME_ASSISTANT_NODE_RED.md) | Home Assistant and Node-RED examples |
+| [../test_simulator/PRODUCTION.md](../test_simulator/PRODUCTION.md) | Environment variables, security checklist, Docker, Gunicorn |
 
----
-
-## C / firmware reference
-
-| Document | Description |
-|----------|-------------|
-| [ASSEMBLY_INTEGRATION.md](ASSEMBLY_INTEGRATION.md) | IR timing: assembly (x86, ARM, AVR), C fallback, 38 kHz carrier |
-| [CONNECTION.md](CONNECTION.md) | Connection management: status, retry, verification, send-with-retry |
-| [HANDLERS.md](HANDLERS.md) | Event and interrupt handlers: button, IR, state, registration API |
-| [IO_MODE.md](IO_MODE.md) | I/O mode and hardware abstraction |
-| [SYSTEM_HANDLER.md](SYSTEM_HANDLER.md) | System handler integration |
-
----
-
-## Latency
+## C remote
 
 | Document | Description |
 |----------|-------------|
-| [LATENCY_OPTIMIZATION.md](LATENCY_OPTIMIZATION.md) | How to use the latency system and run the probe |
-| [LATENCY_IMPLEMENTATION.md](LATENCY_IMPLEMENTATION.md) | Implementation details, integration points, API |
+| [C_REMOTE.md](C_REMOTE.md) | Build targets, demo program, universal TV modes, code database, known issues |
+| [HANDLERS.md](HANDLERS.md) | Event and interrupt handlers |
+| [CONNECTION.md](CONNECTION.md) | Connection state, verification, send-with-retry |
+| [IO_MODE.md](IO_MODE.md) | Polling / interrupt / DMA / hybrid I/O modes |
+| [SYSTEM_HANDLER.md](SYSTEM_HANDLER.md) | System lifecycle, errors, health monitoring |
+| [LATENCY.md](LATENCY.md) | Latency API, measurement points, synthetic probe |
+| [ASSEMBLY_INTEGRATION.md](ASSEMBLY_INTEGRATION.md) | IR timing routines (x86, ARM, AVR) and the C fallback |
 
----
-
-## Audits and rationale
-
-| Document | Description |
-|----------|-------------|
-| [ML_CV_AI_AUDIT.md](ML_CV_AI_AUDIT.md) | What ML/CV/AI the project uses (and does not use); implementation-only |
-| [REVOLUTIONARY.md](REVOLUTIONARY.md) | Why this stack is novel: single codebase, no cloud, encoder/decoder symmetry |
-
----
-
-## Roadmap (not implemented)
+## Simulator internals
 
 | Document | Description |
 |----------|-------------|
-| [AI_DETECTION_AND_REVOLUTIONARY_PLAN.md](AI_DETECTION_AND_REVOLUTIONARY_PLAN.md) | Plan: device/brand detection ideas, IR protocol, autonomous control |
+| [../test_simulator/README.md](../test_simulator/README.md) | Module map, how the pieces talk, graphics preset, brand detection |
+| [../test_simulator/web_static/js/simulator/README.md](../test_simulator/web_static/js/simulator/README.md) | Front-end JavaScript modules and load order |
+| [../test_simulator/gpu_runtime/UPGRADE.md](../test_simulator/gpu_runtime/UPGRADE.md) | Graphics runtime: config persistence, hysteresis |
+| [ML_CV_AI_AUDIT.md](ML_CV_AI_AUDIT.md) | What ML/CV/AI the project does and does not use |
 
----
-
-## Simulator (test_simulator)
+## Contributing
 
 | Document | Description |
 |----------|-------------|
-| [../test_simulator/README.md](../test_simulator/README.md) | Simulator overview, quick start, features |
-| [../test_simulator/SETUP.md](../test_simulator/SETUP.md) | Setup: Poetry, WSL/Linux/Windows, troubleshooting |
-| [../test_simulator/FEATURES.md](../test_simulator/FEATURES.md) | Features: 3D/VR, keyboard, status, APIs |
-| [../test_simulator/API.md](../test_simulator/API.md) | REST and WebSocket API reference |
-| [../test_simulator/TESTING.md](../test_simulator/TESTING.md) | Manual testing guide |
-| [../test_simulator/README_TESTS.md](../test_simulator/README_TESTS.md) | Pytest test suite: structure, running, fixtures |
+| [../CONTRIBUTING.md](../CONTRIBUTING.md) | Build, test and lint commands; doc conventions |
+| [../test_simulator/TESTING.md](../test_simulator/TESTING.md) | pytest suite and manual checklists |
+| [../CHANGELOG.md](../CHANGELOG.md) | History of notable changes |
+| [../ROADMAP.md](../ROADMAP.md) | Known gaps and unimplemented ideas |

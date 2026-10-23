@@ -100,8 +100,16 @@ void universal_tv_scan_cancel(void);
 /**
  * @brief Set TV brand (optimizes code selection)
  * @param brand TV brand identifier
+ * @return 0 on success, -1 if @p brand is not a valid tv_brand_t
  */
-void universal_tv_set_brand(tv_brand_t brand);
+int universal_tv_set_brand(tv_brand_t brand);
+
+/**
+ * @brief Get a human-readable name for a TV brand
+ * @param brand TV brand identifier
+ * @return Brand name, or "Invalid" for out-of-range values
+ */
+const char* universal_tv_brand_name(tv_brand_t brand);
 
 /**
  * @brief Get current TV brand

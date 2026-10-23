@@ -12,32 +12,34 @@ LDFLAGS =
 # Simulator support (optional)
 # Build with: make SIMULATOR=1
 # Use WEB=1 to use web server instead of local IPC: make SIMULATOR=1 WEB=1
+# (source selection happens below, once C_SOURCES is defined)
 ifdef SIMULATOR
     CFLAGS += -DSIMULATOR
     ifdef WEB
         CFLAGS += -DTV_SIMULATOR_WEB
-        # Use web server version
-        C_SOURCES := $(filter-out $(SRC_DIR)/tv_simulator.c,$(C_SOURCES))
         ifeq ($(OS),Windows_NT)
             LDFLAGS += -lws2_32
         endif
-    else
-        # Use local IPC version (default)
-        C_SOURCES := $(filter-out $(SRC_DIR)/tv_simulator_web.c,$(C_SOURCES))
     endif
     # Windows named pipes don't need extra libraries (kernel32 is linked by default)
     # Unix sockets don't need extra libraries either
-endif 
+endif
+
+# Sanitizer build (used by `make sanitize`; objects go to separate dirs)
+ifdef SANITIZE
+    CFLAGS += -fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=undefined
+    LDFLAGS += -fsanitize=address,undefined
+endif
 
 # Platform detection for assembly files and POSIX
 UNAME_S := $(shell uname -s 2>/dev/null || echo "Windows")
 ifeq ($(UNAME_S),Linux)
     PLATFORM = linux
-    CFLAGS += -D_POSIX_C_SOURCE=199309L
+    CFLAGS += -D_POSIX_C_SOURCE=200809L
 endif
 ifeq ($(UNAME_S),Darwin)
     PLATFORM = macos
-    CFLAGS += -D_POSIX_C_SOURCE=199309L
+    CFLAGS += -D_POSIX_C_SOURCE=200809L
 endif
 ifeq ($(OS),Windows_NT)
     PLATFORM = windows
@@ -61,19 +63,25 @@ ifeq ($(ARCH),aarch64)
     ASM_FILE = ir_asm_arm.s
 endif
 
-# Directories
+# Directories (overridable, e.g. by `make sanitize`)
 SRC_DIR = src
 INC_DIR = include
-OBJ_DIR = obj
-BIN_DIR = bin
+OBJ_DIR ?= obj
+BIN_DIR ?= bin
 
 # Source files
 C_SOURCES = $(wildcard $(SRC_DIR)/*.c)
 # Interrupt handler assembly (ISR) only. IR timing uses C fallback for portability.
 ASM_SOURCES = $(SRC_DIR)/interrupt_handlers.S
 
-# Exclude simulator source if not enabled
-ifndef SIMULATOR
+# Select simulator backend (exactly one of tv_simulator.c / tv_simulator_web.c)
+ifdef SIMULATOR
+    ifdef WEB
+        C_SOURCES := $(filter-out $(SRC_DIR)/tv_simulator.c,$(C_SOURCES))
+    else
+        C_SOURCES := $(filter-out $(SRC_DIR)/tv_simulator_web.c,$(C_SOURCES))
+    endif
+else
     C_SOURCES := $(filter-out $(SRC_DIR)/tv_simulator.c $(SRC_DIR)/tv_simulator_web.c,$(C_SOURCES))
 endif
 
@@ -105,22 +113,51 @@ $(TARGET): $(OBJ_DIR) $(BIN_DIR) $(OBJECTS)
 	@echo "Build complete: $(TARGET)"
 ifdef SIMULATOR
 	@echo "Simulator support: ENABLED"
+ifdef WEB
+	@echo "Start the web simulator with: python test_simulator/web_server.py (honours TV_REMOTE_HOST/PORT/API_KEY)"
+else
 	@echo "Start the simulator with: python test_simulator/main.py"
+endif
 else
 	@echo "Simulator support: DISABLED (use SIMULATOR=1 to enable)"
 endif
 
-# Compile C source files
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+# Compile C source files (-MMD -MP: rebuild when headers change)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
+	$(CC) $(CFLAGS) $(INCLUDES) -MMD -MP -c $< -o $@
 
 # Compile assembly source files (.s)
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.s
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.s | $(OBJ_DIR)
 	$(AS) $(ASFLAGS) -c $< -o $@
 
 # Compile assembly source files (.S - preprocessed)
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.S
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.S | $(OBJ_DIR)
 	$(CC) $(ASFLAGS) $(INCLUDES) -c $< -o $@
+
+# Header dependency files
+-include $(C_OBJECTS:.o=.d)
+
+# Unit tests (tests/c/test_*.c, one executable per file, no external deps)
+TEST_DIR = tests/c
+TEST_SOURCES = $(wildcard $(TEST_DIR)/test_*.c)
+TEST_BIN_DIR = $(BIN_DIR)/tests
+TEST_TARGETS = $(TEST_SOURCES:$(TEST_DIR)/%.c=$(TEST_BIN_DIR)/%)
+LIB_OBJECTS = $(filter-out $(OBJ_DIR)/main.o,$(OBJECTS))
+
+$(TEST_BIN_DIR):
+	@mkdir -p $(TEST_BIN_DIR)
+
+$(TEST_BIN_DIR)/%: $(TEST_DIR)/%.c $(TEST_DIR)/test_harness.h $(LIB_OBJECTS) | $(TEST_BIN_DIR)
+	$(CC) $(CFLAGS) $(INCLUDES) -I$(TEST_DIR) $< $(LIB_OBJECTS) -o $@ $(LDFLAGS)
+
+# Build and run every test binary; fails on the first failing suite
+test: $(TEST_TARGETS)
+	@set -e; for t in $(TEST_TARGETS); do echo "== $$t"; ./$$t; done
+	@echo "All C test suites passed"
+
+# Run the unit tests under AddressSanitizer + UndefinedBehaviorSanitizer
+sanitize:
+	$(MAKE) SANITIZE=1 OBJ_DIR=obj/sanitize BIN_DIR=bin/sanitize test
 
 # Clean build artifacts
 clean:
@@ -151,11 +188,10 @@ examples: $(BIN_DIR) $(EXAMPLE_TARGETS)
 	@echo "Examples built successfully"
 
 # Build latency probe specifically
-latency-probe: $(BIN_DIR)
+latency-probe: $(BIN_DIR) $(OBJECTS)
 	@echo "Building latency probe..."
 	$(CC) $(CFLAGS) $(INCLUDES) $(EXAMPLES_DIR)/latency_probe.c \
-		$(OBJ_DIR)/latency.o $(OBJ_DIR)/handlers.o $(OBJ_DIR)/ir_codes.o \
-		$(OBJ_DIR)/ir_protocol.o $(OBJ_DIR)/universal_tv.o $(OBJ_DIR)/remote_control.o \
+		$(filter-out $(OBJ_DIR)/main.o,$(OBJECTS)) \
 		-o $(BIN_DIR)/latency_probe $(LDFLAGS)
 	@echo "Latency probe built: $(BIN_DIR)/latency_probe"
 
@@ -188,6 +224,8 @@ help:
 	@echo "  examples      - Build all examples"
 	@echo "  latency-probe - Build latency measurement probe"
 	@echo "  test-latency  - Build and run latency probe"
+	@echo "  test          - Build and run C unit tests (tests/c)"
+	@echo "  sanitize      - Run C unit tests under ASan/UBSan"
 	@echo "  help          - Show this help message"
 	@echo ""
 	@echo "Optional flags:"
@@ -202,5 +240,5 @@ help:
 	@echo "To test latency:"
 	@echo "  make test-latency"
 
-.PHONY: all clean rebuild run help examples latency-probe test-latency
+.PHONY: all clean rebuild run help examples latency-probe test-latency test sanitize
 

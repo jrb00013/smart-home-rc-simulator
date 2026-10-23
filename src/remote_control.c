@@ -7,24 +7,13 @@
 #ifdef SIMULATOR
 #include "../include/tv_simulator.h"
 #endif
+#include "time_util.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 /* External handler registration (from handlers.c) */
 extern handlers_t registered_handlers;
-
-/* External connection config (from connection.c) */
-extern connection_config_t connection_config;
-
-/* Delay function for retries */
-static void delay_ms(uint32_t ms) {
-#ifdef _WIN32
-    Sleep(ms);
-#else
-    usleep(ms * 1000);
-#endif
-}
 
 /* Remote Control State */
 static remote_state_t remote_state = {
@@ -35,7 +24,9 @@ static remote_state_t remote_state = {
 };
 
 static int remote_initialized = 0;
-static int universal_mode_enabled = 0;
+
+static int remote_init_internal(void);
+static int remote_cleanup_internal(void);
 
 /**
  * @brief Get button name from button code
@@ -228,8 +219,20 @@ int remote_init(void) {
     }
 #endif
     
-    /* Use system handler for initialization */
-    return system_init();
+    /* Bring up the remote's subsystems from the system init/cleanup hooks */
+    system_handler_register_init(remote_init_internal);
+    system_handler_register_cleanup(remote_cleanup_internal);
+    
+    if (system_init() != 0) {
+        return -1;
+    }
+    
+    /* system_init() is a no-op when the system was already brought up by
+     * someone else; make sure our subsystems are initialized regardless. */
+    if (!remote_initialized) {
+        return remote_init_internal();
+    }
+    return 0;
 }
 
 /**
@@ -312,6 +315,23 @@ int remote_press_button(unsigned char button_code) {
             break;
     }
     
+    /* Resolve the IR code up front: buttons without one never go on the air */
+    ir_code_t ir_code = get_ir_code(button_code);
+    if (ir_code.code == 0) {
+        if (button_code >= BUTTON_ROOM_SCENE_MOVIE) {
+            /* Room / smart-home buttons are handled by the event chain
+             * (and the simulator when enabled); there is no IR to send. */
+            if (registered_handlers.state_changed != NULL) {
+                registered_handlers.state_changed();
+            }
+            LATENCY_MEASURE_END(button_start, "button_press", button_code);
+            return 0;
+        }
+        fprintf(stderr, "[Remote] No IR code mapped for %s (0x%02X)\n", button_name, button_code);
+        handler_trigger_error(ERROR_INVALID_IR_CODE, "No IR code mapped for button");
+        return -1;
+    }
+    
     /* Ensure connection before sending - always verify and establish if needed */
     unsigned char current_connected = connection_get_connected_device();
     if (!remote_is_connected() || remote_state.current_device != current_connected) {
@@ -322,7 +342,7 @@ int remote_press_button(unsigned char button_code) {
             
             /* Try one more time with a delay */
             printf("[Remote] Retrying connection establishment...\n");
-            delay_ms(connection_config.retry_delay_ms);
+            tu_sleep_ms(connection_get_config()->retry_delay_ms);
             if (remote_ensure_connection(remote_state.current_device) != 0) {
                 fprintf(stderr, "[Remote] Connection establishment failed after retry\n");
                 return -1;
@@ -331,8 +351,7 @@ int remote_press_button(unsigned char button_code) {
         }
     }
     
-    /* Get IR code and send it with connection retry */
-    ir_code_t ir_code = get_ir_code(button_code);
+    /* Send the IR code with connection retry */
     if (connection_send_with_retry(ir_code) != 0) {
         fprintf(stderr, "[Remote] Failed to send IR code\n");
         handler_trigger_error(ERROR_TRANSMISSION_FAILED, "Failed to send IR code");
@@ -375,7 +394,6 @@ int remote_set_device(unsigned char device_type) {
         case DEVICE_AUDIO: device_name = "Audio"; break;
     }
     
-    unsigned char old_device = remote_state.current_device;
     remote_state.current_device = device_type;
     printf("[Remote] Device set to: %s\n", device_name);
     
@@ -396,7 +414,9 @@ int remote_ensure_connection(unsigned char device_type) {
         return -1;
     }
     
-    if (connection_is_connected() && remote_state.current_device == device_type) {
+    /* Compare against the device the link is actually connected to, not the
+     * selected device (which remote_set_device() has already updated). */
+    if (connection_is_connected() && connection_get_connected_device() == device_type) {
         return 0;  /* Already connected */
     }
     
@@ -411,11 +431,38 @@ int remote_is_connected(void) {
 }
 
 /**
- * @brief Internal cleanup function
+ * @brief Internal init: registered as the system init handler
  */
-static void remote_cleanup_internal(void) {
+static int remote_init_internal(void) {
+    if (remote_initialized) {
+        return 0;
+    }
+    
+    if (handler_init() != 0) {
+        fprintf(stderr, "[Remote] Failed to initialize handler system\n");
+        return -1;
+    }
+    if (ir_init() != 0) {
+        fprintf(stderr, "[Remote] Failed to initialize IR transmitter\n");
+        return -1;
+    }
+    if (connection_init() != 0) {
+        fprintf(stderr, "[Remote] Failed to initialize connection management\n");
+        ir_cleanup();
+        return -1;
+    }
+    
+    remote_initialized = 1;
+    printf("[Remote] Remote control initialized\n");
+    return 0;
+}
+
+/**
+ * @brief Internal cleanup: registered as the system cleanup handler
+ */
+static int remote_cleanup_internal(void) {
     if (!remote_initialized) {
-        return;
+        return 0;
     }
     
 #ifdef SIMULATOR
@@ -427,6 +474,7 @@ static void remote_cleanup_internal(void) {
     handler_cleanup();
     printf("[Remote] Remote control cleaned up\n");
     remote_initialized = 0;
+    return 0;
 }
 
 /**
@@ -435,5 +483,7 @@ static void remote_cleanup_internal(void) {
 void remote_cleanup(void) {
     system_cleanup();
     system_handler_cleanup();
+    /* No-op if the system cleanup hook already ran */
+    remote_cleanup_internal();
 }
 
