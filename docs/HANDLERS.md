@@ -141,6 +141,9 @@ int my_timer_handler(uint32_t timer_id) {
 ```c
 handler_register_timer(my_timer_handler);
 handler_setup_timer(1000);  /* 1 second interval */
+
+/* in your main loop: the SIGALRM handler only sets a flag; this runs the callback */
+handler_dispatch_timer();
 ```
 
 ### Interrupt Handlers
@@ -245,7 +248,7 @@ Handlers are automatically integrated into the remote control system:
 - Timer interrupts via Timer1 Compare A (`TIMER1_COMPA_vect`)
 - External interrupts via INT0 (`INT0_vect`)
 
-See `src/interrupt_handlers.s` for platform-specific implementations.
+See `src/interrupt_handlers.S` for platform-specific implementations.
 
 ## Thread Safety
 
@@ -308,8 +311,9 @@ int main(void) {
 
 ## See Also
 
+- [C_REMOTE.md](C_REMOTE.md) - C remote overview and build targets
 - `examples/handler_example.c` - Complete handler example
 - `include/handlers.h` - Handler API reference
 - `src/handlers.c` - Handler implementation
-- `src/interrupt_handlers.s` - Hardware interrupt handlers
+- `src/interrupt_handlers.S` - Hardware interrupt handlers
 

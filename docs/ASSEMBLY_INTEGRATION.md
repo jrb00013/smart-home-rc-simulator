@@ -4,14 +4,16 @@ This document explains the assembly code integration for precise IR timing in th
 
 ## Overview
 
-IR remote control protocols (RC5, RC6) require microsecond-level precision for reliable transmission. Assembly code provides the necessary timing accuracy that C code cannot guarantee due to compiler optimizations and system overhead.
+IR remote control protocols (RC5, RC6) require microsecond-level precision for reliable transmission. The repository contains assembly timing routines for x86, ARM and AVR, plus a portable C fallback.
+
+> **Current build:** the default `Makefile` always compiles the C fallback (`src/ir_asm_c.c`, `-DIR_USE_C_FALLBACK`) and assembles only `src/interrupt_handlers.S` (the ISR entry points). The per-architecture files below are kept for hardware ports and are not compiled by default.
 
 ## Architecture Support
 
 The project includes assembly implementations for multiple platforms:
 
 ### x86/x86-64
-- **File**: `src/ir_asm_x86.s`
+- **File**: `src/ir_asm_x86.S`
 - **Platforms**: PC, Intel-based embedded systems
 - **Features**: 
   - Precise delay loops using CPU cycle counting
@@ -40,7 +42,7 @@ The project includes assembly implementations for multiple platforms:
 - **Features**:
   - Platform-specific delay functions (Windows, Linux, generic)
   - Less precise but functional
-  - Used automatically when assembly is unavailable
+  - Used by the default build on every platform
 
 ## Assembly Functions
 
@@ -112,33 +114,14 @@ Initializes hardware GPIO for IR LED.
 
 ## Building with Assembly
 
-### Automatic Platform Detection
+`make` builds with the C fallback on every platform; no extra flags are needed. The Makefile
+detects the architecture (`ASM_FILE` is set to `ir_asm_x86.S` or `ir_asm_arm.s`) but does not
+currently add that file to the build.
 
-The Makefile automatically detects your platform and compiles the appropriate assembly file:
-
-```bash
-make
-```
-
-### Manual Selection
-
-To force C fallback (no assembly):
-
-```bash
-make CFLAGS="-DIR_USE_C_FALLBACK"
-```
-
-### Cross-Compilation
-
-For embedded targets, specify the cross-compiler:
-
-```bash
-# ARM example
-make CC=arm-none-eabi-gcc AS=arm-none-eabi-as
-
-# AVR example
-make CC=avr-gcc AS=avr-as
-```
+To use an assembly implementation on a hardware port, add the matching file to `ASM_SOURCES`,
+drop `-DIR_USE_C_FALLBACK`, and build with your cross toolchain, for example
+`make CC=arm-none-eabi-gcc AS=arm-none-eabi-as`. Cross-compiling has not been tested with the
+current Makefile (it calls `uname` and adds POSIX defines for the host).
 
 ## Hardware Integration
 
@@ -203,10 +186,10 @@ Use an oscilloscope or logic analyzer to verify:
 
 ### Simulation Mode
 
-The C fallback implementation allows testing without hardware:
+The default build already uses the C fallback, so testing without hardware is just:
 
 ```bash
-make CFLAGS="-DIR_USE_C_FALLBACK"
+make
 ./bin/remote_control
 ```
 
@@ -223,7 +206,7 @@ make CFLAGS="-DIR_USE_C_FALLBACK"
 
 - Check that your platform is supported
 - Verify assembly syntax for your target
-- Use C fallback: `make CFLAGS="-DIR_USE_C_FALLBACK"`
+- Use the default build (C fallback): `make clean && make`
 
 ### Timing Inaccurate
 
@@ -254,11 +237,8 @@ Assembly code is already optimized for:
 
 ## Future Enhancements
 
-- [ ] Hardware timer-based delays for better precision
-- [ ] DMA-based carrier generation
-- [ ] Interrupt-driven protocol encoding
-- [ ] Multi-protocol support (NEC, Sony, etc.)
-- [ ] IR code learning/capture functionality
+Hardware-timer delays, DMA carrier generation, interrupt-driven encoding and IR learning are
+listed in [ROADMAP.md](../ROADMAP.md).
 
 ## References
 

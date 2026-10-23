@@ -58,11 +58,9 @@ The codebase implements **deterministic, rule-based logic** only. Two components
 
 ---
 
-### 4. Planned or documented but not implemented
+### 4. Ideas that are not implemented
 
-**Location:** `docs/AI_DETECTION_AND_REVOLUTIONARY_PLAN.md`.
-
-That document describes possible future directions: vision-based TV brand detection, neural protocol decoding, TinyML in an ISR, reinforcement learning for protocol ordering. None of these are implemented in the repository. No code paths call any of these; no dependencies are pulled for them.
+An earlier planning document (removed from the repository) described vision-based TV brand detection, neural protocol decoding, TinyML in an ISR, and reinforcement learning for protocol ordering. None of these are implemented; no code paths or dependencies exist for them. They are listed as research ideas in [ROADMAP.md](../ROADMAP.md#research-ideas-no-plan-to-build-yet).
 
 ---
 
@@ -74,7 +72,9 @@ That document describes possible future directions: vision-based TV brand detect
 - `flask`, `flask-socketio`, `python-socketio`: HTTP/WebSocket server.
 - `pygame`: 2D simulator UI.
 - `requests`: HTTP client (scheduler, tests).
-- `Pillow` (optional): image format conversion only; not in default dependency list, imported only when available.
+- `Pillow` (optional): image format conversion only; not in `requirements.txt` (it is in `requirements-dev.txt`), imported only when available.
+- `GPUtil` (optional): reads GPU name and VRAM for the graphics preset; no inference.
+- `PyYAML`, `paho-mqtt`: OpenAPI JSON and MQTT; unrelated to ML.
 
 No PyTorch, TensorFlow, Keras, OpenCV, scikit-learn, transformers, or similar. No `.tflite`, `.onnx`, `.pt`, `.h5` or other model files in the repository.
 
@@ -86,4 +86,4 @@ No PyTorch, TensorFlow, Keras, OpenCV, scikit-learn, transformers, or similar. N
 - Protocol classifier: `test_simulator/protocol_classifier.py`
 - Synthetic timing generator: `test_simulator/ir_synthetic.py`
 - Tests (audit alignment): `test_simulator/tests/test_brand_detection.py`, `test_protocol_classifier.py`, `test_ir_synthetic.py`
-- Future/plan (no implementation): `docs/AI_DETECTION_AND_REVOLUTIONARY_PLAN.md`
+- Ideas (no implementation): [ROADMAP.md](../ROADMAP.md)

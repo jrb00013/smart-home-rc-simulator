@@ -7,7 +7,7 @@ This document describes the **service layer** (auth, webhooks, MQTT, OpenAPI) an
 ## Quick start
 
 1. **Simulator only (default)**  
-   Start the web server and scheduler as before. The scheduler sends button presses to the simulator API.
+   Start the web server (`python web_server.py`) and the scheduler (`python scheduler.py`). The scheduler sends button presses to the simulator API.
 
 2. **Add auth and webhooks**  
    Copy `service_config.example.json` to `service_config.json`, set `api_key` and/or `webhook_url`, restart the server.
@@ -25,7 +25,7 @@ Optional. If the file is missing, no auth, no webhooks, no MQTT; default backend
 |-----|-------------|
 | `default_backend` | Default target when none specified: `simulator`, `broadlink`, `samsung`, `lg`, `cec`, or a named device key under `backends`. |
 | `simulator_api` | Base URL for simulator (e.g. `http://localhost:5000`). Used by simulator adapter and when scheduler target is `simulator`. |
-| `api_key` | If set, all `/api/*` requests must include `X-API-Key: <key>` or `Authorization: Bearer <key>`. Env: `TV_REMOTE_API_KEY`. |
+| `api_key` | If set, all `/api/*` requests and Socket.IO connections must present it: `X-API-Key: <key>`, `Authorization: Bearer <key>`, `?api_key=<key>`, or Socket.IO `auth: {api_key}`. Env: `TV_REMOTE_API_KEY`. Named simulator devices inherit it. |
 | `webhook_url` | POST URL for state-change events. Body: `{ "event": "state_change", "state": { ... }, "button_code": 16 }`. Env: `TV_REMOTE_WEBHOOK_URL`. |
 | `webhook_events` | List of events to send; default `["state_change"]`. |
 | `webhook_headers` | Optional dict of extra headers for webhook POST (e.g. `{"X-Custom": "value"}`). |
@@ -53,17 +53,18 @@ Example (simulator + API key + webhook):
 
 ## Automation config (`autonomous_config.json`)
 
-Same format as before, with optional **target** so the scheduler can drive the simulator or a real device.
+Time rules and presets, each with an optional **target** so the scheduler can drive the simulator or a real device.
 
 | Key | Description |
 |-----|-------------|
 | `default_target` | Default backend or named device for all rules (e.g. `simulator`, `living_room_tv`). Overridden by rule or preset `target`. |
-| `check_interval_sec` | Optional. How often the scheduler wakes (default 30). |
+| `check_interval_sec` | Optional. How often the scheduler wakes, 1–30 seconds (default 30). Rules match on the minute, so larger values would miss them and are replaced by the default. |
 | `presets` | List of presets. Each can have `target` (optional). |
 | `time_rules` | List of rules. Each can have `target` (optional). |
 
 **Target resolution:** For each triggered rule we use, in order:  
-`rule.target` → `preset.target` (for that preset) → `autonomous_config.default_target` → `service_config.default_backend` → `simulator`.
+`rule.target` → `preset.target` (for that preset) → `autonomous_config.default_target` → `service_config.default_backend` → `simulator`.  
+An unknown target is an error: the scheduler logs it and continues with the other rules, and `POST /api/preset/<name>/trigger` returns `400`.
 
 Example: turn on living room TV at 19:00, simulator at 22:30:
 
@@ -110,17 +111,16 @@ Example: turn on living room TV at 19:00, simulator at 22:30:
 - **Backends:** `GET /api/backends` — list backend names; `GET /api/backends/status` — `{ name: { name, available } }`.
 - **Broadlink learn:** `POST /api/backends/broadlink/learn` with body `{"host": "192.168.1.100", "timeout_sec": 10}` — puts device in learning mode and returns `{"ok": true, "ir_hex": "..."}`. Use the returned hex in that backend’s `code_map` (key = button code as string).
 - **OpenAPI:** `GET /api/openapi` or `GET /api/openapi.json` (JSON), `GET /api/openapi.yaml` (YAML).
-- **Auth:** When `service_config.json` has `api_key`, send `X-API-Key: <key>` or `Authorization: Bearer <key>` on every `/api/*` request.
+- **Auth:** When an API key is configured, send it on every `/api/*` request and Socket.IO connection (see `api_key` above).
 
 ---
 
 ## Running the scheduler
 
 ```bash
-# Same as before; uses adapters and optional service_config
-poetry run python scheduler.py
+python scheduler.py            # or: poetry run python scheduler.py
 # Or with env override
-AUTONOMOUS_CONFIG=./my_config.json SERVICE_CONFIG=./service_config.json poetry run python scheduler.py
+AUTONOMOUS_CONFIG=./my_config.json SERVICE_CONFIG=./service_config.json python scheduler.py
 ```
 
 The scheduler loads `service_config.json` (if present) and `autonomous_config.json`. For each time rule that fires, it resolves the target (rule → preset → default_target → default_backend → simulator), gets the adapter via `adapters.registry.get_adapter(target)`, and sends the preset’s button sequence with that adapter.
@@ -131,6 +131,6 @@ The scheduler loads `service_config.json` (if present) and `autonomous_config.js
 
 - Use the REST API: `GET /api/state`, `POST /api/button` with body `{"button_code": 16}`. If you set `api_key`, add the header.
 - Webhook: Configure `webhook_url` in `service_config.json`; your server receives POSTs on every state change.
-- MQTT: Enable `mqtt` in `service_config.json`; events are published to `{topic_prefix}/events/state_change` with payload `{"state": {...}, "button_code": ...}`. You can subscribe in Node-RED or HA and/or send button codes to a separate “command” topic if you add a small subscriber in the service (future).
+- MQTT: Enable `mqtt` in `service_config.json`; events are published to `{topic_prefix}/events/state_change` with payload `{"state": {...}, "button_code": ...}`. With `subscribe_commands: true` the server also accepts commands on `{topic_prefix}/command` (`{"button_code": 16}` or `{"preset": "name", "target": "simulator"}`).
 
-This gives you “remote as a service” with optional auth, webhooks, and MQTT, and smart home TV automation using the same scheduler and config with simulator first and real devices via adapters.
+Examples: [HOME_ASSISTANT_NODE_RED.md](HOME_ASSISTANT_NODE_RED.md).
