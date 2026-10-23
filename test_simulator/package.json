@@ -1,0 +1,17 @@
+{
+  "name": "smart-home-rc-simulator-web",
+  "private": true,
+  "type": "module",
+  "version": "0.0.0",
+  "description": "Lint and smoke-test tooling for the browser 3D simulator (web_static/js).",
+  "scripts": {
+    "lint": "eslint web_static/js",
+    "lint:all": "eslint .",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.5",
+    "globals": "^15.15.0",
+    "playwright": "^1.64.1"
+  }
+}
