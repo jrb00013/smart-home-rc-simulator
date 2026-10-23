@@ -5,7 +5,8 @@ Use the TV Remote API from Home Assistant or Node-RED for automations and dashbo
 ## API summary
 
 - **Base URL:** `http://<server>:5000` (or your deployed URL)
-- **Auth (optional):** If `service_config.json` has `api_key`, send `X-API-Key: <key>` or `Authorization: Bearer <key>` on every request.
+- **Auth (optional):** If an API key is configured (`TV_REMOTE_API_KEY` or `api_key` in `service_config.json`), send `X-API-Key: <key>` or `Authorization: Bearer <key>` on every request.
+- **Reachability:** the server binds to `127.0.0.1` by default. For Home Assistant or Node-RED on another machine, start it with `TV_REMOTE_HOST=0.0.0.0` and set an API key.
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -63,13 +64,11 @@ data:
 ### Template sensor (TV state)
 
 ```yaml
-rest:
-  - resource: http://192.168.1.10:5000/api/state
-    scan_interval: 30
 sensor:
   - platform: rest
     resource: http://192.168.1.10:5000/api/state
     name: TV Remote State
+    scan_interval: 30
     value_template: "{{ value_json.powered_on }}"
     json_attributes:
       - powered_on
@@ -132,9 +131,9 @@ The server publishes to `tv_remote/events/state_change` when the TV state change
 | 18   | Vol-     | 19   | Mute     |
 | 20   | Ch+      | 21   | Ch-      |
 | 32   | Home     | 33   | Menu     |
-| 34   | Back     | 36   | Input    |
+| 34   | Back     | 37   | Input    |
 | 1    | YouTube  | 2    | Netflix  |
 | 3    | Prime    | 4    | HBO Max  |
-| 160  | Game Mode| 82   | Live TV  |
+| 160  | Game Mode| 130  | Live TV  |
 
-Full list: see `test_simulator/button_codes.py` or `GET /api/state` and press buttons to see `last_button` in the state.
+Full list: [docs/BUTTONS.md](../../docs/BUTTONS.md).

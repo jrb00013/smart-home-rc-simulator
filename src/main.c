@@ -20,6 +20,7 @@ void demo_basic_controls(void);
 void demo_navigation(void);
 void demo_playback(void);
 void demo_advanced_features(void);
+void interactive_button_press(void);
 
 /**
  * @brief Print main menu
@@ -269,7 +270,8 @@ void demo_advanced_features(void) {
  */
 void interactive_button_press(void) {
     char input[256];
-    unsigned char button_code;
+    char* end = NULL;
+    unsigned long value;
     
     printf("\n=== Interactive Button Press ===\n");
     printf("Enter button code in hex (e.g., 0x01 for YouTube, or 'q' to quit): ");
@@ -285,18 +287,20 @@ void interactive_button_press(void) {
         return;
     }
     
-    /* Parse hex input */
-    if (sscanf(input, "0x%hhx", &button_code) == 1 || sscanf(input, "%hhx", &button_code) == 1) {
-        remote_press_button(button_code);
+    /* Parse hex input (accepts an optional 0x prefix); reject trailing
+     * garbage and values that do not fit in a button code */
+    value = strtoul(input, &end, 16);
+    if (end != input && *end == '\0' && value <= 0xFF) {
+        remote_press_button((unsigned char)value);
     } else {
-        printf("Invalid input. Please enter hex code (e.g., 0x01)\n");
+        printf("Invalid input. Please enter a hex code from 0x00 to 0xFF (e.g., 0x01)\n");
     }
 }
 
 /**
  * @brief Main function
  */
-int main(int argc, char* argv[]) {
+int main(void) {
     int choice;
     char input[256];
     

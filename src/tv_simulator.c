@@ -22,6 +22,12 @@
 #else
 #define SOCKET_PATH "/tmp/phillips_remote_tv.sock"
 #endif
+#ifndef _WIN32
+/* Don't let a closed simulator socket kill the process with SIGPIPE */
+#ifndef MSG_NOSIGNAL
+#define MSG_NOSIGNAL 0
+#endif
+#endif
 
 static int simulator_connected = 0;
 
@@ -151,7 +157,7 @@ int tv_simulator_send_button(unsigned char button_code) {
         return -1;
     }
     
-    ssize_t sent = send(socket_fd, &button_code, sizeof(button_code), 0);
+    ssize_t sent = send(socket_fd, &button_code, sizeof(button_code), MSG_NOSIGNAL);
     if (sent < 0) {
         printf("[Simulator] Failed to send: %s\n", strerror(errno));
         close(socket_fd);

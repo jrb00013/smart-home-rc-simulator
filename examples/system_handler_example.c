@@ -9,6 +9,7 @@
 
 /* System event handler */
 int my_system_event_handler(system_event_t event, void* data) {
+    (void)data;
     const char* event_name = "Unknown";
     switch (event) {
         case SYSTEM_EVENT_STARTUP: event_name = "Startup"; break;

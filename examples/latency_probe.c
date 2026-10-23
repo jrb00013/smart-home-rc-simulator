@@ -24,6 +24,26 @@
 #include "../include/universal_tv.h"
 #include "../include/handlers.h"
 
+/* Handler invocation counter for the event handler probe */
+static int handler_called = 0;
+
+/* Minimal button handler (file scope: nested functions are a GCC-only
+ * extension that needs an executable stack and does not build with clang) */
+static int on_button(unsigned char code, const char* name) {
+    (void)code;
+    (void)name;
+    handler_called++;
+    return HANDLER_SUCCESS;
+}
+
+static int compare_uint32(const void* a, const void* b) {
+    uint32_t va = *(const uint32_t*)a;
+    uint32_t vb = *(const uint32_t*)b;
+    if (va < vb) return -1;
+    if (va > vb) return 1;
+    return 0;
+}
+
 /* Test configuration */
 #define PROBE_ITERATIONS 100
 #define PROBE_WARMUP 10
@@ -43,7 +63,6 @@ void probe_button_press_latency(void) {
     }
     
     latency_probe_t probe;
-    uint32_t latencies[PROBE_ITERATIONS];
     uint32_t sum = 0;
     uint32_t min = UINT32_MAX;
     uint32_t max = 0;
@@ -59,7 +78,6 @@ void probe_button_press_latency(void) {
         remote_press_button(BUTTON_POWER);
         uint32_t lat = LATENCY_PROBE_STOP(probe, "button_press", BUTTON_POWER);
         
-        latencies[i] = lat;
         sum += lat;
         if (lat < min) min = lat;
         if (lat > max) max = lat;
@@ -188,14 +206,7 @@ void probe_event_handler_latency(void) {
     }
     
     /* Register a minimal handler */
-    int handler_called = 0;
-    int on_button(unsigned char code, const char* name) {
-        (void)code;
-        (void)name;
-        handler_called++;
-        return HANDLER_SUCCESS;
-    }
-    
+    handler_called = 0;
     handler_register_button_pressed(on_button);
     
     latency_probe_t probe;
@@ -264,13 +275,6 @@ void probe_end_to_end_latency(void) {
     }
     
     /* Calculate percentiles */
-    int compare_uint32(const void* a, const void* b) {
-        uint32_t va = *(const uint32_t*)a;
-        uint32_t vb = *(const uint32_t*)b;
-        if (va < vb) return -1;
-        if (va > vb) return 1;
-        return 0;
-    }
     qsort(latencies, PROBE_ITERATIONS, sizeof(uint32_t), compare_uint32);
     uint32_t p50 = latencies[PROBE_ITERATIONS / 2];
     uint32_t p95 = latencies[(int)(PROBE_ITERATIONS * 0.95)];

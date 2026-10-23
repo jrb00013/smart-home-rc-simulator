@@ -8,6 +8,6 @@ requests>=2.28.0
 GPUtil>=1.4.0
 
 # Optional: OpenAPI JSON (/api/openapi), webhooks & MQTT (service_layer), real device adapters
-PyYAML>=6.0
-paho-mqtt>=1.6.0
+PyYAML>=6.0.3
+paho-mqtt>=2.1.0
 

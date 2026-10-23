@@ -77,7 +77,7 @@ int main(void) {
     
     /* Test connection */
     printf("6. Testing connection...\n");
-    if (connection_test(BUTTON_POWER) == 0) {
+    if (connection_test(BUTTON_INFO) == 0) {
         printf("   Connection test passed!\n");
     } else {
         printf("   Connection test failed!\n");

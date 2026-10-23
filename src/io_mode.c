@@ -1,4 +1,6 @@
-#define _POSIX_C_SOURCE 199309L
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
 #include "../include/io_mode.h"
 #include "../include/handlers.h"
 #include <stdio.h>
@@ -170,7 +172,9 @@ int io_mode_dma_available(void) {
  * @brief Enable interrupt-driven I/O
  */
 int io_mode_enable_interrupt(uint8_t priority) {
-    if (!interrupt_enabled) {
+    /* Check hardware capability, not the current on/off state: otherwise a
+     * disable followed by an enable could never succeed. */
+    if (!io_mode_interrupt_available()) {
         fprintf(stderr, "[IO Mode] Error: Interrupt mode not available\n");
         return -1;
     }

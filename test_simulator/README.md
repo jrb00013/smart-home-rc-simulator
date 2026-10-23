@@ -1,161 +1,77 @@
-# Virtual TV Simulator
+# Virtual TV Simulator (`test_simulator/`)
 
-A game-like virtual TV interface for testing the Phillips Universal Remote Control, with **keyword-based brand detection**, **autonomous scheduling**, and a **rule-based IR protocol classifier**. Web-based 3D/VR and desktop 2D simulators.
+The Python side of the project: a Flask + Socket.IO web server that hosts the 3D smart-home
+simulator, a 2D Pygame desktop simulator, a time-based scheduler, smart-home integrations, and
+small rule-based helpers (brand detection, IR protocol classification).
 
-## Quick Start
+## Quick start
 
 ```bash
-# Install dependencies
-poetry install
-
-# Start web server (3D/VR)
-poetry run web-server
-# Then open: http://localhost:5000
-
-# Or start desktop simulator (2D)
-poetry run desktop-simulator
+cd test_simulator
+python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+python web_server.py                                 # http://localhost:5000
 ```
+
+With Poetry: `poetry install && poetry run web-server`. Desktop simulator: `python main.py`
+(or `poetry run desktop-simulator`). Full setup: [docs/GETTING_STARTED.md](../docs/GETTING_STARTED.md).
+
+## What's here
+
+| Path | Purpose |
+|------|---------|
+| `web_server.py` | Flask + Socket.IO server: REST API, WebSocket events, serves the 3D UI, IPC listener for the C program |
+| `web_templates/`, `web_static/js/simulator/` | Three.js front end (module map in [web_static/js/simulator/README.md](web_static/js/simulator/README.md)) |
+| `main.py`, `virtual_tv.py` | 2D Pygame desktop simulator |
+| `ipc_server.py` | Unix socket / Windows named pipe listener used by both simulators |
+| `scheduler.py`, `autonomous_config.json`, `presets_loader.py` | Time rules and presets |
+| `service_layer.py`, `service_config.example.json` | API-key auth, webhooks, MQTT |
+| `adapters/` | Backends: simulator, Broadlink, Samsung, LG, HDMI-CEC |
+| `brand_detection.py` | Keyword table: text → TV brand and `brand_id` |
+| `ir_synthetic.py`, `protocol_classifier.py` | Synthetic IR timings and a rule-based NEC/RC5/RC6 classifier |
+| `gpu_runtime/` | GPU detection → graphics tier → 3D quality preset |
+| `button_codes.py` | Button names, mirrored from `include/remote_buttons.h` |
+| `app_config.py` | Environment-variable configuration |
+| `openapi.yaml` | OpenAPI 3 spec, served at `/api/openapi.yaml` |
+| `VERIFY_SETUP.py` | Checks files and imports before first run |
+| `tests/` | pytest suite (see [TESTING.md](TESTING.md)) |
+
+## How the pieces talk
+
+- **Browser ↔ server:** Socket.IO (`button_press` in; `tv_state_update`, `graphics_preset` out)
+  plus REST under `/api/*`.
+- **C program → server:** HTTP `POST /api/button` (`make SIMULATOR=1 WEB=1`), or IPC over
+  `/tmp/phillips_remote_tv.sock` / `\\.\pipe\phillips_remote_tv` (`make SIMULATOR=1`).
+- **Scheduler / Home Assistant / Node-RED → server:** REST, optionally MQTT.
+- **Server → outside:** webhooks and MQTT `state_change` events.
+
+## Graphics preset
+
+At startup (or first request) the server detects the GPU name and VRAM, classifies a tier
+(`ULTRA`, `HIGH`, `MEDIUM`, `LOW`, `SIM_SAFE`) and maps it to a preset (shadows, texture sizes,
+fog, particle count, pixel ratio). The preset is injected into the page as
+`window.GRAPHICS_PRESET`, re-sent on WebSocket connect, and shown in the status overlay.
+`GET /api/graphics-preset?refresh=1` recomputes it; `POST /api/graphics-preset` locks or unlocks
+a tier. Without a detectable GPU (or without GPUtil) the tier is `SIM_SAFE`. Details:
+[gpu_runtime/UPGRADE.md](gpu_runtime/UPGRADE.md).
+
+## Brand detection and IR classification
+
+Both are deterministic and run locally; there are no models or cloud calls
+([audit](../docs/ML_CV_AI_AUDIT.md)).
+
+- `POST /api/detect-brand` with `{"text": "I have a Samsung TV"}` returns
+  `{"brand": "Samsung", "brand_id": 1, "confidence": 0.93}` and stores the result in TV state.
+- `python ir_synthetic.py` writes `ir_dataset_synthetic.json` (pulse lengths in µs from the same
+  NEC/RC5/RC6 constants as `src/ir_protocol.c`); `protocol_classifier.py` identifies the protocol
+  from the leading mark/space with 40% tolerance.
 
 ## Documentation
 
-- **[SETUP.md](SETUP.md)** - Setup (Poetry, platforms, troubleshooting)
-- **[FEATURES.md](FEATURES.md)** - Features (3D/VR, keyboard, APIs)
-- **[API.md](API.md)** - REST and WebSocket API reference
-- **[docs/SERVICE_AND_AUTOMATION.md](docs/SERVICE_AND_AUTOMATION.md)** - Remote as a service (auth, webhooks, MQTT, OpenAPI) and smart home TV automation (Broadlink, Samsung, LG, CEC adapters; scheduler targets)
-- **[docs/HOME_ASSISTANT_NODE_RED.md](docs/HOME_ASSISTANT_NODE_RED.md)** - Home Assistant and Node-RED integration examples
-- **[PRODUCTION.md](PRODUCTION.md)** - Production deployment: env vars, security checklist, logging, graceful shutdown, Docker, Gunicorn
-- **[TESTING.md](TESTING.md)** - Manual testing guide
-- **[README_TESTS.md](README_TESTS.md)** - Pytest test suite
-- **Full index:** [../docs/README.md](../docs/README.md)
-
-## Features
-
-- **Visual TV Display**: See a realistic TV screen that responds to remote commands
-- **Real-time Status**: Monitor TV state (power, volume, channel, etc.)
-- **Button Feedback**: Visual feedback when buttons are pressed
-- **Multiple Apps**: Simulate streaming services (YouTube, Netflix, etc.)
-- **Keyboard Testing**: Test buttons directly with keyboard shortcuts
-- **3D/VR Experience**: Immersive web-based 3D interface with VR-like controls. Detailed room: furniture, plants, wall art, clock, thermostat, smart speaker, smart plugs, ambient strip, accent chair, media console; all smart devices (lamps, strip, plugs, hub, thermostat, candle, bulbs) react to the remote (TV state).
-- **Brand detection**: `POST /api/detect-brand` with `{"text": "I have a Samsung TV"}`. Text is matched against a fixed keyword table (BRAND_KEYWORDS in `brand_detection.py`); returns `brand`, `brand_id` (C `tv_brand_t`), `confidence`. Simulator state stores `detected_brand` / `detected_brand_id`.
-- **Remote as a service**: Optional API key auth, webhooks (with retry), MQTT publish and command subscribe. Endpoints: `GET /api/health`, `GET /api/state`, `POST /api/button`, `GET /api/presets`, `POST /api/preset/<name>/trigger`, `GET /api/backends`, `GET /api/backends/status`, `POST /api/backends/broadlink/learn`. OpenAPI spec at `/api/openapi` and `/api/openapi.yaml`. See [docs/SERVICE_AND_AUTOMATION.md](docs/SERVICE_AND_AUTOMATION.md) and [docs/HOME_ASSISTANT_NODE_RED.md](docs/HOME_ASSISTANT_NODE_RED.md).
-- **Autonomous scheduler**: Run `poetry run python scheduler.py` with the web server up. Reads `autonomous_config.json`: time rules (e.g. 19:00, days) and presets (button_code + delay_ms). Optional **target** per rule or preset: `simulator` (default), or a named device from `service_config.json` (e.g. Broadlink, Samsung TV). Configurable `check_interval_sec`; retries on send failure; structured logging. See [docs/SERVICE_AND_AUTOMATION.md](docs/SERVICE_AND_AUTOMATION.md).
-- **IR protocol from timings**: `ir_synthetic.py` produces pulse-length lists (µs) using NEC/RC5/RC6 constants from the C code. `protocol_classifier.py` identifies protocol by comparing the first pulse/space to 9ms/4.5ms (NEC), 2.66ms/889µs (RC6), or repeated 889µs (RC5), with 40% tolerance. Run `python ir_synthetic.py` to write `ir_dataset_synthetic.json` (used by the classifier or anything else that consumes timing + label).
-
-## Installation
-
-### Using Poetry (Recommended)
-
-1. Install [Poetry](https://python-poetry.org/) if not already installed
-2. Install dependencies:
-   ```bash
-   poetry install
-   ```
-3. Run the simulator:
-   ```bash
-   poetry run web-server        # Web 3D/VR simulator
-   poetry run desktop-simulator # Desktop 2D simulator
-   ```
-
-See [SETUP.md](SETUP.md) for detailed setup instructions.
-
-## Usage
-
-### Start the Simulator
-
-**Web Server (3D/VR):**
-```bash
-poetry run web-server
-```
-Then open: **http://localhost:5000**
-
-**Desktop Simulator (2D):**
-```bash
-poetry run desktop-simulator
-```
-
-### Run with Remote Control
-
-1. Start the simulator first
-2. Build the remote control with simulator support:
-   ```bash
-   make clean
-   make SIMULATOR=1 WEB=1  # For web server
-   # OR
-   make SIMULATOR=1         # For desktop simulator
-   ```
-3. Run the remote control:
-   ```bash
-   ./bin/remote_control
-   ```
-
-### Keyboard Shortcuts
-
-Test buttons directly without the remote control program:
-- **P** = Power, **U/D** = Volume, **M** = Mute
-- **H** = Home, **N** = Menu, **B** = Back
-- **1-9** = Channel numbers
-- **Y** = YouTube, **T** = Netflix, **A** = Amazon Prime
-- **ESC** = Exit simulator
-
-See [FEATURES.md](FEATURES.md) for complete keyboard shortcuts.
-
-## How It Works
-
-The simulator uses IPC (Inter-Process Communication) to receive commands from the C program:
-
-- **Windows**: Named pipes (`\\.\pipe\phillips_remote_tv`)
-- **Unix/Linux**: Unix domain sockets (`/tmp/phillips_remote_tv.sock`)
-- **Web Server**: HTTP REST API and WebSocket connections
-
-When you press a button in the remote control program, it sends the button code to the simulator, which updates the TV display accordingly.
-
-### Graphics preset (runtime simulation)
-
-The 3D simulator uses a **GPU-based graphics preset** so quality matches your hardware:
-
-- **Server** (at startup / first request): Detects GPU name and VRAM, classifies tier (VRAM + resolution), maps to a preset (shadow quality, texture sizes, fog, particle count, pixel ratio).
-- **Page load**: Preset is injected into the page as `window.GRAPHICS_PRESET` and applied in `initScene()`, `createRoom()`, and `addAmbientEffects()`.
-- **WebSocket**: On connect and on `request_state`, the server emits `graphics_preset` so the client can show the active tier and stay in sync.
-- **Resize**: `onWindowResize()` re-applies the preset pixel ratio so the cap is kept at runtime.
-- **UI**: The status overlay shows **Graphics:** with the tier (and GPU name when available).
-- **API**: `GET /api/graphics-preset` returns the current preset; `GET /api/graphics-preset?refresh=1` recomputes (auto-update).
-
-So the runtime simulation is fully wired: detection → tier → preset → renderer, shadows, textures, fog, particles, and UI.
-
-## Architecture
-
-- **Web Server**: Flask + SocketIO for 3D/VR interface
-- **Desktop Simulator**: Pygame-based 2D interface
-- **IPC Integration**: Cross-platform communication with C program
-- **Real-time Updates**: WebSocket for instant state synchronization
-- **Graphics (GPU preset)**: Server detects GPU (name + VRAM), classifies tier (ULTRA/HIGH/MEDIUM/LOW/SIM_SAFE), and injects a graphics preset into the 3D simulator. The simulator applies it at runtime (renderer, shadows, textures, fog, particles). Preset is sent on page load, on WebSocket connect, and via `GET /api/graphics-preset` (use `?refresh=1` to recompute). The status overlay shows the active tier.
-
-## Documentation
-
-- **[SETUP.md](SETUP.md)** - Setup instructions, troubleshooting, platform-specific guides
-- **[FEATURES.md](FEATURES.md)** - All features, animations, UI elements, keyboard shortcuts
-- **[API.md](API.md)** - REST API endpoints, WebSocket events, integration examples
-- **[TESTING.md](TESTING.md)** - Testing procedures, automated tests, verification steps
-
-## Troubleshooting
-
-See [SETUP.md](SETUP.md) for detailed troubleshooting guide.
-
-Quick fixes:
-- **Import errors**: Use Poetry: `poetry install`
-- **Connection errors**: Make sure simulator is running before remote control
-- **Port conflicts**: Check if port 5000 is available
-- **WSL/Linux errors**: Use Poetry instead of pip (see SETUP.md)
-
-## Comparison: Web vs Desktop
-
-| Feature | Web (3D) | Desktop (Pygame) |
-|---------|----------|------------------|
-| 3D Graphics | Yes | 2D only |
-| VR-like Experience | Yes | No |
-| Browser Access | Yes | No |
-| Cross-platform | Yes | Yes |
-| Performance | Depends on browser | Native |
-| Installation | None needed | Python + pygame |
-
-Choose the web version for the immersive 3D/VR experience!
+- [FEATURES.md](FEATURES.md): 3D scene, animations, keyboard and mouse controls
+- [API.md](API.md): REST and WebSocket reference
+- [TESTING.md](TESTING.md): pytest suite and manual checklists
+- [PRODUCTION.md](PRODUCTION.md): configuration, security, Docker, Gunicorn
+- [docs/SERVICE_AND_AUTOMATION.md](docs/SERVICE_AND_AUTOMATION.md): auth, webhooks, MQTT, adapters, scheduler
+- [docs/HOME_ASSISTANT_NODE_RED.md](docs/HOME_ASSISTANT_NODE_RED.md): integration examples
+- [Documentation index](../docs/README.md)

@@ -4,7 +4,7 @@ Used by the scheduler and by the API to send buttons to a chosen target.
 """
 from .base import RemoteBackend
 from .simulator import SimulatorAdapter
-from .registry import get_adapter, list_backends, register_backend
+from .registry import UnknownBackendError, get_adapter, list_backends, register_backend
 
 # Optional adapters (lazy import so missing deps don't break server)
 def get_broadlink_adapter():
@@ -29,4 +29,5 @@ __all__ = [
     "get_adapter",
     "list_backends",
     "register_backend",
+    "UnknownBackendError",
 ]

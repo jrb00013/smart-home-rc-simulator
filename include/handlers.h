@@ -349,6 +349,37 @@ int handler_trigger_universal_protocol_attempt(uint8_t protocol, uint32_t code, 
  */
 int handler_trigger_universal_brand_detected(uint8_t brand, const char* brand_name);
 
+/* Timer support */
+
+/**
+ * @brief Start a periodic timer driving the registered timer handler
+ * @param interval_ms Interval in milliseconds (must be > 0)
+ * @return 0 on success, -1 if no timer handler is registered or setup fails
+ *
+ * The timer only marks a tick as pending (the signal/timer context cannot
+ * safely run user code); call handler_dispatch_timer() from your main loop
+ * to run the timer handler.
+ */
+int handler_setup_timer(uint32_t interval_ms);
+
+/**
+ * @brief Run the timer handler if a tick is pending
+ * @return 1 if dispatched, 0 if nothing pending, -1 if no handler registered
+ */
+int handler_dispatch_timer(void);
+
+/**
+ * @brief Stop the periodic timer
+ */
+void handler_stop_timer(void);
+
+/**
+ * @brief Prepare the registered interrupt handler for a hardware interrupt
+ * @param interrupt_number Platform-specific interrupt number
+ * @return 0 on success, -1 if no interrupt handler is registered
+ */
+int handler_setup_interrupt(int interrupt_number);
+
 /* Interrupt callback functions (bridges assembly -> C -> JavaScript) */
 
 /**

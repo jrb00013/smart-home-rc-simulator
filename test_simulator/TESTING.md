@@ -1,364 +1,129 @@
-# Testing Guide
+# Testing the Simulator
 
-Complete guide to testing the Virtual TV Simulator.
+Automated tests (pytest) and a manual checklist for the web and desktop simulators.
+C and JavaScript checks are in [CONTRIBUTING.md](../CONTRIBUTING.md).
 
-## Quick Test
-
-### Step 1: Start the Web Server
+## Automated tests
 
 ```bash
 cd test_simulator
-poetry install  # If not already done
-poetry run web-server
+pip install -r requirements.txt -r requirements-dev.txt   # or: poetry install
+pytest                                                     # or: poetry run pytest
 ```
 
-You should see:
-```
-============================================================
-  Virtual TV Simulator - Web Server
-============================================================
+The suite runs entirely in-process: the Flask app is driven through Flask's test client and
+Socket.IO through `flask_socketio`'s test client. **No server needs to be running**, nothing
+listens on a port, and no real devices, MQTT brokers or webhooks are contacted. `conftest.py`
+also sets SDL dummy drivers so Pygame never opens a window, and points `SERVICE_CONFIG` at a
+non-existent file so a developer's `service_config.json` or API key doesn't leak into tests.
 
-Starting web server...
-Access the 3D TV interface at: http://localhost:5000
-```
+Expected result: all tests pass, with one Windows-only test skipped on other platforms.
 
-### Step 2: Open in Browser
+### Running a subset
 
-Open `http://localhost:5000` in your browser.
-
-**What to verify:**
-- ✅ 3D scene loads (TV, remote, room)
-- ✅ No console errors (press F12 to check)
-- ✅ Status panel shows on right side
-- ✅ Controls help shows on bottom left
-- ✅ Remote control is visible in front of camera
-
-### Step 3: Test 3D Remote Control
-
-**Click buttons on the 3D remote:**
-- ✅ Click Power button (red button on top)
-- ✅ See IR signal beam travel from remote to TV
-- ✅ **Visual animation:** Button lights up green and briefly “presses in” (z movement), then fades back
-- ✅ TV screen updates (turns on/off)
-- ✅ Status panel updates
-
-**Test other buttons:**
-- Volume Up/Down buttons
-- Channel Up/Down buttons
-- Home button
-- Number pad (1-9)
-
-### Step 4: Test Camera Controls
-
-- ✅ **Mouse drag**: Rotate camera around TV
-- ✅ **Scroll wheel**: Zoom in/out
-- ✅ **Press 1**: Front view
-- ✅ **Press 2**: Side view
-- ✅ **Press 3**: Top view
-- ✅ **Press 4**: Remote close-up
-- ✅ **Space**: Reset camera
-
-### Step 5: Test C Program Integration
-
-**In a new terminal:**
 ```bash
-cd ..
-make clean
-make SIMULATOR=1 WEB=1
-./bin/remote_control  # or bin\remote_control.exe on Windows
+pytest tests/test_api.py                                   # one file
+pytest tests/test_api.py::TestButtonAPI::test_power_button # one test
+pytest -k streaming                                        # by keyword
+pytest tests/test_brand_detection.py tests/test_protocol_classifier.py tests/test_ir_synthetic.py
 ```
 
-**What to verify:**
-- ✅ C program connects to web server
-- ✅ Press buttons in C program menu
-- ✅ See IR signals in 3D scene
-- ✅ See button highlights on remote
-- ✅ TV state updates in real-time
+### Test files
 
-### Step 6: Run Automated Tests
+| File | Covers |
+|------|--------|
+| `test_unit.py` | Module imports, file structure, Python syntax, HTML/JS structure |
+| `test_environment.py` | Required imports, file layout, `web_server` symbols, HTML/JS structure |
+| `test_api.py` | REST endpoints, button API, frame API, state consistency |
+| `test_functional.py` | Power cycle, streaming apps, channels, navigation, volume, WebSocket |
+| `test_all_buttons.py` | Every button code individually |
+| `test_system.py` | Strict streaming checks, rapid switching, number-pad channels, Home, frame API |
+| `test_remote_visual.py` | Button presses are accepted, change state, and broadcast `tv_state_update` (drives the 3D press animation) |
+| `test_planned.py` | `autonomous_config.json` format, `scheduler.load_config()`, `/api/detect-brand`, IR pipeline |
+| `test_scheduler.py` | Scheduler rule evaluation and targets |
+| `test_adapters_service.py` | Backend adapters and service layer (auth, webhooks, MQTT config) |
+| `test_security.py` | API-key enforcement on REST and Socket.IO, malformed input, path handling |
+| `test_brand_detection.py` | Keyword brand detection (no model, confidence range, all brands) |
+| `test_protocol_classifier.py` | Rule-based NEC/RC5/RC6 classifier and its 40% tolerance |
+| `test_ir_synthetic.py` | Synthetic NEC/RC5/RC6 timing generation |
 
-**Start the web server first** (in one terminal), then in another terminal:
-```bash
-cd test_simulator
-poetry run pytest
-```
+Markers (`unit`, `integration`, `functional`, `slow`, `requires_server`) are declared in
+`pytest.ini`; `requires_server` is legacy and no longer needs a server.
 
-See **README_TESTS.md** for test categories. With the server running, API and functional tests run; without it, unit and environment tests still pass. Expected:
-- ✅ Server connection and REST API
-- ✅ WebSocket and state consistency
-- ✅ Unit and environment checks (no server needed)
+### Fixtures (`tests/conftest.py`)
 
-## Streaming Services Testing
+- `ws`: the imported `web_server` module (state is reset before each test).
+- `client`: Flask test client; `sio_client`: Socket.IO test client.
+- `ensure_tv_on`: powers the TV on for a test and off afterwards.
+- `api_key`: enables API-key auth for a test.
+- Helpers `press_button(button_code)` and `get_state()`.
 
-### Quick Test
+### Streaming API smoke test
 
-1. **Start Web Server:**
-   ```bash
-   cd test_simulator
-   poetry run web-server
-   ```
+`test_streaming_api.sh` curls the frame endpoints of a **running** server on `localhost:5000`
+and saves sample frames. A browser must have the simulator open for real frames to exist;
+otherwise `/api/frame` returns a black placeholder PNG.
 
-2. **Open Browser:**
-   Open `http://localhost:5000` in your browser
+## Manual checklist (web simulator)
 
-3. **Run Automated Test:**
-   In a **new terminal**:
-   ```bash
-   cd test_simulator
-   python test_streaming_auto.py
-   ```
+Start the server (`python web_server.py`) and open <http://localhost:5000>.
 
-   Or use the simple test:
-   ```bash
-   python test_streaming_simple.py
-   ```
+**Scene**
+- [ ] The 3D house, TV and remote load with no errors in the browser console (F12).
+- [ ] Status panel on the right, controls help at bottom left.
 
-### Manual Testing
+**Remote**
+- [ ] Clicking Power shows the IR beam, the button glows green and presses in (~200 ms), the TV
+      turns on and the status panel updates.
+- [ ] Volume, Channel, Home and number-pad buttons behave as expected.
 
-#### Test Each Streaming Service:
+**Camera**
+- [ ] Drag orbits, scroll zooms; `1`/`2`/`3`/`4` switch front/side/top/remote views; `Space` resets.
+- [ ] *Walk around* enters first-person walk (WASD + mouse); `Esc` exits.
 
-1. **YouTube (Red)**
-   - Click YouTube button on 3D remote (or use C program)
-   - Screen should turn **RED** (#FF0000)
-   - App name shows "YouTube"
-   - Smooth color transition animation
+**Streaming apps** (TV must be on)
 
-2. **Netflix (Dark Red)**
-   - Click Netflix button
-   - Screen should turn **DARK RED** (#E50914)
-   - App name shows "Netflix"
-   - Color smoothly transitions from previous app
+| Button | Code | Screen colour |
+|--------|------|---------------|
+| YouTube | `0x01` | `#FF0000` |
+| Netflix | `0x02` | `#E50914` |
+| Amazon Prime | `0x03` | `#00A8E1` |
+| HBO Max | `0x04` | `#800080` |
 
-3. **Amazon Prime (Blue)**
-   - Click Amazon Prime button
-   - Screen should turn **BLUE** (#00A8E1)
-   - App name shows "Amazon Prime"
-   - Smooth cross-fade animation
+- [ ] Each app cross-fades in (about 1 s), shows its name and an "Opening …" notification.
+- [ ] The room's ambient light strip follows the app colour.
 
-4. **HBO Max (Purple)**
-   - Click HBO Max button
-   - Screen should turn **PURPLE** (#800080)
-   - App name shows "HBO Max"
-   - Color interpolation animation
-
-### What to Verify
-
-#### Visual Checks:
-- ✅ Screen color changes to service-specific color
-- ✅ Smooth color transition (no sudden jumps)
-- ✅ App name displays correctly
-- ✅ Notification shows "Opening [Service]..."
-- ✅ Status panel updates
-- ✅ IR signal appears when button pressed
-- ✅ Button highlights on remote
-
-#### Animation Checks:
-- ✅ Cross-fade between apps (1 second)
-- ✅ Color interpolation is smooth
-- ✅ Text fades in/out
-- ✅ No stuttering or glitches
-
-### Button Codes
-
-- **YouTube**: 0x01
-- **Netflix**: 0x02
-- **Amazon Prime**: 0x03
-- **HBO Max**: 0x04
-
-### Test from Browser Console
-
-Open browser console (F12) and run:
+From the browser console you can drive the same checks:
 
 ```javascript
-// Test YouTube
-socket.emit('button_press', {button_code: 0x01});
-
-// Test Netflix
-socket.emit('button_press', {button_code: 0x02});
-
-// Test Amazon Prime
-socket.emit('button_press', {button_code: 0x03});
-
-// Test HBO Max
-socket.emit('button_press', {button_code: 0x04});
+socket.emit('button_press', {button_code: 0x01});  // YouTube
 ```
 
-### Test from C Program
+**Smart home**
+- [ ] `F1`–`F8`, `Shift+F1`–`F8` and `Ctrl+F1`–`F4` toggle scenes and devices (see
+      [FEATURES.md](FEATURES.md#keyboard-and-mouse)).
+
+## Manual checklist (desktop simulator)
 
 ```bash
-# Build with simulator support
-make clean
-make SIMULATOR=1 WEB=1
-
-# Run remote control
-./bin/remote_control
-
-# In menu, select option 1: "Demo Streaming Services"
+python main.py
 ```
 
-### Expected Behavior
+- [ ] A Pygame window opens with the TV and a status panel.
+- [ ] `P` toggles power, `U`/`D` change volume (volume bar appears), `↑`/`↓` change channel.
+- [ ] `Esc` closes the window.
 
-1. **Power must be ON** - Services only work when TV is powered on
-2. **Color Changes** - Screen background changes to service color
-3. **Smooth Transitions** - Colors blend smoothly between services
-4. **Notifications** - "Opening [Service]..." appears
-5. **State Updates** - Status panel shows current app
-6. **Animations** - Cross-fade animation plays (1 second)
+## C remote with a simulator
 
-### Automated Test Output
-
-When you run `test_streaming_simple.py`, you should see:
-
-```
-============================================================
-STREAMING SERVICES TEST
-============================================================
-
-[OK] Server connected
-
-Testing streaming services:
-
--> YouTube... [PASS]
--> Netflix... [PASS]
--> Amazon Prime... [PASS]
--> HBO Max... [PASS]
-
-[OK] Test complete! Check the browser to see the animations.
-```
-
-## Desktop Simulator Testing
-
-### Start the Simulator
-
-```bash
-poetry run desktop-simulator
-```
-
-The virtual TV window will open and wait for commands.
-
-### Test with Keyboard Shortcuts
-
-- **P** = Power, **U/D** = Volume, **M** = Mute, **H** = Home, **N** = Menu, etc.
-- Press buttons while the simulator is running to see immediate responses
-- The status panel on the right shows current TV state
-- Notifications appear at the bottom of the status panel
-- Volume bar appears when adjusting volume
-
-### Test with Remote Control Program
-
-1. Start the simulator first (run `python main.py`)
-2. In another terminal, build and run the remote control program with simulator support:
-   ```bash
-   make clean
-   make SIMULATOR=1
-   ./bin/remote_control
-   ```
-
-3. In the remote control program, select option 2 (Demo Basic Controls)
-4. Press Power - the TV should turn on!
-5. Try Volume Up/Down - see the volume bar change
-6. Try Channel Up/Down - see the channel number change
-7. Try option 1 (Streaming Services) - see apps open on the TV
-
-## Remote and Visual Animation Tests
-
-To ensure the remote works and that button presses drive the visual animation:
-
-```bash
-cd test_simulator
-poetry run pytest tests/test_remote_visual.py -v
-```
-
-These tests verify:
-- The remote accepts button presses (API returns success).
-- TV state updates after a button press.
-- The server broadcasts `tv_state_update` over WebSocket when a button is pressed (so the 3D remote can show the green highlight and press animation).
-
-Manual check: in the browser, click any remote button and confirm the button lights up green and briefly moves in (press animation), then fades back within ~200 ms.
-
-## Automated Test Suite
-
-Run the full pytest suite (with server running for API/functional tests):
-
-```bash
-cd test_simulator
-poetry run pytest
-```
-
-See **README_TESTS.md** for test categories and options. No remote control program needed.
+See [GETTING_STARTED.md](../docs/GETTING_STARTED.md#connect-the-c-remote-to-a-simulator): build
+with `make SIMULATOR=1 WEB=1`, run `./bin/remote_control`, choose menu option 1 or 2, and watch
+the presses arrive in the browser.
 
 ## Troubleshooting
 
-### Scene doesn't load
-- Check browser console (F12) for errors
-- Verify Three.js library loads
-- Check WebSocket connection
-
-### Buttons don't work
-- Check WebSocket connection status
-- Verify server is running
-- Check browser console for errors
-
-### IR signals don't appear
-- Verify button was actually pressed
-- Check console for errors
-- Try clicking different buttons
-
-### C program can't connect
-- Verify web server is running
-- Check firewall settings
-- Verify build used `WEB=1` flag
-
-### Services don't switch
-- Check TV is powered on
-- Verify button codes are correct
-- Check browser console for errors
-- Verify server is receiving button presses
-
-### Colors don't change
-- Check app name in status panel
-- Verify screen brightness is > 0
-- Check browser console for errors
-- Try refreshing the page
-
-### Animations don't work
-- Check browser supports canvas
-- Verify JavaScript is enabled
-- Check console for errors
-- Try different browser
-
-### Server not running
-- Make sure you started: `poetry run web-server`
-- Check port 5000 is not in use
-- Look for errors in server terminal
-
-## Success Criteria
-
-All features working:
-- [x] 3D scene renders correctly
-- [x] Remote control is clickable
-- [x] IR signals appear on button press
-- [x] TV screen updates
-- [x] Camera controls work
-- [x] C program integration works
-- [x] All button codes work
-- [x] State updates in real-time
-- [x] All 4 streaming services switch correctly
-- [x] Colors match expected values
-- [x] Smooth animations between services
-- [x] Notifications appear
-- [x] Status panel updates
-- [x] No errors in console
-
-## Test Results
-
-After running all tests, you should see:
-- ✅ Server Connection: PASS
-- ✅ REST API: PASS
-- ✅ WebSocket: PASS
-- ✅ State Consistency: PASS
-- ✅ All Buttons: PASS
-- ✅ Streaming Services: PASS
-
-If all tests pass, the simulator is fully functional! 🎉
-
+| Symptom | Check |
+|---------|-------|
+| Scene doesn't load | Browser console errors; Three.js loaded; WebGL enabled |
+| Buttons do nothing | WebSocket connected (status panel); server running; if an API key is configured, the page must supply it |
+| App colours don't change | TV is powered on; screen brightness > 0 |
+| `pytest` can't import Flask | Activate the venv or use `poetry run pytest` |

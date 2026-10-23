@@ -1,260 +1,191 @@
 """
-Functional tests for complete workflows
+Functional tests for complete workflows (in-process Flask + Socket.IO test clients).
 """
 import pytest
-import requests
-import time
-import socketio
-from tests.conftest import (
-    BASE_URL, API_URL, STATE_URL, BUTTON_CODES, STREAMING_SERVICES,
-    NUMBER_BUTTONS, press_button, get_state
-)
 
-
-def _wait_for_power_state(expected, timeout=8.0, poll=0.5):
-    """Poll get_state() until powered_on matches expected or timeout."""
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        state = get_state()
-        if state is not None and state.get('powered_on') is expected:
-            return state
-        time.sleep(poll)
-    return get_state()
+from tests.conftest import BUTTON_CODES, NUMBER_BUTTONS, press_button, get_state, received_events
 
 
 class TestPowerCycle:
     """Test power on/off cycle"""
-    
-    def test_power_on(self, server_running):
-        """Test turning TV on"""
-        # Turn off first if on
+
+    def test_power_on(self, client):
+        assert get_state()['powered_on'] is False
+        press_button(BUTTON_CODES['Power'])
         state = get_state()
-        if state and state.get('powered_on'):
-            press_button(BUTTON_CODES['Power'])
-            _wait_for_power_state(False, timeout=5.0)
-        
-        # Turn on
+        assert state['powered_on'] is True
+        assert state['current_app'] is None  # powers on to live TV
+
+    def test_power_off(self, client, ensure_tv_on):
         press_button(BUTTON_CODES['Power'])
-        state = _wait_for_power_state(True)
-        assert state is not None, "get_state() returned None"
-        assert state.get('powered_on') is True, f"Expected TV on, got state: {state}"
-    
-    def test_power_off(self, server_running, ensure_tv_on):
-        """Test turning TV off"""
-        press_button(BUTTON_CODES['Power'])
-        state = _wait_for_power_state(False)
-        assert state is not None, "get_state() returned None"
-        assert state.get('powered_on') is False, f"Expected TV off, got state: {state}"
+        assert get_state()['powered_on'] is False
 
 
 class TestStreamingServices:
     """Test streaming service switching"""
-    
+
     @pytest.mark.parametrize("service_name,button_code", [
         ('YouTube', 0x01),
         ('Netflix', 0x02),
         ('Amazon Prime', 0x03),
         ('HBO Max', 0x04),
     ])
-    def test_streaming_service(self, server_running, ensure_tv_on, service_name, button_code):
-        """Test each streaming service"""
-        # Ensure TV is actually on (poll in case ensure_tv_on sleep was not enough)
-        for _ in range(10):
-            state = get_state()
-            if state is not None and state.get('powered_on'):
-                break
-            time.sleep(0.5)
-        press_button(button_code, delay=2.0)
-        state = None
-        for _ in range(20):
-            state = get_state()
-            if state is not None and state.get('current_app') == service_name:
-                break
-            time.sleep(0.5)
-        assert state is not None, "get_state() returned None"
-        assert state.get('current_app') == service_name, (
-            f"Expected current_app={service_name!r}, got {state.get('current_app')!r} (powered_on={state.get('powered_on')})"
-        )
+    def test_streaming_service(self, client, ensure_tv_on, service_name, button_code):
+        press_button(button_code)
+        assert get_state()['current_app'] == service_name
 
 
 class TestChannelChanges:
     """Test channel changing functionality"""
-    
-    def test_channel_up(self, server_running, ensure_tv_on):
-        """Test channel up button"""
-        initial_state = get_state()
-        initial_channel = initial_state.get('channel', 1) if initial_state else 1
 
-        press_button(BUTTON_CODES['Channel Up'], delay=0.6)
-        new_state = None
-        for _ in range(10):
-            new_state = get_state()
-            if new_state is not None:
-                new_channel = new_state.get('channel', 1)
-                if new_channel != initial_channel:
-                    break
-            time.sleep(0.3)
-        assert new_state is not None
-        new_channel = new_state.get('channel', 1)
-        assert new_channel > initial_channel or new_channel == 1, (
-            f"Channel should increase or wrap to 1: initial={initial_channel}, got {new_channel}"
-        )
-    
-    def test_channel_down(self, server_running, ensure_tv_on):
-        """Test channel down button"""
-        initial_state = get_state()
-        initial_channel = initial_state.get('channel', 1) if initial_state else 1
-        
+    def test_channel_up(self, client, ensure_tv_on):
+        initial_channel = get_state()['channel']
+        press_button(BUTTON_CODES['Channel Up'])
+        assert get_state()['channel'] == initial_channel % 999 + 1
+
+    def test_channel_down(self, client, ensure_tv_on):
+        press_button(BUTTON_CODES['Channel Up'])
+        initial_channel = get_state()['channel']
         press_button(BUTTON_CODES['Channel Down'])
-        
-        new_state = get_state()
-        new_channel = new_state.get('channel', 1) if new_state else 1
-        
-        # Channel should decrease, or wrap (1 -> max), or stay at 1
-        assert new_channel <= initial_channel or initial_channel == 1
-    
+        assert get_state()['channel'] == initial_channel - 1
+
+    def test_channel_down_wraps(self, client, ensure_tv_on):
+        assert get_state()['channel'] == 1
+        press_button(BUTTON_CODES['Channel Down'])
+        assert get_state()['channel'] == 999
+
+    def test_channel_up_wraps(self, client, ensure_tv_on):
+        press_button(BUTTON_CODES['Channel Down'])  # 1 -> 999
+        press_button(BUTTON_CODES['Channel Up'])
+        assert get_state()['channel'] == 1
+
     @pytest.mark.parametrize("channel_number", [123, 456, 789, 42, 7])
-    def test_number_buttons(self, server_running, ensure_tv_on, channel_number):
-        """Test number buttons for channel entry"""
-        channel_str = str(channel_number).zfill(3)
-        
-        for digit in channel_str:
-            button_code = NUMBER_BUTTONS[digit]
-            press_button(button_code, delay=0.2)
-        
-        time.sleep(1.0)  # Wait for channel change
-        
+    def test_number_buttons(self, client, ensure_tv_on, channel_number):
+        for digit in str(channel_number).zfill(3):
+            press_button(NUMBER_BUTTONS[digit])
+        assert get_state()['channel'] == channel_number
+
+    def test_partial_entry_does_not_tune(self, client, ensure_tv_on):
+        press_button(NUMBER_BUTTONS['4'])
+        press_button(NUMBER_BUTTONS['2'])
         state = get_state()
-        assert state is not None
-        # Channel should be set (may be last 3 digits if multi-digit)
-        assert state.get('channel') is not None
+        assert state['channel'] == 1
+        assert state['channel_input'] == '42'
 
 
 class TestNavigation:
     """Test navigation buttons"""
-    
-    def test_home_button(self, server_running, ensure_tv_on):
-        """Test Home button"""
+
+    def test_home_button(self, client, ensure_tv_on):
         press_button(BUTTON_CODES['Home'])
-        
-        state = get_state()
-        assert state is not None
-        # Should be on Home screen or app should be set
-        assert state.get('current_app') is not None
-    
-    def test_menu_button(self, server_running, ensure_tv_on):
-        """Test Menu button"""
+        assert get_state()['current_app'] == 'Home'
+
+    def test_menu_button(self, client, ensure_tv_on):
         press_button(BUTTON_CODES['Menu'])
-        
-        state = get_state()
-        assert state is not None
-        # Menu state should be set
-        assert 'show_menu' in state or state.get('current_app') is not None
-    
-    def test_back_button(self, server_running, ensure_tv_on):
-        """Test Back button"""
+        assert get_state()['show_menu'] is True
+        press_button(BUTTON_CODES['Menu'])
+        assert get_state()['show_menu'] is False
+
+    def test_back_button(self, client, ensure_tv_on):
+        press_button(BUTTON_CODES['Menu'])
+        press_button(BUTTON_CODES['Info'])
         press_button(BUTTON_CODES['Back'])
-        
         state = get_state()
-        assert state is not None
-        # Should handle back action
-        assert state is not None
+        assert state['show_menu'] is False
+        assert state['show_info'] is False
+        assert state['show_settings'] is False
+
+    def test_input_cycles(self, client, ensure_tv_on):
+        seen = []
+        for _ in range(7):
+            press_button(BUTTON_CODES['Input'])
+            seen.append(get_state()['input_source'])
+        assert seen == ['HDMI 2', 'HDMI 3', 'HDMI 4', 'TV', 'Component', 'AV', 'HDMI 1']
 
 
 class TestVolumeControl:
     """Test volume control functionality"""
-    
-    def test_volume_increase(self, server_running, ensure_tv_on):
-        """Test volume increase"""
-        initial_state = get_state()
-        initial_volume = initial_state.get('volume', 0) if initial_state else 0
-        
+
+    def test_volume_increase(self, client, ensure_tv_on):
+        initial_volume = get_state()['volume']
         press_button(BUTTON_CODES['Volume Up'])
         press_button(BUTTON_CODES['Volume Up'])
-        
-        new_state = get_state()
-        new_volume = new_state.get('volume', 0) if new_state else 0
-        
-        assert new_volume >= initial_volume
-    
-    def test_volume_decrease(self, server_running, ensure_tv_on):
-        """Test volume decrease"""
-        # First increase volume
-        press_button(BUTTON_CODES['Volume Up'], delay=0.3)
-        press_button(BUTTON_CODES['Volume Up'], delay=0.3)
-        
-        initial_state = get_state()
-        initial_volume = initial_state.get('volume', 0) if initial_state else 0
-        
+        assert get_state()['volume'] == initial_volume + 2
+
+    def test_volume_decrease(self, client, ensure_tv_on):
+        initial_volume = get_state()['volume']
         press_button(BUTTON_CODES['Volume Down'])
-        
-        new_state = get_state()
-        new_volume = new_state.get('volume', 0) if new_state else 0
-        
-        assert new_volume <= initial_volume
-    
-    def test_mute_toggle(self, server_running, ensure_tv_on):
-        """Test mute toggle"""
-        initial_state = get_state()
-        initial_muted = initial_state.get('muted', False) if initial_state else False
-        
+        assert get_state()['volume'] == initial_volume - 1
+
+    def test_volume_clamped(self, client, ensure_tv_on, sio_client):
+        sio_client.emit('update_volume', {'volume': 100})
+        press_button(BUTTON_CODES['Volume Up'])
+        assert get_state()['volume'] == 100
+        sio_client.emit('update_volume', {'volume': 0})
+        press_button(BUTTON_CODES['Volume Down'])
+        assert get_state()['volume'] == 0
+
+    @pytest.mark.parametrize("bad", ["50", None, 101, -1, True, [3]])
+    def test_update_volume_rejects_invalid(self, client, sio_client, bad):
+        before = get_state()['volume']
+        sio_client.emit('update_volume', {'volume': bad})
+        assert sio_client.is_connected()
+        assert get_state()['volume'] == before
+
+    def test_mute_toggle(self, client, ensure_tv_on):
+        initial_muted = get_state()['muted']
         press_button(BUTTON_CODES['Mute'])
-        
-        new_state = get_state()
-        new_muted = new_state.get('muted', False) if new_state else False
-        
-        # Mute should toggle
-        assert new_muted != initial_muted
-        
-        # Toggle back
+        assert get_state()['muted'] != initial_muted
         press_button(BUTTON_CODES['Mute'])
-        final_state = get_state()
-        final_muted = final_state.get('muted', False) if final_state else False
-        
-        # Should be back to original state
-        assert final_muted == initial_muted
+        assert get_state()['muted'] == initial_muted
+
+
+class TestRoomAutomation:
+    """Room / whole-house scene buttons (0xE0-0xF3)."""
+
+    def test_movie_scene(self, client):
+        press_button(0xE0)
+        rs = get_state()['room_state']
+        assert rs['scene'] == 'movie'
+        assert rs['lights_main'] == 15
+
+    def test_all_off_then_full(self, client):
+        press_button(0xE2)
+        rs = get_state()['room_state']
+        assert rs['scene'] == 'off' and rs['lights_main'] == 0 and rs['kitchen_light'] is False
+        press_button(0xE4)
+        rs = get_state()['room_state']
+        assert rs['lights_main'] == 100 and rs['scene'] == 'default'
+
+    def test_dim_floors_at_zero(self, client):
+        for _ in range(6):
+            press_button(0xE3)
+        assert get_state()['room_state']['lights_main'] == 0
+
+    def test_device_toggle(self, client):
+        before = get_state()['room_state']['oven_on']
+        press_button(0xEC)
+        assert get_state()['room_state']['oven_on'] is (not before)
 
 
 class TestWebSocket:
     """Test WebSocket functionality"""
-    
-    def test_websocket_connection(self, server_running):
-        """Test WebSocket connection"""
-        sio = socketio.Client()
-        connected = False
-        
-        @sio.on('connect')
-        def on_connect():
-            nonlocal connected
-            connected = True
-        
+
+    def test_websocket_connection(self, ws, client):
+        sio = ws.socketio.test_client(ws.app, flask_test_client=client)
         try:
-            sio.connect(BASE_URL, wait_timeout=5)
-            time.sleep(1)
-            assert connected is True
-        finally:
-            sio.disconnect()
-    
-    def test_websocket_button_press(self, server_running, ensure_tv_on):
-        """Test button press via WebSocket"""
-        sio = socketio.Client()
-        state_received = False
-        
-        @sio.on('tv_state_update')
-        def on_state_update(data):
-            nonlocal state_received
-            state_received = True
-        
-        try:
-            sio.connect(BASE_URL, wait_timeout=5)
-            time.sleep(1)
-            
-            # Send button press
-            sio.emit('button_press', {'button_code': BUTTON_CODES['Volume Up']})
-            time.sleep(1)
-            
-            # Should receive state update
-            assert state_received is True
+            assert sio.is_connected()
+            names = [m['name'] for m in sio.get_received()]
+            assert 'tv_state_update' in names
+            assert 'connected' in names
+            assert 'graphics_preset' in names
         finally:
             sio.disconnect()
 
+    def test_request_state(self, client, sio_client):
+        sio_client.emit('request_state')
+        assert received_events(sio_client, 'tv_state_update')
+
+    def test_websocket_button_press(self, client, ensure_tv_on, sio_client):
+        sio_client.emit('button_press', {'button_code': BUTTON_CODES['Volume Up']})
+        assert received_events(sio_client, 'tv_state_update')

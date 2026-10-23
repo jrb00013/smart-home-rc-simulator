@@ -33,6 +33,10 @@ typedef struct {
 #define IR_NETFLIX        0x12345679
 #define IR_AMAZON_PRIME   0x1234567A
 #define IR_HBO_MAX        0x1234567B
+#define IR_DISNEY_PLUS    0x1234567C
+#define IR_APPLE_TV       0x1234567D
+#define IR_HULU           0x1234567E
+#define IR_PEACOCK        0x1234567F
 
 /* Basic Control IR Codes */
 #define IR_POWER          0x00000001
@@ -149,6 +153,12 @@ int ir_init(void);
  * @return 0 on success, -1 on failure
  */
 int ir_send(ir_code_t code);
+
+/**
+ * @brief Check whether the IR transmitter is initialized and ready
+ * @return 1 if ready, 0 otherwise
+ */
+int ir_is_ready(void);
 
 /**
  * @brief Deinitialize IR transmission hardware
