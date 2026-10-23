@@ -26,16 +26,20 @@ try:
         get_debug,
         get_rate_limit,
         validate_config,
+        is_loopback_host,
     )
 except ImportError:
-    def get_host(): return "0.0.0.0"
+    import secrets as _secrets
+
+    def get_host(): return "127.0.0.1"
     def get_port(): return 5000
-    def get_secret_key(): return "phillips_remote_tv_simulator"
-    def get_cors_origins(): return ["*"]
+    def get_secret_key(): return _secrets.token_hex(32)
+    def get_cors_origins(): return []
     def get_log_level(): return "INFO"
     def get_debug(): return False
     def get_rate_limit(): return None
     def validate_config(strict=False): return []
+    def is_loopback_host(host): return host in ("127.0.0.1", "localhost", "::1")
 
 # Structured logging
 logging.basicConfig(
@@ -59,8 +63,9 @@ app = Flask(__name__,
             static_folder='web_static')
 app.config['SECRET_KEY'] = get_secret_key()
 app.config['DEBUG'] = get_debug()
-cors_list = get_cors_origins()
-socketio = SocketIO(app, cors_allowed_origins=cors_list if isinstance(cors_list, list) else list(cors_list), async_mode='threading')
+cors_list = list(get_cors_origins() or [])
+# None = same-origin only. Never pass [] here: python-engineio treats [] as "CORS checks disabled".
+socketio = SocketIO(app, cors_allowed_origins=cors_list or None, async_mode='threading')
 
 # Service layer: auth, webhooks, MQTT (optional) - must be before first use
 try:
@@ -73,7 +78,7 @@ try:
     SERVICE_LAYER_AVAILABLE = True
 except ImportError:
     SERVICE_LAYER_AVAILABLE = False
-    def check_auth(req): return None
+    def check_auth(req, auth=None): return None
     def fire_webhook(event, payload): pass
     def publish_mqtt(event, payload): pass
     def load_service_config(path=None): return {}
@@ -85,6 +90,7 @@ if SERVICE_LAYER_AVAILABLE:
 # Optional rate limit: in-memory, per IP (e.g. TV_REMOTE_RATE_LIMIT=100/hour or 10/minute)
 _rate_limit_store = {}
 _rate_limit_lock = threading.Lock()
+_RATE_LIMIT_MAX_TRACKED = 10000
 
 
 def _rate_limit_exceeded(ip: str) -> bool:
@@ -102,6 +108,10 @@ def _rate_limit_exceeded(ip: str) -> bool:
         return False
     now = time.time()
     with _rate_limit_lock:
+        if len(_rate_limit_store) > _RATE_LIMIT_MAX_TRACKED:
+            # Drop expired windows so the store cannot grow without bound.
+            for k in [k for k, (_, st) in _rate_limit_store.items() if now - st > window_sec]:
+                del _rate_limit_store[k]
         count, start = _rate_limit_store.get(ip, (0, now))
         if now - start > window_sec:
             count, start = 0, now
@@ -148,10 +158,23 @@ def api_auth():
             return jsonify(err[0]), err[1]
     return None
 
+
+@app.after_request
+def security_headers(resp):
+    """Basic hardening headers (frames are served from client-supplied data)."""
+    resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    resp.headers.setdefault("Referrer-Policy", "same-origin")
+    return resp
+
+
+STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'web_static')
+
+
 @app.route('/static/<path:filename>')
 def static_files(filename):
-    """Serve static files"""
-    return send_from_directory('web_static', filename)
+    """Serve static files (send_from_directory rejects paths escaping STATIC_DIR)."""
+    return send_from_directory(STATIC_DIR, filename)
 
 # TV State (shared with simulator logic)
 tv_state = {
@@ -238,15 +261,66 @@ def get_graphics_preset_cached():
         log.info("Graphics preset: tier=%s gpu=%s", _graphics_preset.get('_tier'), _graphics_preset.get('_gpu_name'))
     return _graphics_preset
 
+CHANNEL_INPUT_TIMEOUT_SEC = 2.0
+NOTIFICATION_CLEAR_SEC = 2.0
+_notification_timer = None
+_notification_lock = threading.Lock()
+
+
+def parse_button_code(value):
+    """Validate a button code from untrusted input.
+
+    Accepts an int 0-255, or a decimal / 0x-prefixed hex string. Returns the int,
+    or None if invalid. Booleans and out-of-range values are rejected instead of
+    being silently masked with & 0xFF (which turned e.g. 0x110 into Power).
+    """
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        code = value
+    elif isinstance(value, str):
+        v = value.strip()
+        try:
+            code = int(v, 16) if v.lower().startswith("0x") else int(v, 10)
+        except ValueError:
+            return None
+    else:
+        return None
+    return code if 0 <= code <= 0xFF else None
+
+
+def _schedule_notification_clear():
+    """Clear the notification after NOTIFICATION_CLEAR_SEC using a single timer.
+
+    Previously every press spawned a sleeping thread that cleared whatever
+    notification was current 2s later, so a newer notification could vanish early
+    and rapid presses piled up threads.
+    """
+    global _notification_timer
+
+    def _clear(expected):
+        if tv_state.get('notification') == expected:
+            tv_state['notification'] = None
+            socketio.emit('tv_state_update', tv_state)
+
+    with _notification_lock:
+        if _notification_timer is not None:
+            _notification_timer.cancel()
+        _notification_timer = threading.Timer(NOTIFICATION_CLEAR_SEC, _clear, args=(tv_state.get('notification'),))
+        _notification_timer.daemon = True
+        _notification_timer.start()
+
+
 def handle_button_press(button_code, from_hardware=False):
     """Handle button press and update TV state
-    @param button_code: Button code to handle (int 0x01-0xD2, or int/str from JSON)
+    @param button_code: Button code to handle (int 0x00-0xFF, or decimal/hex str)
     @param from_hardware: True if this came from hardware interrupt, False for UI clicks
+    @return: True if handled, False if the code was invalid (state untouched)
     """
-    try:
-        code = int(button_code) & 0xFF
-    except (TypeError, ValueError):
-        code = 0
+    code = parse_button_code(button_code)
+    if code is None:
+        log.warning("Ignoring invalid button code: %r", button_code)
+        return False
     button_code = code
     button_name = BUTTON_CODES.get(button_code, f"Unknown (0x{button_code:02X})")
     tv_state['last_button'] = button_name
@@ -457,11 +531,15 @@ def handle_button_press(button_code, from_hardware=False):
     elif button_code >= 0x50 and button_code <= 0x59:  # Number pad
         if tv_state['powered_on']:
             digit = button_code - 0x50
-            if 'channel_input_time' not in tv_state:
+            now = time.time()
+            # Start a fresh entry if the previous digits are stale. (The old check ran
+            # *after* refreshing the timestamp, so stale digits were never discarded:
+            # "4", pause, "5","6" tuned to 456.)
+            last = tv_state.get('channel_input_time')
+            if last is None or now - last > CHANNEL_INPUT_TIMEOUT_SEC:
                 tv_state['channel_input'] = ""
-                tv_state['channel_input_time'] = time.time()
             tv_state['channel_input'] += str(digit)
-            tv_state['channel_input_time'] = time.time()
+            tv_state['channel_input_time'] = now
             if len(tv_state['channel_input']) >= 3:
                 try:
                     new_channel = int(tv_state['channel_input'])
@@ -474,17 +552,9 @@ def handle_button_press(button_code, from_hardware=False):
                     else:
                         tv_state['notification'] = f"Invalid channel: {new_channel} (0-999)"
                     tv_state['channel_input'] = ""
-                except:
+                except ValueError:
                     tv_state['channel_input'] = ""
-    
-    # Clear channel input after timeout (in a separate thread)
-    if 'channel_input' in tv_state and tv_state['channel_input']:
-        if 'channel_input_time' in tv_state:
-            if time.time() - tv_state['channel_input_time'] > 2.0:
-                tv_state['channel_input'] = ""
-                if 'channel_input_time' in tv_state:
-                    del tv_state['channel_input_time']
-    
+
     # Broadcast state update to all connected clients
     socketio.emit('tv_state_update', tv_state)
 
@@ -494,13 +564,8 @@ def handle_button_press(button_code, from_hardware=False):
         fire_webhook("state_change", {"state": state_snapshot, "button_code": button_code})
         publish_mqtt("state_change", {"state": state_snapshot, "button_code": button_code})
     
-    # Clear notification after 2 seconds
-    def clear_notification():
-        time.sleep(2)
-        tv_state['notification'] = None
-        socketio.emit('tv_state_update', tv_state)
-    
-    threading.Thread(target=clear_notification, daemon=True).start()
+    _schedule_notification_clear()
+    return True
 
 @app.route('/')
 def index():
@@ -525,7 +590,9 @@ def api_graphics_preset():
     if request.method == 'POST':
         try:
             from gpu_runtime import set_graphics_config
-            data = request.get_json() or {}
+            data = request.get_json(silent=True)
+            if not isinstance(data, dict):
+                data = {}
             use_auto = data.get('use_auto')
             tier_override = data.get('tier_override')
             set_graphics_config(use_auto=use_auto, tier_override=tier_override)
@@ -602,17 +669,19 @@ def get_frame():
                     img.save(img_io, format='JPEG', quality=85)
                     img_io.seek(0)
                     return Response(img_io.getvalue(), mimetype='image/jpeg')
+                # Already JPEG: serve as-is (previously fell through and returned None -> 500)
+                return Response(img_data, mimetype='image/jpeg')
             except Exception as e:
                 log.warning("Error converting frame to JPEG: %s", e)
-                return jsonify({'error': str(e)}), 500
+                return _api_error(500, 'Frame conversion failed', 'Stored frame is not a valid image.')
         else:
             # Return PNG (default)
             try:
-                img_data = base64.b64decode(current_frame['data'])
+                img_data = base64.b64decode(current_frame['data'], validate=True)
                 return Response(img_data, mimetype='image/png')
             except Exception as e:
                 log.warning("Error decoding frame: %s", e)
-                return jsonify({'error': str(e)}), 500
+                return _api_error(500, 'Frame decode failed', 'Stored frame is not valid base64.')
 
 @app.route('/api/frame/info')
 def get_frame_info():
@@ -629,8 +698,13 @@ def get_frame_info():
         })
 
 @socketio.on('connect')
-def handle_connect():
-    """Handle client connection"""
+def handle_connect(auth=None):
+    """Handle client connection. When an API key is configured, Socket.IO clients must
+    present it too (auth={"api_key": ...}, X-API-Key header, Bearer token or ?api_key=);
+    otherwise the WebSocket events would bypass the REST API key check entirely."""
+    if SERVICE_LAYER_AVAILABLE and check_auth(request, auth) is not None:
+        log.warning("Rejected unauthenticated Socket.IO connection from %s", request.remote_addr)
+        return False
     log.debug("Client connected: %s", request.sid)
     emit('tv_state_update', tv_state)
     emit('graphics_preset', get_graphics_preset_cached())
@@ -650,6 +724,8 @@ def handle_disconnect():
 @socketio.on('button_press')
 def handle_button_press_ws(data):
     """Handle button press from web client via WebSocket (UI clicks, not hardware)"""
+    if not isinstance(data, dict):
+        return
     button_code = data.get('button_code')
     if button_code is not None:
         handle_button_press(button_code, from_hardware=False)
@@ -657,8 +733,9 @@ def handle_button_press_ws(data):
 @socketio.on('update_volume')
 def handle_update_volume(data):
     """Handle volume update from client (including volume stabilizer)"""
-    volume = data.get('volume')
-    if volume is not None and 0 <= volume <= 100:
+    volume = data.get('volume') if isinstance(data, dict) else None
+    if isinstance(volume, (int, float)) and not isinstance(volume, bool) and 0 <= volume <= 100:
+        volume = int(volume)
         old_volume = tv_state['volume']
         tv_state['volume'] = volume
         log.debug("Volume updated: %s%% -> %s%%", old_volume, volume)
@@ -666,14 +743,27 @@ def handle_update_volume(data):
     else:
         log.warning("Invalid volume update received: %s", volume)
 
+MAX_FRAME_B64_LEN = 8 * 1024 * 1024
+
+
 @socketio.on('frame_update')
 def handle_frame_update(data):
     """Handle frame update from client (for streaming API)"""
+    if not isinstance(data, dict):
+        return
     frame_data = data.get('frame_data')  # Base64 encoded image
     width = data.get('width', 512)
     height = data.get('height', 512)
     format_type = data.get('format', 'png')
-    
+    if not isinstance(frame_data, str) or len(frame_data) > MAX_FRAME_B64_LEN:
+        return
+    if frame_data.startswith('data:') and ',' in frame_data:
+        frame_data = frame_data.split(',', 1)[1]  # accept canvas.toDataURL() output
+    if not all(isinstance(v, int) and not isinstance(v, bool) and 0 < v <= 8192 for v in (width, height)):
+        return
+    if format_type not in ('png', 'jpeg'):
+        format_type = 'png'
+
     if frame_data:
         with frame_lock:
             current_frame['data'] = frame_data
@@ -743,8 +833,9 @@ def api_backends_status():
             except Exception:
                 result[n] = {"name": n, "available": False}
         return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        log.exception("Listing backend status failed")
+        return _api_error(500, "Internal Server Error", "Could not list backends.")
 
 @app.route('/api/presets')
 def api_presets():
@@ -757,35 +848,85 @@ def api_presets():
             "presets": presets,
             "default_target": cfg.get("default_target", "simulator"),
         })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        log.exception("Loading presets failed")
+        return _api_error(500, "Internal Server Error", "Could not load presets.")
+
+
+PRESET_NAME_MAX_LEN = 128
+
+
+class _LocalSimulator:
+    """In-process 'simulator' target: this server *is* the simulator, so presets act on
+    tv_state directly instead of POSTing to SIMULATOR_API (default localhost:5000),
+    which broke when the server ran on another port or with an API key set."""
+    name = "simulator"
+
+    def send_button(self, button_code, delay_ms=0):
+        ok = handle_button_press(button_code, from_hardware=False)
+        if delay_ms > 0:
+            time.sleep(delay_ms / 1000.0)
+        return ok
+
+
+def _resolve_target(target):
+    if target == "simulator":
+        return _LocalSimulator()
+    from adapters.registry import get_adapter
+    return get_adapter(target)
+
+
+def _run_preset_buttons(preset, adapter):
+    """Send a preset's buttons; skips (and counts) entries with invalid codes or delays."""
+    sent = 0
+    for b in preset.get("buttons", []):
+        if not isinstance(b, dict):
+            continue
+        code = parse_button_code(b.get("button_code"))
+        delay = b.get("delay_ms", 0)
+        if code is None or isinstance(delay, bool) or not isinstance(delay, (int, float)) or delay < 0:
+            log.warning("Skipping invalid preset entry %r in preset %r", b, preset.get("name"))
+            continue
+        adapter.send_button(code, int(delay))
+        sent += 1
+    return sent
 
 @app.route('/api/preset/<preset_name>/trigger', methods=['POST'])
 def api_preset_trigger(preset_name):
     """Run a preset (button sequence). Optional body: {"target": "simulator"} or query ?target=simulator."""
+    if len(preset_name) > PRESET_NAME_MAX_LEN:
+        return _api_error(400, "Bad Request", "Preset name too long.")
+    data = request.get_json(silent=True)
+    if data is None:
+        data = {}
+    if not isinstance(data, dict):
+        return _api_error(400, "Bad Request", "Body must be a JSON object.")
+    target = data.get("target") or request.args.get("target") or "simulator"
+    if not isinstance(target, str):
+        return _api_error(400, "Bad Request", "target must be a string.")
     try:
-        from presets_loader import get_presets, get_preset_by_name
-        from adapters.registry import get_adapter
+        from presets_loader import get_preset_by_name
+        from adapters.registry import UnknownBackendError
         preset = get_preset_by_name(preset_name)
         if not preset:
             return jsonify({"error": "Preset not found", "preset": preset_name}), 404
-        data = request.get_json() or {}
-        target = data.get("target") or request.args.get("target") or "simulator"
-        adapter = get_adapter(target)
-        buttons = preset.get("buttons", [])
-        for b in buttons:
-            code = b.get("button_code")
-            delay = b.get("delay_ms", 0)
-            if code is not None:
-                adapter.send_button(code, delay)
+        try:
+            adapter = _resolve_target(target)
+        except UnknownBackendError:
+            return _api_error(400, "Bad Request", "Unknown target backend.")
+        sent = _run_preset_buttons(preset, adapter)
         return jsonify({
             "ok": True,
             "preset": preset_name,
             "target": target,
-            "buttons_sent": len(buttons),
+            "buttons_sent": sent,
         })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        log.exception("Preset trigger failed: %s", preset_name)
+        return _api_error(500, "Internal Server Error", "Preset trigger failed.")
+
+LEARN_TIMEOUT_MAX_SEC = 60
+
 
 @app.route('/api/backends/broadlink/learn', methods=['POST'])
 def api_broadlink_learn():
@@ -794,10 +935,18 @@ def api_broadlink_learn():
         from adapters.broadlink_adapter import BroadlinkAdapter, BROADLINK_AVAILABLE
         if not BROADLINK_AVAILABLE:
             return jsonify({"error": "Broadlink not installed", "hint": "pip install broadlink"}), 501
-        data = request.get_json() or {}
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            data = {}
         host = data.get("host") or request.args.get("host")
-        timeout_sec = int(data.get("timeout_sec", 10))
-        if not host:
+        try:
+            timeout_sec = int(data.get("timeout_sec", 10))
+        except (TypeError, ValueError):
+            return _api_error(400, "Bad Request", "timeout_sec must be an integer.")
+        # Bound how long a request thread can be held in the polling loop.
+        if not 1 <= timeout_sec <= LEARN_TIMEOUT_MAX_SEC:
+            return _api_error(400, "Bad Request", f"timeout_sec must be 1-{LEARN_TIMEOUT_MAX_SEC}.")
+        if not host or not isinstance(host, str):
             return jsonify({"error": "host required"}), 400
         adapter = BroadlinkAdapter(host=host, code_map={})
         dev = adapter._get_device()
@@ -818,19 +967,25 @@ def api_broadlink_learn():
             except Exception:
                 pass
         return jsonify({"error": "Learning timeout", "timeout_sec": timeout_sec}), 408
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        log.exception("Broadlink learn failed")
+        return _api_error(500, "Internal Server Error", "Broadlink learning failed.")
 
 @app.route('/api/button', methods=['POST'])
 def api_button_press():
     """Handle button press via REST API (from C code/hardware interrupts)"""
-    data = request.get_json()
-    button_code = data.get('button_code')
+    # silent=True: a missing/non-JSON body must be a 400, not a 415/500.
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return {'status': 'error', 'message': 'Body must be a JSON object with button_code'}, 400
+    code = parse_button_code(data.get('button_code'))
+    if code is None:
+        return {'status': 'error', 'message': 'Invalid button_code (expected integer 0-255)'}, 400
     from_hardware = data.get('from_hardware', True)  # Default to True for API calls
-    if button_code is not None:
-        handle_button_press(button_code, from_hardware=from_hardware)
-        return {'status': 'success', 'button_code': button_code}
-    return {'status': 'error', 'message': 'Invalid button_code'}, 400
+    if not isinstance(from_hardware, bool):
+        return {'status': 'error', 'message': 'from_hardware must be a boolean'}, 400
+    handle_button_press(code, from_hardware=from_hardware)
+    return {'status': 'success', 'button_code': code}
 
 
 @app.route('/api/detect-brand', methods=['POST'])
@@ -845,8 +1000,13 @@ def api_detect_brand():
         from brand_detection import detect_brand_from_text
     except ImportError:
         return jsonify({'error': 'brand_detection module not available'}), 501
-    data = request.get_json() or {}
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        data = {}
     text = data.get('text') or data.get('query') or ''
+    if not isinstance(text, str):
+        return _api_error(400, "Bad Request", "text must be a string.")
+    text = text[:4096]
     result = detect_brand_from_text(text)
     tv_state['detected_brand'] = result['brand']
     tv_state['detected_brand_id'] = result['brand_id']
@@ -902,7 +1062,7 @@ def _start_hmr_watcher():
         return
     
     _hmr_stop_event = threading.Event()
-    static_dir = Path('web_static')
+    static_dir = Path(STATIC_DIR)
     if not static_dir.exists():
         log.warning("HMR: web_static directory not found")
         return
@@ -970,10 +1130,15 @@ def main():
     import signal
     host = get_host()
     port = get_port()
+    debug = get_debug()
+    if debug and not is_loopback_host(host):
+        # The Werkzeug debugger allows arbitrary code execution; never expose it.
+        log.error("TV_REMOTE_DEBUG ignored: refusing to run debug mode on non-loopback host %s", host)
+        debug = False
     for msg in validate_config(strict=False):
         log.warning("Config: %s", msg)
     log.info("Virtual TV Simulator - Web Server")
-    log.info("Binding %s:%s (debug=%s)", host, port, get_debug())
+    log.info("Binding %s:%s (debug=%s)", host, port, debug)
     log.info("Interface: http://%s:%s", "localhost" if host == "0.0.0.0" else host, port)
 
     def shutdown(signum=None, frame=None):
@@ -999,15 +1164,10 @@ def main():
                 handle_button_press(code, from_hardware=False)
             def on_mqtt_preset(name, target):
                 from presets_loader import get_preset_by_name
-                from adapters.registry import get_adapter
                 p = get_preset_by_name(name)
                 if not p:
                     return
-                ad = get_adapter(target)
-                for b in p.get("buttons", []):
-                    c, d = b.get("button_code"), b.get("delay_ms", 0)
-                    if c is not None:
-                        ad.send_button(c, d)
+                _run_preset_buttons(p, _resolve_target(target))
             start_mqtt_command_subscriber(on_mqtt_button, on_mqtt_preset)
         except Exception as e:
             log.warning("MQTT command subscriber skipped: %s", e)
@@ -1019,7 +1179,7 @@ def main():
         log.warning("HMR watcher failed to start: %s", e)
 
     try:
-        socketio.run(app, host=host, port=port, debug=get_debug(), allow_unsafe_werkzeug=True)
+        socketio.run(app, host=host, port=port, debug=debug, allow_unsafe_werkzeug=True)
     except KeyboardInterrupt:
         log.info("Shutting down server...")
         if stop_event:
