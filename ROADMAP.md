@@ -9,8 +9,6 @@ not priority.
 These are bugs or rough edges in shipped code, listed so readers are not surprised:
 
 - Several buttons (GAME1–3, HDR modes, CAST, RECORD_LIST, …) have no IR code yet.
-- Web keyboard shortcuts: `Shift+F1`–`F8` also fire the unshifted `F1`–`F8` action, and the
-  `F1`–`F8` check is a string comparison that also matches `F10`–`F12`.
 - `openapi.yaml` does not describe `/api/openapi`, `/api/openapi.json` or `/api/openapi.yaml`.
 
 ## C remote and IR
