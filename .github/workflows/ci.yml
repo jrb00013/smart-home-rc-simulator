@@ -16,7 +16,7 @@ concurrency:
 jobs:
   c:
     name: C (${{ matrix.cc }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # clang currently fails on an implicit usleep() declaration in
     # src/connection.c; remove allow-failure once that is fixed.
     continue-on-error: ${{ matrix.allow-failure }}
@@ -31,7 +31,7 @@ jobs:
     env:
       CC: ${{ matrix.cc }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Toolchain versions
         run: |
@@ -63,7 +63,7 @@ jobs:
 
   python:
     name: Python ${{ matrix.python-version }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -76,9 +76,9 @@ jobs:
       SDL_AUDIODRIVER: dummy
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
@@ -109,12 +109,12 @@ jobs:
 
   js:
     name: JS lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: test_simulator
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Detect package.json
         id: pkg
@@ -122,10 +122,10 @@ jobs:
           echo "present=$([ -f package.json ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           echo "lock=$([ -f package-lock.json ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         if: steps.pkg.outputs.present == 'true'
         with:
-          node-version: 20
+          node-version: 22
           cache: ${{ steps.pkg.outputs.lock == 'true' && 'npm' || '' }}
           cache-dependency-path: test_simulator/package-lock.json
 
@@ -144,14 +144,14 @@ jobs:
 
   docker:
     name: Docker image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
       - name: Build image (no push)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: test_simulator
           push: false
