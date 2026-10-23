@@ -1,22 +1,10 @@
-# Features Documentation
+# Simulator Features
 
-Complete guide to all features of the Virtual TV Simulator.
+What the web (3D) and desktop (2D) simulators do. Setup is in
+[GETTING_STARTED.md](../docs/GETTING_STARTED.md); the button list is in
+[BUTTONS.md](../docs/BUTTONS.md); the API is in [API.md](API.md).
 
-## Overview
-
-The Virtual TV Simulator provides a game-like virtual TV interface for testing the Phillips Universal Remote Control. It features both a web-based 3D/VR simulator and a desktop 2D simulator.
-
-## Core Features
-
-- **Visual TV Display**: See a realistic TV screen that responds to remote commands
-- **Real-time Status**: Monitor TV state (power, volume, channel, etc.)
-- **Button Feedback**: Visual feedback when buttons are pressed
-- **Multiple Apps**: Simulate streaming services (YouTube, Netflix, etc.)
-- **Menu System**: Navigate through TV menus and settings
-- **Keyboard Testing**: Test buttons directly with keyboard shortcuts (no remote program needed!)
-- **Automated Tests**: Run `poetry run pytest` (see README_TESTS.md)
-
-## Web-Based 3D/VR Simulator
+## Web 3D simulator
 
 ### 3D TV Model
 - Realistic TV with frame, screen, and stand
@@ -24,28 +12,19 @@ The Virtual TV Simulator provides a game-like virtual TV interface for testing t
 - Smooth power on/off animations
 - Emissive screen glow when powered on
 
-### Immersive Room
+### House and room
+
+The scene is a full house with an exterior and neighbourhood: living room, kitchen, dining area,
+fireplace, stairs to an upstairs mezzanine with bedroom and bathroom, garage, deck with grill,
+backyard and street. The living room is the most detailed part:
+
 - **Shell:** Floor (futuristic dark slate with tech grid), walls (slate blue-gray), ceiling (cool white), baseboards, window (frame, sill, glass, curtains), wall outlet, floor vent.
 - **Furniture:** Sofa (base, back, cushion, arms), throw pillows and blanket; coffee table with mug, book, remote prop, candle, bowl; side table (left) with lamp, coaster, book, smart speaker, diffuser; floor lamp (right); accent armchair with side table and small plant; media console with set-top box, speakers, books, game controller, smart hub; magazine basket; floating shelf (left wall) with books and vase.
 - **Decor:** Area rug (striped); three wall art pieces; wall clock; thermostat/smart panel; potted plants (sofa corner, window sill x2, accent table, back corner tall plant).
 - **Lighting:** Ceiling fixture (bulb + shade), left table lamp, right floor lamp; window fill light; TV glow (reacts to app/channel).
-- **Smart devices (all controllable by the remote via TV state):** Ceiling, left lamp, and right lamp dim when TV is on (movie mode). Ambient LED strip behind console follows current app color (YouTube/Netflix/Prime/HBO). Smart plugs (power strip, window sill, accent table) and smart hub on console show on/off LEDs. Smart speaker glows when TV is on. Thermostat screen and visible smart bulbs in lamps brighten/dim with TV state. Candle dims when TV is on. No separate smart-home API: everything is driven by the same remote (TV power and app/channel).
-- Ambient lighting and shadows; subtle particle effects for atmosphere.
-
-### VR-like Controls
-
-**Walk mode (first-person):** Click **Walk around** to lock the pointer and enter first-person walk. **WASD** move, **mouse** look; a visible body (torso and legs) appears when you look down. **Escape** exits walk mode.
-
-**Mouse (when not in walk mode):**
-- **Click & Drag**: Rotate camera around TV (orbit control)
-- **Scroll Wheel**: Zoom in/out
-
-**Keyboard:**
-- **Space**: Reset camera to default position
-- **1**: Front view
-- **2**: Side view
-- **3**: Top view
-- **4**: Remote close-up (first-person arm + remote)
+- **Smart devices:** Room lights dim when the TV is on (movie mode). The ambient LED strip behind the console follows the current app colour. Smart plugs, the hub, smart speaker, thermostat screen, lamp bulbs and the candle react to TV state.
+- **Room and house buttons:** codes `0xE0`–`0xE7` set scenes (Movie, Relax, Off) and lights; `0xE8`–`0xF3` toggle individual house devices (plugs, kitchen light, fridge, oven, bedroom/bathroom/upstairs/entry lights, hood light). The server tracks these in `room_state` (part of `tv_state`). Codes `0xF4`–`0xFF` (thermostat, AC, heating, garage, lock, security, blinds, fan, living/dining lights) are drawn on the remote; the server only records them as `last_button`.
+- Ambient lighting and shadows; particle effects whose count depends on the graphics preset.
 
 ### Programmed channel lineup (Live TV)
 Channels **1–99** are explicitly programmed with distinct shows and visuals; **100–999** use a generic fallback. Examples:
@@ -58,10 +37,10 @@ Channels **1–99** are explicitly programmed with distinct shows and visuals; *
 - **61–70**: Drama (Crime, Soap, Legal, Medical, Political, Period, Anthology, etc.)
 - **71–80**: News/Docs (World News, Local, Politics, Tech, Sports News, Weather, Science, History, Travel)
 - **81–99**: Variety (Reality, Game Show, Talk, Food, Home, DIY, True Crime, Comedy, C-SPAN, Public Access, Test Pattern)
-- **Channel 0 – Reality Breach**: Fourth-wall “revolutionary” channel with glitch art, chromatic aberration, VHS-style wobble, and messages like “YOU ARE BEING WATCHED” and “THE SIMULATOR IS THE MESSAGE.” Enter **000** on the number pad to tune in.
+- **Channel 0 – Reality Breach**: Fourth-wall channel with glitch art, chromatic aberration, VHS-style wobble, and messages like “YOU ARE BEING WATCHED” and “THE SIMULATOR IS THE MESSAGE.” Enter **000** on the number pad to tune in.
 
-### Revolutionary touches
-- **Room reacts to TV**: The 3D room’s ambient glow (TV light) tints subtly with the current channel or app color (e.g. red for Netflix, green for sports). All room lights and smart devices (lamps, ambient strip, plugs, speaker, thermostat, candle, smart bulbs) are driven by TV state: dim when TV is on, ambient strip color follows app.
+### Room reacts to the TV
+- **TV light**: The room's ambient glow tints with the current channel or app colour (e.g. red for Netflix, green for sports).
 - **Channel 0 effects**: On Reality Breach, the screen gets a post-process pass: RGB chromatic shift, horizontal slice glitch, and scan chaos so the TV feels like it’s breaking the fourth wall.
 
 ### Real-time Status Panel
@@ -78,44 +57,42 @@ Channels **1–99** are explicitly programmed with distinct shows and visuals; *
 - Appears at bottom of screen
 - Auto-dismisses after 2 seconds
 
-## Desktop 2D Simulator
+## Keyboard and mouse
 
-### Pygame Interface
-- 2D TV display with realistic appearance
-- Status panel on the right side
-- Volume bar visualization
-- Channel number display
-- App switching visualization
+### Web simulator
 
-## Keyboard Shortcuts
+| Input | Action |
+|-------|--------|
+| Drag | Orbit the camera around the TV |
+| Scroll | Zoom |
+| `Space` | Reset camera |
+| `1` / `2` / `3` | Front / side / top view |
+| `4` | First-person view with arm and remote |
+| `P` | Power |
+| `U` / `D` | Volume up / down |
+| `F1`–`F8` | Room: Movie, Relax, Off, Lights dim, Lights full, Plug 1, Speaker, Ambient strip (`0xE0`–`0xE7`) |
+| `Shift`+`F1`–`F8` | House: Plug 2, Plug 3, Kitchen light, Fridge, Oven, Bedroom lamp, Bathroom light, Upstairs hall (`0xE8`–`0xEF`) |
+| `Ctrl`+`F1`–`F4` | House: Entry light, Upstairs bedroom, Upstairs bathroom, Hood light (`0xF0`–`0xF3`) |
+| Click a remote button | Press it |
+| **Walk around** button | First-person walk: `W` `A` `S` `D` move, mouse looks, `Esc` exits (in walk mode `D` moves instead of lowering volume) |
 
-You can test the simulator directly using keyboard shortcuts without needing the remote control program!
+Other buttons (Mute, Home, channels, apps, …) are pressed by clicking the 3D remote. Known
+quirk: `Shift`+`F1`–`F8` also fires the unshifted `F`-key action.
 
-### Basic Controls
-- **P** - Power (Turn TV on/off)
-- **U** - Volume Up
-- **D** - Volume Down
-- **M** - Mute
-- **↑** (Up Arrow) - Channel Up
-- **↓** (Down Arrow) - Channel Down
+### Desktop simulator
 
-### Navigation
-- **H** - Home
-- **N** - Menu
-- **B** - Back
-- **I** - Info
+| Key | Button | Key | Button |
+|-----|--------|-----|--------|
+| `P` | Power | `H` | Home |
+| `U` / `D` | Volume up / down | `N` | Menu |
+| `M` | Mute | `B` | Back |
+| `↑` / `↓` | Channel up / down | `I` | Info |
+| `1`–`5` | Channel 1–5 | `G` | Game mode |
+| `Y` | YouTube | `T` | Netflix |
+| `A` | Amazon Prime | `Esc` | Quit |
 
-### Channels
-- **1-9** - Channel numbers
-
-### Streaming Apps
-- **Y** - YouTube
-- **T** - Netflix
-- **A** - Amazon Prime
-
-### Advanced
-- **G** - Game Mode
-- **ESC** - Exit simulator
+The desktop window shows a 2D TV, a status panel on the right, a volume bar and app/channel
+display.
 
 ## 3D UI Features
 
@@ -254,13 +231,7 @@ The IR Signal Visualization System provides a complete technical breakdown of IR
 
 4. **Protocol Details**: Displays protocol type, IR code, frequency, and duration
 
-### Supported Protocols
-
-- **NEC Protocol**: Used for Power, Volume, Home, YouTube, Netflix
-- **RC5 Protocol**: Used for Channel Up/Down
-- **RC6 Protocol**: Used for Streaming services
-- **Sony SIRC Protocol**: Alternative protocol support
-- **Phillips Protocol**: Used for Input/Source switching
+The panel shows NEC, RC5, RC6, Sony SIRC or Phillips timing depending on the button.
 
 ### Usage
 
@@ -294,7 +265,7 @@ The panel appears in the **top-right corner** and auto-hides after 5 seconds.
 - **Bezel Pulse**: Frame glows rhythmically
 
 ### Particle System
-- **100 Particles**: Floating in air
+- **Particle count from the graphics preset** (0 on the `SIM_SAFE` tier): Floating in air
 - **Continuous Movement**: Upward drift
 - **Respawn**: Particles recycle
 - **Ambient Atmosphere**: Adds life to scene
@@ -317,22 +288,15 @@ The panel appears in the **top-right corner** and auto-hides after 5 seconds.
 
 ## Performance
 
-- **60 FPS**: Smooth animations at 60 frames per second
-- **GPU Accelerated**: Three.js handles 3D rendering
-- **Optimized**: All animations use efficient calculations
-- **Memory Management**: Textures disposed properly
-- **No Lag**: Animations don't block UI
+Rendering uses Three.js (WebGL). Quality is scaled by the GPU-based graphics preset, described in
+[README.md](README.md#graphics-preset).
 
-## Comparison: Web vs Desktop
+## Web vs desktop
 
-| Feature | Web (3D) | Desktop (Pygame) |
-|---------|----------|------------------|
-| 3D Graphics | ✅ Yes | ❌ 2D only |
-| VR-like Experience | ✅ Yes | ❌ No |
-| Browser Access | ✅ Yes | ❌ No |
-| Cross-platform | ✅ Yes | ✅ Yes |
-| Performance | ⚠️ Depends on browser | ✅ Native |
-| Installation | ✅ None needed | ⚠️ Python + pygame |
-
-Choose the web version for the immersive 3D/VR experience!
-
+| | Web (3D) | Desktop (Pygame) |
+|-|----------|------------------|
+| Graphics | 3D house, animations | 2D TV and status panel |
+| Runs in | Browser (served by `web_server.py`) | Native window (`main.py`) |
+| Install | Python server deps (`requirements.txt`) | Python + pygame |
+| REST/WebSocket API | Yes | No |
+| C remote transport | HTTP (`WEB=1`) or IPC | IPC |
