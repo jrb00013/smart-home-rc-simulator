@@ -14,6 +14,10 @@ _INSTANCES: Dict[str, RemoteBackend] = {}
 _CONFIG: Dict[str, Any] = {}
 
 
+class UnknownBackendError(ValueError):
+    """Raised when a target is neither a registered backend nor a configured device."""
+
+
 def register_backend(name: str, adapter_class: type) -> None:
     _REGISTRY[name] = adapter_class
 
@@ -68,29 +72,45 @@ def get_adapter(
     """
     _load_optional_adapters()
     cfg = config or _CONFIG or load_config()
-    backends_cfg = cfg.get("backends", {})
+    backends_cfg = cfg.get("backends", {}) or {}
     default_target = cfg.get("default_backend", "simulator")
 
     name = target or default_target
+
+    def _simulator_kwargs(overrides: Dict[str, Any]) -> Dict[str, Any]:
+        # Named simulator devices inherit simulator_api / api_key from the top-level
+        # config (previously they silently fell back to env and lost api_key -> 401).
+        kw = {
+            "api_base": cfg.get("simulator_api") or os.environ.get("SIMULATOR_API", "http://localhost:5000"),
+            "api_key": cfg.get("api_key") or os.environ.get("TV_REMOTE_API_KEY"),
+        }
+        kw.update(overrides)
+        return kw
+
     # Named device? e.g. backends.living_room_tv.backend = "broadlink"
     if name in backends_cfg:
-        device = backends_cfg[name]
+        device = backends_cfg[name] or {}
         backend_type = device.get("backend", name)
         adapter_class = _REGISTRY.get(backend_type)
         if adapter_class is None:
-            adapter_class = _REGISTRY.get("simulator", SimulatorAdapter)
+            # A typo in config must not silently drive a different device.
+            raise UnknownBackendError(f"Device {name!r} uses unknown backend {backend_type!r}")
         key = f"{name}:{backend_type}"
         if key not in _INSTANCES:
             kwargs = {k: v for k, v in device.items() if k != "backend"}
+            if adapter_class is SimulatorAdapter:
+                kwargs = _simulator_kwargs(kwargs)
             _INSTANCES[key] = adapter_class(**kwargs)
         return _INSTANCES[key]
 
-    adapter_class = _REGISTRY.get(name, _REGISTRY.get("simulator", SimulatorAdapter))
+    adapter_class = _REGISTRY.get(name)
+    if adapter_class is None:
+        # Previously any unknown name fell back to the simulator AND was cached under
+        # that name, so arbitrary request-supplied targets grew _INSTANCES without bound.
+        raise UnknownBackendError(f"Unknown backend or device: {name!r}")
     if name not in _INSTANCES:
-        if name == "simulator":
-            api_base = cfg.get("simulator_api") or os.environ.get("SIMULATOR_API", "http://localhost:5000")
-            api_key = cfg.get("api_key") or os.environ.get("TV_REMOTE_API_KEY")
-            _INSTANCES[name] = SimulatorAdapter(api_base=api_base, api_key=api_key)
+        if adapter_class is SimulatorAdapter:
+            _INSTANCES[name] = SimulatorAdapter(**_simulator_kwargs({}))
         else:
             _INSTANCES[name] = adapter_class()
     return _INSTANCES[name]
