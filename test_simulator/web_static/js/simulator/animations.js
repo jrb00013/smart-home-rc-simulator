@@ -212,7 +212,6 @@ function stabilizeVolumeOnAppSwitch(oldApp, newApp, currentVolume) {
     
     // Get volume adjustment for new app
     const appAdjustment = volumeStabilizer.appVolumeLevels[newApp] || 0;
-    const oldAdjustment = volumeStabilizer.appVolumeLevels[oldApp] || 0;
     
     // Calculate target volume with app-specific adjustment
     let targetVolume = volumeStabilizer.targetVolume + appAdjustment;

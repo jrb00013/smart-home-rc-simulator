@@ -1,21 +1,32 @@
 let irParticles = null;
 let irParticleSystem = null;
+let _irEffect = null; // { objects: [...], rafId } for the beam currently on screen
+
+// Remove an IR beam effect from the scene and free its GPU resources.
+function disposeIREffect(effect) {
+    if (!effect) return;
+    if (effect.rafId) cancelAnimationFrame(effect.rafId);
+    effect.rafId = 0;
+    effect.objects.forEach(function (obj) {
+        if (obj.parent) obj.parent.remove(obj);
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) obj.material.dispose();
+    });
+    effect.objects.length = 0;
+    if (_irEffect === effect) {
+        _irEffect = null;
+        irSignal = null;
+        irParticleSystem = null;
+    }
+}
 
 // Trigger IR signal visualization with enhanced effects
 function triggerIRSignal(buttonName) {
     if (!remoteMesh || !tvMesh) return;
     
-    // Remove existing IR signal
-    if (irSignal) {
-        scene.remove(irSignal);
-        irSignal = null;
-    }
-    
-    // Remove existing particles
-    if (irParticleSystem) {
-        scene.remove(irParticleSystem);
-        irParticleSystem = null;
-    }
+    // Replace any beam still animating (each press used to leak its meshes, and a stale
+    // animation loop could remove the newer beam through the shared globals)
+    disposeIREffect(_irEffect);
     
     // Get remote position (IR emitter location)
     const remotePosition = new THREE.Vector3();
@@ -28,9 +39,7 @@ function triggerIRSignal(buttonName) {
     tvPosition.y += 0.5; // IR receiver on TV
     
     // Create IR signal beam with multiple layers
-    const direction = new THREE.Vector3().subVectors(tvPosition, remotePosition);
-    const distance = direction.length();
-    direction.normalize();
+    const distance = tvPosition.distanceTo(remotePosition);
     
     // Main IR beam (core)
     const irGeometry = new THREE.ConeGeometry(0.03, distance, 16, 1, true);
@@ -41,11 +50,11 @@ function triggerIRSignal(buttonName) {
         side: THREE.DoubleSide
     });
     
-    irSignal = new THREE.Mesh(irGeometry, irMaterial);
-    irSignal.position.copy(remotePosition);
-    irSignal.lookAt(tvPosition);
-    irSignal.rotateX(Math.PI / 2);
-    scene.add(irSignal);
+    const beam = new THREE.Mesh(irGeometry, irMaterial);
+    beam.position.copy(remotePosition);
+    beam.lookAt(tvPosition);
+    beam.rotateX(Math.PI / 2);
+    scene.add(beam);
     
     // Outer glow layer
     const glowGeometry = new THREE.ConeGeometry(0.08, distance, 16, 1, true);
@@ -66,10 +75,11 @@ function triggerIRSignal(buttonName) {
     const particles = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
     const colors = new Float32Array(particleCount * 3);
+    const pos = new THREE.Vector3();
     
     for (let i = 0; i < particleCount; i++) {
         const t = i / particleCount;
-        const pos = remotePosition.clone().lerp(tvPosition, t);
+        pos.copy(remotePosition).lerp(tvPosition, t);
         positions[i * 3] = pos.x;
         positions[i * 3 + 1] = pos.y;
         positions[i * 3 + 2] = pos.z;
@@ -91,59 +101,48 @@ function triggerIRSignal(buttonName) {
         blending: THREE.AdditiveBlending
     });
     
-    irParticleSystem = new THREE.Points(particles, particleMaterial);
-    scene.add(irParticleSystem);
+    const trail = new THREE.Points(particles, particleMaterial);
+    scene.add(trail);
+    
+    const effect = { objects: [beam, glowBeam, trail], rafId: 0 };
+    _irEffect = effect;
+    irSignal = beam;
+    irParticleSystem = trail;
     
     // Animate IR signal with detailed effects
-    let startTime = Date.now();
+    const startTime = Date.now();
     const duration = 400; // 400ms for more visible effect
     
     function animateIR() {
+        if (_irEffect !== effect) return; // superseded by a newer press
         const elapsed = Date.now() - startTime;
         const progress = Math.min(elapsed / duration, 1);
         
         if (progress < 1) {
             // Core beam pulse
-            if (irSignal && irSignal.material) {
-                const pulse = Math.sin(progress * Math.PI * 6) * 0.3 + 0.7;
-                irSignal.material.opacity = 0.8 * pulse * (1 - progress * 0.5);
-                irSignal.scale.set(1 + progress * 0.3, 1, 1);
-            }
+            const pulse = Math.sin(progress * Math.PI * 6) * 0.3 + 0.7;
+            beam.material.opacity = 0.8 * pulse * (1 - progress * 0.5);
+            beam.scale.set(1 + progress * 0.3, 1, 1);
             
             // Glow beam expansion
-            if (glowBeam && glowBeam.material) {
-                glowBeam.material.opacity = 0.3 * (1 - progress);
-                glowBeam.scale.set(1 + progress * 1.5, 1, 1);
-            }
+            glowBeam.material.opacity = 0.3 * (1 - progress);
+            glowBeam.scale.set(1 + progress * 1.5, 1, 1);
             
             // Particle fade
-            if (irParticleSystem) {
-                const fadeProgress = progress;
-                irParticleSystem.material.opacity = 0.8 * (1 - fadeProgress);
-                
-                // Animate particles (slight movement)
-                const positions = irParticleSystem.geometry.attributes.position.array;
-                for (let i = 0; i < particleCount; i++) {
-                    const offset = Math.sin(progress * Math.PI * 2 + i) * 0.02;
-                    positions[i * 3 + 1] += offset * 0.01;
-                }
-                irParticleSystem.geometry.attributes.position.needsUpdate = true;
-            }
+            trail.material.opacity = 0.8 * (1 - progress);
             
-            requestAnimationFrame(animateIR);
+            // Animate particles (slight movement)
+            const arr = trail.geometry.attributes.position.array;
+            for (let i = 0; i < particleCount; i++) {
+                const offset = Math.sin(progress * Math.PI * 2 + i) * 0.02;
+                arr[i * 3 + 1] += offset * 0.01;
+            }
+            trail.geometry.attributes.position.needsUpdate = true;
+            
+            effect.rafId = requestAnimationFrame(animateIR);
         } else {
-            // Remove IR signal and particles
-            if (irSignal) {
-                scene.remove(irSignal);
-            }
-            if (glowBeam) {
-                scene.remove(glowBeam);
-            }
-            if (irParticleSystem) {
-                scene.remove(irParticleSystem);
-            }
-            irSignal = null;
-            irParticleSystem = null;
+            effect.rafId = 0;
+            disposeIREffect(effect);
         }
     }
     
@@ -246,10 +245,13 @@ function highlightRemoteButton(buttonName) {
 // Show notification
 function showNotification(message) {
     const notification = document.getElementById('notification');
+    if (!notification) return;
     notification.textContent = message;
     notification.classList.add('show');
     
-    setTimeout(() => {
+    // Restart the hide timer so an earlier notification can't hide a newer one early
+    clearTimeout(showNotification._timer);
+    showNotification._timer = setTimeout(() => {
         notification.classList.remove('show');
     }, 2000);
 }

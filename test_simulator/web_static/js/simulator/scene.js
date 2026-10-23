@@ -868,7 +868,6 @@ function createNeighborhood() {
         scene.add(body);
 
         var r1 = new THREE.Mesh(new THREE.BufferGeometry(), rm);
-        var rw = Math.sqrt((w/2)*(w/2) + 3*3);
         r1.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
             x - w/2, 6, z - d/2, x, 9, z - d/2, x - w/2, 6, z + d/2,
             x - w/2, 6, z + d/2, x, 9, z - d/2, x, 9, z + d/2
@@ -1203,20 +1202,8 @@ function createNeighborhood() {
     }
 }
 
-// Chimney smoke particles
-    window._smokeParticles = [];
-    setInterval(function() {
-        if (typeof scene === 'undefined') return;
-        var smMat = new THREE.MeshBasicMaterial({
-            color: 0xcccccc, transparent: true, opacity: 0.3,
-            blending: THREE.AdditiveBlending, depthWrite: false
-        });
-        var smoke = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 6), smMat);
-        smoke.position.set(16, 20.5, -10);
-        smoke.scale.set(1, 1, 1);
-        scene.add(smoke);
-        window._smokeParticles.push(smoke);
-    }, 800);
+    // Chimney smoke particles (pooled; spawned/animated from animate() in main.js)
+    initChimneySmoke();
 
 // Create 3D Remote Control
     createRemoteControl();
@@ -1247,11 +1234,72 @@ function createNeighborhood() {
     }
     console.log('[TV Simulator] Graphics preset applied: tier=' + (preset._tier || 'MEDIUM') + (preset._gpu_name ? ' gpu=' + preset._gpu_name : ' (no GPU detected)'));
 
-    // Handle window resize
+    // Merge static, same-material meshes to cut draw calls (?nobatch=1 disables, for A/B checks)
+    if (typeof batchStaticMeshes === 'function' && !/[?&]nobatch=1\b/.test(window.location.search)) {
+        try {
+            var batchStats = batchStaticMeshes(scene);
+            if (batchStats) console.log('[TV Simulator] Static batching: merged ' + batchStats.mergedMeshes + ' meshes into ' + batchStats.batches + ' batches');
+        } catch (err) {
+            console.warn('Static batching skipped:', err);
+        }
+    }
+
+    // Handle window resize (registered once even if initScene is re-run)
+    window.removeEventListener('resize', onWindowResize);
     window.addEventListener('resize', onWindowResize);
 
     // Start animation loop
     animate();
+}
+
+// Fill a w*h canvas with opaque gray pixels from value(x, y) in one putImageData call
+// (bump maps used to be drawn with one fillStyle parse + fillRect per pixel, ~120k calls).
+function fillGrayPixels(ctx, w, h, value) {
+    var img = ctx.createImageData(w, h);
+    var d = img.data;
+    for (var y = 0; y < h; y++) {
+        for (var x = 0; x < w; x++) {
+            var g = value(x, y);
+            var i = (y * w + x) * 4;
+            d[i] = d[i + 1] = d[i + 2] = g; // Uint8ClampedArray clamps + rounds
+            d[i + 3] = 255;
+        }
+    }
+    ctx.putImageData(img, 0, 0);
+}
+
+// Chimney smoke: a fixed pool of puffs sharing one geometry. The old code created a new
+// SphereGeometry + material every 800ms from setInterval and only scene.remove()d them,
+// leaking GPU buffers, and kept spawning while the tab was hidden (rAF paused).
+const SMOKE_POOL_SIZE = 8; // lifetime ~1.5s at 0.2 opacity/s fade, one puff per 0.8s
+function initChimneySmoke() {
+    if (window._smokeParticles) return;
+    var geo = new THREE.SphereGeometry(0.05, 6, 6);
+    window._smokeParticles = [];
+    for (var i = 0; i < SMOKE_POOL_SIZE; i++) {
+        var mat = new THREE.MeshBasicMaterial({
+            color: 0xcccccc, transparent: true, opacity: 0,
+            blending: THREE.AdditiveBlending, depthWrite: false
+        });
+        var puff = new THREE.Mesh(geo, mat);
+        puff.visible = false;
+        scene.add(puff);
+        window._smokeParticles.push(puff);
+    }
+}
+
+function spawnChimneySmoke() {
+    var pool = window._smokeParticles;
+    if (!pool) return;
+    for (var i = 0; i < pool.length; i++) {
+        var puff = pool[i];
+        if (puff.visible) continue;
+        puff.position.set(16, 20.5, -10);
+        puff.scale.set(1, 1, 1);
+        puff.material.opacity = 0.3;
+        puff.visible = true;
+        return;
+    }
 }
 
 // Create room environment - full living room (texture sizes from GPU preset)
@@ -1310,13 +1358,9 @@ function createRoom() {
     floorBumpCanvas.width = 256;
     floorBumpCanvas.height = 128;
     var floorBumpCtx = floorBumpCanvas.getContext('2d');
-    for (var by = 0; by < 128; by++) {
-        for (var bx = 0; bx < 256; bx++) {
-            let g = 128 + (Math.sin(bx * 0.15) * 12) + (Math.random() - 0.5) * 20;
-            floorBumpCtx.fillStyle = 'rgb(' + Math.max(0, Math.min(255, g)) + ',' + Math.max(0, Math.min(255, g)) + ',' + Math.max(0, Math.min(255, g)) + ')';
-            floorBumpCtx.fillRect(bx, by, 1, 1);
-        }
-    }
+    fillGrayPixels(floorBumpCtx, 256, 128, function (bx) {
+        return 128 + (Math.sin(bx * 0.15) * 12) + (Math.random() - 0.5) * 20;
+    });
     var floorBumpTex = new THREE.CanvasTexture(floorBumpCanvas);
     floorBumpTex.wrapS = THREE.RepeatWrapping;
     floorBumpTex.wrapT = THREE.RepeatWrapping;
@@ -1366,13 +1410,9 @@ function createRoom() {
     wallBumpCanvas.width = 128;
     wallBumpCanvas.height = 128;
     var wallBumpCtx = wallBumpCanvas.getContext('2d');
-    for (var wy = 0; wy < 128; wy++) {
-        for (var wx = 0; wx < 128; wx++) {
-            var v = 128 + (Math.random() - 0.5) * 24;
-            wallBumpCtx.fillStyle = 'rgb(' + (v|0) + ',' + (v|0) + ',' + (v|0) + ')';
-            wallBumpCtx.fillRect(wx, wy, 1, 1);
-        }
-    }
+    fillGrayPixels(wallBumpCtx, 128, 128, function () {
+        return (128 + (Math.random() - 0.5) * 24) | 0;
+    });
     var wallBumpTex = new THREE.CanvasTexture(wallBumpCanvas);
     wallBumpTex.wrapS = wallBumpTex.wrapT = THREE.RepeatWrapping;
     wallBumpTex.repeat.set(2, 2);
@@ -1587,13 +1627,9 @@ function createRoom() {
     ceilBumpCanvas.width = 64;
     ceilBumpCanvas.height = 64;
     var ceilBumpCtx = ceilBumpCanvas.getContext('2d');
-    for (var cy = 0; cy < 64; cy++) {
-        for (var cx = 0; cx < 64; cx++) {
-            var cv = 128 + (Math.random() - 0.5) * 20;
-            ceilBumpCtx.fillStyle = 'rgb(' + (cv|0) + ',' + (cv|0) + ',' + (cv|0) + ')';
-            ceilBumpCtx.fillRect(cx, cy, 1, 1);
-        }
-    }
+    fillGrayPixels(ceilBumpCtx, 64, 64, function () {
+        return (128 + (Math.random() - 0.5) * 20) | 0;
+    });
     var ceilingBumpTex = new THREE.CanvasTexture(ceilBumpCanvas);
     ceilingBumpTex.wrapS = ceilingBumpTex.wrapT = THREE.RepeatWrapping;
     ceilingBumpTex.repeat.set(3, 3);
@@ -1696,14 +1732,10 @@ function createRoom() {
     rugBumpCanvas.width = 256;
     rugBumpCanvas.height = 256;
     var rugBumpCtx = rugBumpCanvas.getContext('2d');
-    for (let py = 0; py < 256; py++) {
-        for (let px = 0; px < 256; px++) {
-            var rv = 128 + (Math.sin(px * 0.08) * 8) + (Math.sin(py * 0.08) * 8) + (Math.random() - 0.5) * 12;
-            rv = Math.max(0, Math.min(255, rv));
-            rugBumpCtx.fillStyle = 'rgb(' + (rv|0) + ',' + (rv|0) + ',' + (rv|0) + ')';
-            rugBumpCtx.fillRect(px, py, 1, 1);
-        }
-    }
+    fillGrayPixels(rugBumpCtx, 256, 256, function (px, py) {
+        var rv = 128 + (Math.sin(px * 0.08) * 8) + (Math.sin(py * 0.08) * 8) + (Math.random() - 0.5) * 12;
+        return Math.max(0, Math.min(255, rv)) | 0;
+    });
     var rugBumpTex = new THREE.CanvasTexture(rugBumpCanvas);
     rugBumpTex.wrapS = rugBumpTex.wrapT = THREE.RepeatWrapping;
     const rugMat = new THREE.MeshStandardMaterial({
@@ -3946,7 +3978,6 @@ function createRoom() {
 
     // Countertop appliances
     var micMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.3, metalness: 0.4 });
-    var micMat2 = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.4 });
     var micDoor = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.2 });
     // Microwave
     var mw = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.2, 0.25), micMat);

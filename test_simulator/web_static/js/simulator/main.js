@@ -1,9 +1,17 @@
 var _lastAnimTime = 0;
+var _animFrameId = 0;
+var _skyDome = null;
+var _smokeSpawnTimer = 0;
+const SMOKE_SPAWN_INTERVAL = 0.8; // seconds between chimney puffs
+const MAX_FRAME_DT = 0.1;         // clamp dt so a stalled/background tab doesn't teleport animations
+
 function animate() {
-    requestAnimationFrame(animate);
+    _animFrameId = requestAnimationFrame(animate);
     var now = performance.now();
     var dt = _lastAnimTime ? (now - _lastAnimTime) / 1000 : 0.016;
+    if (dt > MAX_FRAME_DT) dt = MAX_FRAME_DT;
     _lastAnimTime = now;
+    var screenDirty = false;
     
     // Smooth camera interpolation (or walk mode update)
     if (window.updateCamera) {
@@ -159,7 +167,7 @@ function animate() {
         }
         
         // Update screen during animation (this will use currentBrightness)
-        updateTVScreen(tvState);
+        screenDirty = true;
         
         // End animation
         if (progress >= 1) {
@@ -181,7 +189,7 @@ function animate() {
                 }
             }
             
-            updateTVScreen(tvState);
+            screenDirty = true;
             console.log(`Power animation complete: ${powerAnimation.targetState ? 'ON' : 'OFF'}`);
         }
     } else if (!powerAnimation.isAnimating && tvPowerLED && tvPowerLED.material) {
@@ -208,7 +216,7 @@ function animate() {
             channelAnimation.isAnimating = false;
         }
         // Screen updates continuously during animation
-        updateTVScreen(tvState);
+        screenDirty = true;
     }
     
     // App switching animation - In-depth multi-phase animation
@@ -300,7 +308,7 @@ function animate() {
             appAnimation.particles = []; // Clear particles
         }
         // Screen updates continuously during animation
-        updateTVScreen(tvState);
+        screenDirty = true;
     }
     
     // Enhanced volume change animation with smooth easing
@@ -315,7 +323,7 @@ function animate() {
             volumeAnimation.isAnimating = false;
         }
         // Screen updates continuously during animation
-        updateTVScreen(tvState);
+        screenDirty = true;
     }
     
     // HDMI input switching animation
@@ -346,7 +354,7 @@ function animate() {
             hdmiAnimation.fadeProgress = 1;
             hdmiAnimation.logoScale = 1;
         }
-        updateTVScreen(tvState);
+        screenDirty = true;
     }
     
     // Channel overlay animation
@@ -376,21 +384,18 @@ function animate() {
         if (progress >= 1) {
             channelOverlay.visible = false;
         }
-        updateTVScreen(tvState);
+        screenDirty = true;
     }
     
-    // Continuous screen updates during any animation
-    if (powerAnimation.isAnimating || channelAnimation.isAnimating || 
+    // Continuous screen updates during any animation, and every frame while the
+    // TV is on (time-based content). Redraw the screen canvas at most once per frame.
+    if (powerAnimation.isAnimating || channelAnimation.isAnimating ||
         appAnimation.isAnimating || volumeAnimation.isAnimating ||
-        hdmiAnimation.isAnimating || channelOverlay.visible) {
-        updateTVScreen(tvState);
+        hdmiAnimation.isAnimating || channelOverlay.visible ||
+        (tvState && tvState.powered_on && screenMesh)) {
+        screenDirty = true;
     }
-    
-    // Ensure screen updates continuously when TV is on (for time-based animations)
-    // This ensures all content (TV shows, apps, etc.) is broadcast to the screen
-    if (tvState && tvState.powered_on && !powerAnimation.isAnimating && screenMesh) {
-        // Update screen periodically to keep time-based animations running
-        // Use a throttled update (every ~16ms = ~60fps max, but we'll do it every frame for smoothness)
+    if (screenDirty) {
         updateTVScreen(tvState);
     }
     
@@ -512,21 +517,21 @@ function animate() {
         }
     }
     
-    // Animate clouds drifting (slow sky sphere rotation)
-    if (scene.children.length > 0) {
-        for (var si = 0; si < scene.children.length; si++) {
-            var child = scene.children[si];
-            if (child.isMesh && child.geometry && child.geometry.type === 'SphereGeometry' && child.material.side === THREE.BackSide) {
-                child.rotation.y += dt * 0.003;
-                break;
-            }
-        }
-    }
+    // Animate clouds drifting (slow sky sphere rotation); dome looked up once, not every frame
+    if (_skyDome === null) _skyDome = findSkyDome() || false;
+    if (_skyDome) _skyDome.rotation.y += dt * 0.003;
 
-    // Chimney smoke particles
+    // Chimney smoke: fixed pool of puffs (see initChimneySmoke in scene.js), spawned on
+    // the render clock so nothing accumulates while the tab is hidden
     if (window._smokeParticles) {
-        for (var pi = window._smokeParticles.length - 1; pi >= 0; pi--) {
+        _smokeSpawnTimer += dt;
+        if (_smokeSpawnTimer >= SMOKE_SPAWN_INTERVAL) {
+            _smokeSpawnTimer = 0;
+            spawnChimneySmoke();
+        }
+        for (var pi = 0; pi < window._smokeParticles.length; pi++) {
             var p = window._smokeParticles[pi];
+            if (!p.visible) continue;
             p.position.y += dt * 0.4;
             p.position.x += Math.sin(p.position.y * 2) * dt * 0.1;
             p.position.z += Math.cos(p.position.y * 2) * dt * 0.1;
@@ -534,8 +539,7 @@ function animate() {
             p.scale.set(s, s, s);
             p.material.opacity -= dt * 0.2;
             if (p.material.opacity <= 0 || p.position.y > 24) {
-                scene.remove(p);
-                window._smokeParticles.splice(pi, 1);
+                p.visible = false;
             }
         }
     }
@@ -565,6 +569,32 @@ function animate() {
 
     renderer.render(scene, camera);
 }
+
+function findSkyDome() {
+    if (!scene) return null;
+    for (var i = 0; i < scene.children.length; i++) {
+        var child = scene.children[i];
+        if (child.isMesh && child.geometry && child.geometry.type === 'SphereGeometry' &&
+            child.material && child.material.side === THREE.BackSide) {
+            return child;
+        }
+    }
+    return null;
+}
+
+// Pause/resume the render loop with page visibility. Browsers already throttle rAF in
+// background tabs; cancelling explicitly also stops timers that piggyback on it and
+// resets the frame clock so the first frame back doesn't see a huge dt.
+document.addEventListener('visibilitychange', function () {
+    if (!renderer) return;
+    if (document.hidden) {
+        if (_animFrameId) cancelAnimationFrame(_animFrameId);
+        _animFrameId = 0;
+    } else if (!_animFrameId) {
+        _lastAnimTime = 0;
+        animate();
+    }
+});
 
 // Add ambient effects for immersion (particle count from GPU preset)
 function addAmbientEffects() {
