@@ -9,5 +9,5 @@ GPUtil>=1.4.0
 
 # Optional: OpenAPI JSON (/api/openapi), webhooks & MQTT (service_layer), real device adapters
 PyYAML>=6.0
-paho-mqtt>=1.6.0
+paho-mqtt>=2.1.0
 
