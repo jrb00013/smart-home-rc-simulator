@@ -155,6 +155,12 @@ int ir_init(void);
 int ir_send(ir_code_t code);
 
 /**
+ * @brief Check whether the IR transmitter is initialized and ready
+ * @return 1 if ready, 0 otherwise
+ */
+int ir_is_ready(void);
+
+/**
  * @brief Deinitialize IR transmission hardware
  */
 void ir_cleanup(void);

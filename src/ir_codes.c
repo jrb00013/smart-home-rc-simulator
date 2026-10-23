@@ -300,6 +300,13 @@ ir_code_t get_ir_code(unsigned char button_code) {
 }
 
 /**
+ * @brief Check whether the IR transmitter is initialized and ready
+ */
+int ir_is_ready(void) {
+    return ir_initialized;
+}
+
+/**
  * @brief Initialize IR transmission hardware
  * 
  * Initializes hardware using assembly functions for GPIO control.

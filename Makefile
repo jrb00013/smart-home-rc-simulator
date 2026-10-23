@@ -113,7 +113,11 @@ $(TARGET): $(OBJ_DIR) $(BIN_DIR) $(OBJECTS)
 	@echo "Build complete: $(TARGET)"
 ifdef SIMULATOR
 	@echo "Simulator support: ENABLED"
+ifdef WEB
+	@echo "Start the web simulator with: python test_simulator/web_server.py (honours TV_REMOTE_HOST/PORT/API_KEY)"
+else
 	@echo "Start the simulator with: python test_simulator/main.py"
+endif
 else
 	@echo "Simulator support: DISABLED (use SIMULATOR=1 to enable)"
 endif

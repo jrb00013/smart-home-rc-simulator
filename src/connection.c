@@ -89,6 +89,17 @@ connection_config_t* connection_get_config(void) {
 }
 
 /**
+ * @brief Check the link without emitting a command the device would act on
+ *
+ * IR is one-way, so sending a code cannot confirm the target received it.
+ * Probing by sending a real button (previously POWER) toggled the TV every
+ * time the remote connected or re-verified. Only check the transmitter.
+ */
+static int connection_probe(void) {
+    return ir_is_ready() ? 0 : -1;
+}
+
+/**
  * @brief Establish connection to target device
  */
 int connection_establish(unsigned char device_type) {
@@ -118,10 +129,7 @@ int connection_establish(unsigned char device_type) {
     
     printf("[Connection] Establishing connection to %s (device %d)...\n", device_name, device_type);
     
-    /* Verify IR system is initialized */
-    /* In a real implementation, this would test hardware */
-    
-    /* Test connection by sending a test command with retries */
+    /* Probe the transmitter with retries (no IR command is sent) */
     int test_result = -1;
     int attempt;
     
@@ -131,7 +139,7 @@ int connection_establish(unsigned char device_type) {
             tu_sleep_ms(connection_config.retry_delay_ms);
         }
         
-        test_result = connection_test(BUTTON_POWER);
+        test_result = connection_probe();
         
         if (test_result == 0) {
             break;  /* Success */
@@ -178,8 +186,8 @@ int connection_verify(void) {
     
     connection_status = CONNECTION_VERIFYING;
     
-    /* Send a test command to verify connection */
-    if (connection_test(BUTTON_POWER) == 0) {
+    /* Re-probe the transmitter (no IR command is sent) */
+    if (connection_probe() == 0) {
         connection_status = CONNECTION_CONNECTED;
         last_verify_time = current_time;
         connection_stats.last_success_time = current_time;

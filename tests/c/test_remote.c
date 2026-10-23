@@ -10,10 +10,14 @@
 #include "connection.h"
 #include "handlers.h"
 
-/* Virtual time: skip IR timing sleeps */
+/* Virtual time: skip IR timing sleeps; count emitted pulses */
+static int ir_pulses = 0;
+
 static void null_trace(int level, uint32_t us) {
-    (void)level;
     (void)us;
+    if (level) {
+        ir_pulses++;
+    }
 }
 
 static int pressed_calls = 0;
@@ -191,6 +195,26 @@ TEST(cleanup_and_reinit) {
     remote_cleanup();
 }
 
+TEST(connect_and_verify_emit_no_ir) {
+    /* Regression: establish/verify probed by sending POWER, toggling the TV
+     * on every connect and every verify interval. */
+    CHECK_EQ_I(remote_init(), 0);
+    fast_connection_config();
+    connection_disconnect();
+    connection_stats_t before = *connection_get_stats();
+    ir_pulses = 0;
+    CHECK_EQ_I(connection_establish(DEVICE_TV), 0);
+    connection_config_t cfg = *connection_get_config();
+    cfg.verify_interval_ms = 0;
+    connection_set_config(&cfg);
+    CHECK_EQ_I(connection_verify(), 0);
+    CHECK_EQ_I(ir_pulses, 0);
+    CHECK_EQ_U(connection_get_stats()->total_transmissions, before.total_transmissions);
+    /* Control: an explicit test send does emit IR */
+    CHECK_EQ_I(connection_test(BUTTON_INFO), 0);
+    CHECK(ir_pulses > 0);
+}
+
 int main(void) {
     printf("test_remote\n");
     ir_set_trace_hook(null_trace);
@@ -203,6 +227,7 @@ int main(void) {
     RUN(room_buttons_succeed_without_ir);
     RUN(set_device_notifies);
     RUN(reconnect_keeps_device);
+    RUN(connect_and_verify_emit_no_ir);
     RUN(stats_are_consistent);
     RUN(cleanup_and_reinit);
     return TEST_SUMMARY();
