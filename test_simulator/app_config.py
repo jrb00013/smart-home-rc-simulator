@@ -3,9 +3,11 @@ Production-ready app config: env-first, with optional JSON file and validation.
 All settings can be set via environment variables; file overrides are optional.
 """
 import json
+import logging
 import os
 import re
-from typing import Any, Dict, List, Optional
+import secrets
+from typing import List, Optional
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -22,12 +24,18 @@ ENV_RATE_LIMIT = "TV_REMOTE_RATE_LIMIT"  # e.g. "100/hour" or "10/minute" or "" 
 ENV_SERVICE_CONFIG = "SERVICE_CONFIG"
 ENV_AUTONOMOUS_CONFIG = "AUTONOMOUS_CONFIG"
 
-DEFAULT_HOST = "0.0.0.0"
+# Loopback by default: the dev server must not be exposed to the network unless
+# TV_REMOTE_HOST is set explicitly (the Dockerfile sets 0.0.0.0).
+DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 5000
 DEFAULT_LOG_LEVEL = "INFO"
-DEFAULT_CORS_ORIGINS = "*"
-# No default SECRET_KEY in production; use env or service_config
-FALLBACK_SECRET = "phillips_remote_tv_simulator"  # only if nothing set
+# Empty = same-origin only for Socket.IO. Set TV_REMOTE_CORS_ORIGINS="*" to allow any origin.
+DEFAULT_CORS_ORIGINS = ""
+# No hardcoded SECRET_KEY: if neither env nor service_config provides one, a random
+# per-process key is generated (sessions do not survive restarts, which is fine for dev).
+FALLBACK_SECRET = secrets.token_hex(32)
+_fallback_warned = False
+LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "::1")
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
@@ -72,15 +80,26 @@ def get_secret_key() -> str:
                 return key
     except Exception:
         pass
+    global _fallback_warned
+    if not _fallback_warned:
+        _fallback_warned = True
+        logging.getLogger("app_config").warning(
+            "%s not set (and no secret_key in service_config); using a random per-process "
+            "dev secret. Set %s in production.", ENV_SECRET_KEY, ENV_SECRET_KEY)
     return FALLBACK_SECRET
 
 
 def get_cors_origins() -> List[str]:
-    """CORS allowed origins. Env: comma/semicolon separated, or '*'."""
+    """CORS allowed origins. Env: comma/semicolon separated, or '*'.
+    Returns [] when unset, meaning same-origin only (never "allow all" by default)."""
     v = os.environ.get(ENV_CORS_ORIGINS, DEFAULT_CORS_ORIGINS).strip()
-    if v == "*" or not v:
+    if v == "*":
         return ["*"]
-    return [x.strip() for x in re.split(r"[,;\s]+", v) if x.strip()] or ["*"]
+    return [x.strip() for x in re.split(r"[,;\s]+", v) if x.strip()]
+
+
+def is_loopback_host(host: str) -> bool:
+    return (host or "").strip().lower() in LOOPBACK_HOSTS
 
 
 def get_log_level() -> str:
@@ -113,6 +132,10 @@ def validate_config(strict: bool = False) -> List[str]:
         errors.append(f"Invalid {ENV_PORT}: {port}")
     if get_debug():
         errors.append("Debug mode is on (TV_REMOTE_DEBUG=1); disable in production.")
+        if not is_loopback_host(get_host()):
+            errors.append("Debug mode is ignored when binding a non-loopback host (Werkzeug debugger = remote code execution).")
+    if "*" in get_cors_origins():
+        errors.append(f"{ENV_CORS_ORIGINS}=* lets any website drive the remote over Socket.IO.")
     if get_secret_key() == FALLBACK_SECRET and strict:
         errors.append(f"Set {ENV_SECRET_KEY} or secret_key in service_config for production.")
     return errors

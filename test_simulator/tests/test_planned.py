@@ -84,55 +84,39 @@ class TestAutonomousConfigFormat:
 
 # --- Detect-brand API (implemented) -----------------------------------------------
 
-@pytest.mark.requires_server
 class TestDetectBrandAPI:
     """POST /api/detect-brand returns brand and brand_id (keyword-based from text)."""
 
-    def test_detect_brand_from_text_returns_brand_id(self, server_running):
-        """POST /api/detect-brand with text returns brand, brand_id, confidence."""
-        import requests
-        from tests.conftest import BASE_URL
-        r = requests.post(
-            f"{BASE_URL}/api/detect-brand",
-            json={"text": "I have a Samsung TV"},
-            headers={"Content-Type": "application/json"},
-            timeout=5,
-        )
+    def test_detect_brand_from_text_returns_brand_id(self, client):
+        r = client.post("/api/detect-brand", json={"text": "I have a Samsung TV"})
         assert r.status_code == 200
-        data = r.json()
-        assert "brand" in data
-        assert "brand_id" in data
+        data = r.get_json()
         assert data["brand"] == "Samsung"
         assert data["brand_id"] == 1
+        state = client.get("/api/state").get_json()
+        assert state["detected_brand"] == "Samsung"
+        assert state["detected_brand_id"] == 1
 
-    def test_detect_brand_unknown_with_gibberish(self, server_running):
-        """Unknown text returns brand Unknown, brand_id 0."""
-        import requests
-        from tests.conftest import BASE_URL
-        r = requests.post(
-            f"{BASE_URL}/api/detect-brand",
-            json={"text": "xyz random"},
-            headers={"Content-Type": "application/json"},
-            timeout=5,
-        )
+    def test_detect_brand_unknown_with_gibberish(self, client):
+        r = client.post("/api/detect-brand", json={"text": "xyz random"})
         assert r.status_code == 200
-        data = r.json()
+        data = r.get_json()
         assert data.get("brand") == "Unknown"
         assert data.get("brand_id") == 0
 
-    def test_detect_brand_accepts_query_key(self, server_running):
-        """API accepts 'query' as well as 'text' for the input string."""
-        import requests
-        from tests.conftest import BASE_URL
-        r = requests.post(
-            f"{BASE_URL}/api/detect-brand",
-            json={"query": "LG OLED"},
-            headers={"Content-Type": "application/json"},
-            timeout=5,
-        )
+    def test_detect_brand_accepts_query_key(self, client):
+        r = client.post("/api/detect-brand", json={"query": "LG OLED"})
         assert r.status_code == 200
-        data = r.json()
-        assert data.get("brand_id") == 2
+        assert r.get_json().get("brand_id") == 2
+
+    @pytest.mark.parametrize("body", [{"text": 123}, {"text": ["Samsung"]}])
+    def test_detect_brand_rejects_non_string(self, client, body):
+        assert client.post("/api/detect-brand", json=body).status_code == 400
+
+    def test_detect_brand_no_body(self, client):
+        r = client.post("/api/detect-brand", data="garbage", content_type="text/plain")
+        assert r.status_code == 200
+        assert r.get_json()["brand"] == "Unknown"
 
 
 # --- Brand detection module (unit, no server) -------------------------------------

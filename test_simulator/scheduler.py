@@ -14,6 +14,7 @@ import time
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_CONFIG_PATH = os.path.join(SCRIPT_DIR, "autonomous_config.json")
 DEFAULT_CHECK_INTERVAL_SEC = 30
+MAX_CHECK_INTERVAL_SEC = 30
 DAY_NAMES = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 SEND_RETRIES = 2
 SEND_RETRY_DELAY_SEC = 0.5
@@ -35,11 +36,6 @@ def load_service_config():
     """Load service_config so adapters (backends) are available."""
     try:
         from service_layer import load_service_config as _load
-        return _load()
-    except ImportError:
-        return {}
-    try:
-        from adapters.registry import load_config as _load
         return _load()
     except ImportError:
         return {}
@@ -79,18 +75,18 @@ def apply_preset(presets: list, preset_name: str, target: str = None) -> bool:
     return False
 
 
-def should_run_rule(rule: dict) -> bool:
-    now = time.localtime()
+def should_run_rule(rule: dict, now: time.struct_time = None) -> bool:
+    now = now or time.localtime()
     rule_time = rule.get("time", "")
     if not rule_time:
         return False
     try:
         h, m = map(int, rule_time.split(":"))
-    except ValueError:
+    except (ValueError, AttributeError):
         return False
     days = rule.get("days") or DAY_NAMES
     today = DAY_NAMES[now.tm_wday]
-    if today not in [d.lower() for d in days]:
+    if today not in [str(d).lower() for d in days]:
         return False
     # Trigger if we're in the same minute (scheduler runs every CHECK_INTERVAL_SEC)
     return now.tm_hour == h and now.tm_min == m
@@ -103,6 +99,10 @@ def run_scheduler(config_path: str):
     time_rules = config.get("time_rules", [])
     default_target = config.get("default_target")
     check_interval = config.get("check_interval_sec", DEFAULT_CHECK_INTERVAL_SEC)
+    # Rules match on the minute; checking less often than ~twice a minute misses them.
+    if not isinstance(check_interval, (int, float)) or not 1 <= check_interval <= MAX_CHECK_INTERVAL_SEC:
+        log.warning("check_interval_sec=%r out of range; using %ds", check_interval, DEFAULT_CHECK_INTERVAL_SEC)
+        check_interval = DEFAULT_CHECK_INTERVAL_SEC
 
     if not default_target:
         try:
@@ -122,42 +122,61 @@ def run_scheduler(config_path: str):
     signal.signal(signal.SIGTERM, _on_signal)
     signal.signal(signal.SIGINT, _on_signal)
 
+    last_triggered: dict = {}
     while not shutdown_requested:
         try:
-            now = time.localtime()
-            minute_key = (now.tm_hour, now.tm_min)
-
-            for rule in time_rules:
-                if rule.get("action") != "apply_preset":
-                    continue
-                preset_name = rule.get("preset_name")
-                if not preset_name:
-                    continue
-                if not should_run_rule(rule):
-                    continue
-                key = (minute_key, preset_name)
-                if last_triggered.get(key) == minute_key:
-                    continue
-                last_triggered[key] = minute_key
-                # Per-rule target, or preset target, or default
-                target = rule.get("target")
-                if not target:
-                    for p in presets:
-                        if p.get("name") == preset_name:
-                            target = p.get("target")
-                            break
-                if not target:
-                    target = default_target
-                log.info("Trigger | time=%s preset=%s target=%s", rule.get("time"), preset_name, target)
-                apply_preset(presets, preset_name, target=target)
-
-            if len(last_triggered) > 100:
-                last_triggered = {k: v for k, v in list(last_triggered.items())[-50:]}
-
+            run_due_rules(time_rules, presets, default_target, last_triggered)
         except Exception as e:
             log.exception("Scheduler error: %s", e)
 
         time.sleep(check_interval)
+
+
+def run_due_rules(time_rules: list, presets: list, default_target: str,
+                  last_triggered: dict, now: time.struct_time = None) -> list:
+    """Fire every rule due in the current minute, at most once per (minute, preset).
+
+    `last_triggered` is mutated to remember what already fired (the loop checks more
+    than once a minute). Returns the list of (preset_name, target) applied.
+    Previously `last_triggered` was never defined, so every tick raised NameError
+    (swallowed by the loop's except) and no rule ever fired.
+    """
+    now = now or time.localtime()
+    minute_key = (now.tm_yday, now.tm_hour, now.tm_min)
+    fired = []
+    for rule in time_rules:
+        if rule.get("action") != "apply_preset":
+            continue
+        preset_name = rule.get("preset_name")
+        if not preset_name:
+            continue
+        if not should_run_rule(rule, now):
+            continue
+        key = (minute_key, preset_name)
+        if key in last_triggered:
+            continue
+        last_triggered[key] = True
+        # Per-rule target, or preset target, or default
+        target = rule.get("target")
+        if not target:
+            for p in presets:
+                if p.get("name") == preset_name:
+                    target = p.get("target")
+                    break
+        if not target:
+            target = default_target
+        log.info("Trigger | time=%s preset=%s target=%s", rule.get("time"), preset_name, target)
+        try:
+            apply_preset(presets, preset_name, target=target)
+            fired.append((preset_name, target))
+        except Exception:
+            # One bad rule (e.g. unknown target) must not stop the others.
+            log.exception("Preset %s failed for target %s", preset_name, target)
+
+    # Forget entries from previous minutes so the dict stays small.
+    for k in [k for k in last_triggered if k[0] != minute_key]:
+        del last_triggered[k]
+    return fired
 
 
 def main():

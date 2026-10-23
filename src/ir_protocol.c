@@ -29,6 +29,24 @@ void ir_send_rc5(uint16_t code) {
         bit = (code >> i) & 0x01;
         ir_send_rc5_bit(bit);
     }
+    ir_led_off();
+}
+
+/**
+ * @brief Send the RC6 trailer (toggle) bit, which is twice the normal width
+ */
+static void ir_send_rc6_trailer_bit(uint8_t bit) {
+    if (bit) {
+        ir_led_on();
+        delay_us(2 * RC6_BIT_TIME);
+        ir_led_off();
+        delay_us(2 * RC6_BIT_TIME);
+    } else {
+        ir_led_off();
+        delay_us(2 * RC6_BIT_TIME);
+        ir_led_on();
+        delay_us(2 * RC6_BIT_TIME);
+    }
 }
 
 /**
@@ -58,11 +76,17 @@ void ir_send_rc6(uint32_t code) {
     /* Send start bit (always 1) */
     ir_send_rc6_bit(1);
     
-    /* Send remaining bits MSB first (19 bits) */
+    /* Send remaining bits MSB first (19 bits); bit 15 is the double-width
+     * trailer/toggle bit (see ir_code_to_rc6 for the layout). */
     for (i = 18; i >= 0; i--) {
         bit = (code >> i) & 0x01;
-        ir_send_rc6_bit(bit);
+        if (i == 15) {
+            ir_send_rc6_trailer_bit(bit);
+        } else {
+            ir_send_rc6_bit(bit);
+        }
     }
+    ir_led_off();
 }
 
 /**

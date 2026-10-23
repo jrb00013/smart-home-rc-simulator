@@ -1,12 +1,44 @@
-# Dependencies and local state
+# VCS / editor
+.git
+.gitignore
+.dockerignore
+Dockerfile
+.vscode
+.idea
+
+# Python caches, virtualenvs, test/coverage output
+__pycache__
+**/__pycache__
+*.py[cod]
 .venv
 venv
 env
-__pycache__
-*.pyc
 .pytest_cache
-.git
+.ruff_cache
+.mypy_cache
+.coverage
+htmlcov
+*.log
+
+# JS tooling (not needed at runtime; web_static is served as-is)
+node_modules
+package.json
+package-lock.json
+.eslintrc*
+eslint.config.*
+
+# Tests, docs and dev-only files
+tests
 *.md
-# Optional: don't bake secrets into image
+docs
+VERIFY_SETUP.py
+test_streaming_api.sh
+run_*.bat
+run_*.sh
+requirements-dev.txt
+
+# Never bake local secrets/state into the image
 service_config.json
 graphics_config.json
+.env
+.env.*

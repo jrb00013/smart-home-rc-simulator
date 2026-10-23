@@ -2,39 +2,29 @@
 Test all button codes
 """
 import pytest
-import time
-from tests.conftest import BUTTON_CODES, press_button, get_state, server_running
+
+from button_codes import BUTTON_CODES as SERVER_BUTTON_NAMES
+from tests.conftest import BUTTON_CODES, press_button, get_state
 
 
 class TestAllButtons:
     """Test all available button codes"""
-    
-    @pytest.mark.parametrize("button_name,button_code", [
-        ('Power', 0x10),
-        ('Volume Up', 0x11),
-        ('Volume Down', 0x12),
-        ('Mute', 0x13),
-        ('Channel Up', 0x14),
-        ('Channel Down', 0x15),
-        ('Home', 0x20),
-        ('Menu', 0x21),
-        ('Back', 0x22),
-        ('Info', 0x23),
-        ('YouTube', 0x01),
-        ('Netflix', 0x02),
-        ('Amazon Prime', 0x03),
-        ('HBO Max', 0x04),
-        ('Game Mode', 0xA0),
-        ('Input', 0x25),
-        ('Source', 0x26),
-    ])
-    def test_button_code(self, server_running, button_name, button_code):
-        """Test each button code"""
-        # Press button
-        success = press_button(button_code, delay=0.3)
-        assert success is True
-        
-        # Verify state is still accessible
+
+    @pytest.mark.parametrize("button_name,button_code", sorted(BUTTON_CODES.items()))
+    def test_button_code(self, client, button_name, button_code):
+        """Each named button is accepted and recorded with the server's name for it"""
+        assert press_button(button_code) is True
         state = get_state()
         assert state is not None
+        assert state['last_button'] == SERVER_BUTTON_NAMES[button_code]
 
+    @pytest.mark.parametrize("button_code", sorted(SERVER_BUTTON_NAMES))
+    def test_every_defined_code_accepted(self, client, ensure_tv_on, button_code):
+        """Every code defined in button_codes.py is accepted without error"""
+        assert press_button(button_code) is True
+        assert get_state()['last_button'] == SERVER_BUTTON_NAMES[button_code]
+
+    def test_conftest_names_match_server(self):
+        """The test-side name -> code table must agree with button_codes.py"""
+        for name, code in BUTTON_CODES.items():
+            assert SERVER_BUTTON_NAMES.get(code) == name, (name, hex(code))

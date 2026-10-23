@@ -2,6 +2,7 @@
 Service layer: load service_config (file + env), API key auth, webhooks, MQTT.
 Used by web_server and scheduler. Production: set TV_REMOTE_API_KEY etc. via env.
 """
+import hmac
 import json
 import logging
 import os
@@ -56,20 +57,32 @@ def require_api_key() -> Optional[str]:
     return key if key else None
 
 
-def check_auth(request) -> Optional[tuple]:
+def _key_matches(candidate: Optional[str], key: str) -> bool:
+    """Constant-time comparison so the key cannot be recovered via response timing."""
+    if not isinstance(candidate, str) or not candidate:
+        return False
+    return hmac.compare_digest(candidate.encode("utf-8"), key.encode("utf-8"))
+
+
+def extract_api_key(request, auth: Any = None) -> Optional[str]:
+    """API key from Authorization: Bearer, X-API-Key header, ?api_key= or a Socket.IO auth payload."""
+    if isinstance(auth, dict) and auth.get("api_key"):
+        return str(auth.get("api_key"))
+    header = request.headers.get("Authorization") or ""
+    if header.startswith("Bearer "):
+        return header[7:].strip()
+    return request.headers.get("X-API-Key") or request.args.get("api_key")
+
+
+def check_auth(request, auth: Any = None) -> Optional[tuple]:
     """
     Check request for valid API key. Returns None if OK, else (error_dict, status_code).
+    `auth` is the optional Socket.IO connect payload ({"api_key": "..."}).
     """
     key = require_api_key()
     if not key:
         return None
-    auth = request.headers.get("Authorization")
-    if auth and auth.startswith("Bearer "):
-        token = auth[7:].strip()
-        if token == key:
-            return None
-    api_key = request.headers.get("X-API-Key") or request.args.get("api_key")
-    if api_key == key:
+    if _key_matches(extract_api_key(request, auth), key):
         return None
     return ({"error": "Unauthorized", "message": "Missing or invalid API key"}, 401)
 
@@ -106,6 +119,14 @@ def fire_webhook(event: str, payload: Dict[str, Any]) -> None:
     threading.Thread(target=_post, daemon=True).start()
 
 
+def _new_mqtt_client(mqtt_module):
+    """Create a paho Client compatible with paho-mqtt 1.x and 2.x (2.x requires callback_api_version)."""
+    api_version = getattr(mqtt_module, "CallbackAPIVersion", None)
+    if api_version is not None:
+        return mqtt_module.Client(api_version.VERSION2)
+    return mqtt_module.Client()
+
+
 def publish_mqtt(event: str, payload: Dict[str, Any]) -> None:
     """Publish state event to MQTT if enabled."""
     cfg = get_service_config()
@@ -120,18 +141,21 @@ def publish_mqtt(event: str, payload: Dict[str, Any]) -> None:
     topic = f"{prefix}/events/{event}"
     broker = mqtt_cfg.get("broker", "localhost")
     port = mqtt_cfg.get("port", 1883)
-    client = None
-
     def _pub():
-        nonlocal client
         try:
-            client = mqtt.Client()
+            client = _new_mqtt_client(mqtt)
             if mqtt_cfg.get("username"):
                 client.username_pw_set(mqtt_cfg.get("username"), mqtt_cfg.get("password"))
             client.connect(broker, port, 60)
-            import json as _json
-            client.publish(topic, _json.dumps(payload), qos=0)
-            client.disconnect()
+            # Run the network loop until the message is actually written; a bare
+            # publish()+disconnect() without a loop can drop the packet.
+            client.loop_start()
+            try:
+                info = client.publish(topic, json.dumps(payload, default=str), qos=0)
+                info.wait_for_publish(timeout=5)
+            finally:
+                client.disconnect()
+                client.loop_stop()
         except Exception as e:
             log.warning("MQTT publish failed: %s", e)
 
@@ -159,8 +183,12 @@ def start_mqtt_command_subscriber(on_button: Callable[[int], None], on_preset: C
     def on_message(client, userdata, msg):
         try:
             payload = json.loads(msg.payload.decode("utf-8"))
+            if not isinstance(payload, dict):
+                raise ValueError("payload must be a JSON object")
             if "button_code" in payload:
-                code = int(payload["button_code"]) & 0xFF
+                code = payload["button_code"]
+                if isinstance(code, bool) or not isinstance(code, int) or not 0 <= code <= 0xFF:
+                    raise ValueError(f"button_code must be an integer 0-255, got {code!r}")
                 on_button(code)
             elif "preset" in payload:
                 name = str(payload["preset"])
@@ -171,7 +199,7 @@ def start_mqtt_command_subscriber(on_button: Callable[[int], None], on_preset: C
 
     def run():
         try:
-            client = mqtt.Client()
+            client = _new_mqtt_client(mqtt)
             if mqtt_cfg.get("username"):
                 client.username_pw_set(mqtt_cfg.get("username"), mqtt_cfg.get("password"))
             client.on_message = on_message
