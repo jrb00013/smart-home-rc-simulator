@@ -87,8 +87,11 @@ int connection_establish(unsigned char device_type);
 int connection_verify(void);
 
 /**
- * @brief Test connection by sending a test command
- * @param test_button Button code to test (e.g., BUTTON_POWER)
+ * @brief Test the link by sending a real command
+ *
+ * The target device will act on the command, so pick a harmless button.
+ * connection_establish() and connection_verify() do not send anything.
+ * @param test_button Button code to send (e.g., BUTTON_INFO)
  * @return 0 on success, -1 on failure
  */
 int connection_test(unsigned char test_button);
