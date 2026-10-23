@@ -328,6 +328,7 @@ int main(void) {
 
 ## See Also
 
+- [C_REMOTE.md](C_REMOTE.md) - C remote overview and build targets
 - `examples/connection_example.c` - Complete connection example
 - `include/connection.h` - Connection API reference
 - `src/connection.c` - Connection implementation
