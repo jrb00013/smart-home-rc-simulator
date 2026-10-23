@@ -25,7 +25,7 @@ make help             # lists all targets
 | `make latency-probe` / `make test-latency` | Build / build and run `bin/latency_probe` (about 3 minutes) |
 | `make clean` / `make rebuild` | Remove `obj/` and `bin/` / clean then build |
 | `make SIMULATOR=1` | Build with the simulator client (Unix socket / Windows named pipe) |
-| `make SIMULATOR=1 WEB=1` | Build with the HTTP client that posts to the web simulator on `localhost:5000` |
+| `make SIMULATOR=1 WEB=1` | Build with the HTTP client that posts to the web simulator (`TV_REMOTE_HOST`/`TV_REMOTE_PORT`, default `localhost:5000`; sends `TV_REMOTE_API_KEY` if set) |
 
 Requirements: GCC or Clang and GNU Make (MinGW/MSYS2 on Windows). The default build compiles with
 `-std=c11 -Wall -Wextra`.
@@ -143,10 +143,7 @@ uses the portable C fallback. See [ASSEMBLY_INTEGRATION.md](ASSEMBLY_INTEGRATION
 
 ## Known issues
 
-- `connection_establish()` checks the link by transmitting a real Power code, so the first press
-  after start-up can toggle the TV's power.
 - Several buttons (GAME1–3, HDR modes, CAST, RECORD_LIST, …) have no IR code yet and return
   `ERROR_INVALID_IR_CODE`.
-- The C web client always targets `localhost:5000`; it ignores `TV_REMOTE_PORT`.
 - The per-architecture assembly timing files are not built (see
   [ASSEMBLY_INTEGRATION.md](ASSEMBLY_INTEGRATION.md)).

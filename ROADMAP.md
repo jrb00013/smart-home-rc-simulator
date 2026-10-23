@@ -8,10 +8,7 @@ not priority.
 
 These are bugs or rough edges in shipped code, listed so readers are not surprised:
 
-- `connection_establish()` probes the link with a real Power code, so the first press can toggle
-  the TV.
 - Several buttons (GAME1–3, HDR modes, CAST, RECORD_LIST, …) have no IR code yet.
-- The C web client hard-codes `localhost:5000`; it ignores `TV_REMOTE_PORT`.
 - Web keyboard shortcuts: `Shift+F1`–`F8` also fire the unshifted `F1`–`F8` action, and the
   `F1`–`F8` check is a string comparison that also matches `F10`–`F12`.
 - `openapi.yaml` does not describe `/api/openapi`, `/api/openapi.json` or `/api/openapi.yaml`.

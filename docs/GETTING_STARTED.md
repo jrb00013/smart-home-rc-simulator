@@ -123,7 +123,7 @@ Start the simulator first, then from the repository root:
 
 | Simulator | Build | Transport |
 |-----------|-------|-----------|
-| Web | `make clean && make SIMULATOR=1 WEB=1` | HTTP `POST /api/button` to `localhost:5000` (port is hard-coded) |
+| Web | `make clean && make SIMULATOR=1 WEB=1` | HTTP `POST /api/button` to `TV_REMOTE_HOST`:`TV_REMOTE_PORT` (default `localhost:5000`), with `TV_REMOTE_API_KEY` if set |
 | Desktop, or web via IPC | `make clean && make SIMULATOR=1` | Unix socket `/tmp/phillips_remote_tv.sock` (Windows named pipe `\\.\pipe\phillips_remote_tv`) |
 
 ```bash
@@ -154,7 +154,7 @@ Rules and presets are in `autonomous_config.json`. See
 | `error: externally-managed-environment` | Use a venv or Poetry (see [Install](#install-the-python-simulator)); don't `pip install` into system Python. |
 | `ModuleNotFoundError` | Activate the venv / use `poetry run`, and run from `test_simulator/`. |
 | `poetry: command not found` | Add `~/.local/bin` to `PATH`, or use pip + venv instead. |
-| Port 5000 in use | `TV_REMOTE_PORT=5001 python web_server.py`. The C web client still targets 5000. |
+| Port 5000 in use | `TV_REMOTE_PORT=5001 python web_server.py`, and export the same `TV_REMOTE_PORT` for the C web client. |
 | Can't reach the server from another machine | It binds to `127.0.0.1` by default; set `TV_REMOTE_HOST=0.0.0.0` (and read the [security checklist](../test_simulator/PRODUCTION.md#security-checklist)). |
 | Blank browser page | Check the browser console (F12); WebGL and JavaScript must be enabled. |
 | C program can't connect (web) | Start the server first; build with `SIMULATOR=1 WEB=1`; check the firewall. |

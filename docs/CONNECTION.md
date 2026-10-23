@@ -72,8 +72,9 @@ if (remote_is_connected()) {
     printf("Currently connected\n");
 }
 
-/* Test connection */
-if (connection_test(BUTTON_POWER) == 0) {
+/* Test the link by sending a real command (the device acts on it, so pick a
+ * harmless button). connection_establish()/connection_verify() send nothing. */
+if (connection_test(BUTTON_INFO) == 0) {
     printf("Connection test passed\n");
 }
 
@@ -121,7 +122,8 @@ printf("Quality: %d\n", quality);
 ### Connection Establishment
 
 #### `connection_establish(device_type)`
-Establishes connection to specified device type.
+Establishes connection to specified device type. Checks that the IR transmitter is ready;
+no IR command is sent (IR is one-way, so a send can't confirm receipt).
 
 **Returns:**
 - `0` on success
@@ -137,14 +139,15 @@ Ensures connection is established (wrapper function).
 ### Connection Verification
 
 #### `connection_verify()`
-Verifies connection status by sending test command.
+Re-checks transmitter readiness once `verify_interval_ms` has elapsed. Sends no IR command.
 
 **Returns:**
 - `0` if connected
 - `-1` if disconnected
 
 #### `connection_test(test_button)`
-Tests connection by sending specified button command.
+Sends the given button as a real IR command. The device will act on it, so use a harmless
+button such as `BUTTON_INFO`.
 
 **Returns:**
 - `0` on success
