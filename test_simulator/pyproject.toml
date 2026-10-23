@@ -13,7 +13,7 @@ flask-socketio = "^5.0.0"
 python-socketio = "^5.0.0"
 pygame = "^2.0.0"
 requests = "^2.28.0"
-pywin32 = {version = "^300", markers = "sys_platform == 'win32'"}
+pywin32 = {version = ">=300,<312", markers = "sys_platform == 'win32'"}
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=7.0.0"
