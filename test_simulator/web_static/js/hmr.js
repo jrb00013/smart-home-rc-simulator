@@ -105,34 +105,15 @@
         collectScripts();
         
         // Listen for file change events
+        // The simulator is a set of classic scripts sharing top-level `let`/`const`
+        // globals, so re-injecting a changed <script> throws "Identifier 'x' has already
+        // been declared" and re-runs side effects (listeners, scene objects). Do a full,
+        // debounced page reload instead (an editor save often touches several files).
+        var reloadTimer = null;
         socket.on('hmr:file_changed', function(data) {
-            console.log('[HMR] File changed:', data.path);
-            
-            // Map server path to client path
-            var clientPath = data.path;
-            if (clientPath.startsWith('web_static/')) {
-                clientPath = clientPath.replace('web_static/', '/static/');
-            } else if (!clientPath.startsWith('/static/')) {
-                clientPath = '/static/' + clientPath;
-            }
-            
-            // Check if this script is loaded
-            var found = false;
-            for (var path in loadedScripts) {
-                if (path === clientPath || path.endsWith(clientPath) || clientPath.endsWith(path)) {
-                    reloadScript(path);
-                    found = true;
-                    break;
-                }
-            }
-            
-            // If not found but it's a JS file, reload page
-            if (!found && clientPath.endsWith('.js')) {
-                console.log('[HMR] Script not in page, reloading...');
-                reloadPage();
-            } else if (!found) {
-                console.log('[HMR] File not a loaded script, ignoring:', clientPath);
-            }
+            console.log('[HMR] File changed:', data && data.path);
+            clearTimeout(reloadTimer);
+            reloadTimer = setTimeout(reloadPage, 150);
         });
         
         // Listen for full reload requests

@@ -1,10 +1,36 @@
 function initSocket() {
-    socket = io();
+    if (typeof io !== 'function') {
+        // socket.io client failed to load (offline / CDN blocked): keep the 3D scene usable
+        console.warn('socket.io client not available; running without server connection');
+        hideLoadingOverlay();
+        return;
+    }
+    if (socket) {
+        // Never stack a second connection (and duplicate handlers) on re-init
+        return;
+    }
+    // socket.io reconnects automatically; cap the backoff so a restarted server is picked up quickly
+    const socketOptions = { reconnectionDelay: 1000, reconnectionDelayMax: 5000 };
+    const apiKey = getApiKey();
+    if (apiKey) {
+        // Server requires the key on the Socket.IO handshake when one is configured
+        socketOptions.auth = { api_key: apiKey };
+    }
+    socket = io(socketOptions);
+    
+    socket.on('connect_error', (err) => {
+        console.warn('[Socket] Connection error:', err && err.message ? err.message : err);
+        if (typeof showNotification === 'function') {
+            showNotification(apiKey
+                ? 'Cannot connect to server (check API key)'
+                : 'Cannot connect to server - if it needs an API key, open with ?api_key=...');
+        }
+    });
     
     socket.on('connect', () => {
         console.log('Connected to server');
         console.log('[Volume Stabilizer] Server connection established - volume stabilization active');
-        document.getElementById('loading').style.display = 'none';
+        hideLoadingOverlay();
         // Force next frame to be sent so /api/frame has data quickly when TV is on
         lastFrameSent = 0;
         // Initialize IR visualization
@@ -21,8 +47,15 @@ function initSocket() {
         }
     });
     
-    socket.on('disconnect', () => {
+    socket.on('disconnect', (reason) => {
         console.warn('[Volume Stabilizer] Server disconnected - volume stabilization paused');
+        if (reason === 'io server disconnect') {
+            // Server closed the socket explicitly: socket.io will not retry on its own
+            socket.connect();
+        }
+        if (typeof showNotification === 'function') {
+            showNotification('Disconnected from server - reconnecting...');
+        }
     });
     
     socket.on('tv_state_update', (state) => {
@@ -32,6 +65,8 @@ function initSocket() {
     socket.on('graphics_preset', (preset) => {
         if (preset && typeof preset === 'object') {
             window.GRAPHICS_PRESET = preset;
+            // Re-apply size + capped pixel ratio from the new preset now, not on next resize
+            if (renderer && camera && typeof onWindowResize === 'function') onWindowResize();
             if (document.getElementById('graphics-tier')) {
                 var label = preset._tier || 'MEDIUM';
                 if (preset._gpu_name) label += ' (' + (preset._gpu_name.length > 20 ? preset._gpu_name.substring(0, 17) + '…' : preset._gpu_name) + ')';
@@ -61,6 +96,40 @@ function initSocket() {
     socket.on('button_press_interrupt', async (buttonData) => {
         await handleButtonPressInterrupt(buttonData);
     });
+}
+
+// API key for the server (Socket.IO handshake / REST). Sources, in order:
+//   1. window.TV_REMOTE_API_KEY (if the page template injects one)
+//   2. ?api_key=... in the page URL (remembered in localStorage, then removed from the URL)
+//   3. localStorage 'tvRemoteApiKey' from an earlier visit
+// No key -> connect exactly as before (servers without a key configured).
+const API_KEY_STORAGE = 'tvRemoteApiKey';
+function getApiKey() {
+    if (typeof window.TV_REMOTE_API_KEY === 'string' && window.TV_REMOTE_API_KEY) {
+        return window.TV_REMOTE_API_KEY;
+    }
+    let key = null;
+    try {
+        const url = new URL(window.location.href);
+        const fromUrl = url.searchParams.get('api_key');
+        if (fromUrl) {
+            key = fromUrl;
+            try { localStorage.setItem(API_KEY_STORAGE, fromUrl); } catch (e) { /* storage blocked */ }
+            url.searchParams.delete('api_key');
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+            }
+        }
+    } catch (e) { /* malformed URL: ignore */ }
+    if (!key) {
+        try { key = localStorage.getItem(API_KEY_STORAGE); } catch (e) { key = null; }
+    }
+    return key || null;
+}
+
+function hideLoadingOverlay() {
+    const loading = document.getElementById('loading');
+    if (loading) loading.style.display = 'none';
 }
 
 // Async event handler for hardware interrupts (bridges assembly -> C -> JavaScript)
