@@ -405,13 +405,3 @@ function updateIRDetails() {
     document.getElementById('ir-frequency').textContent = irVisualization.frequency.toLocaleString();
     document.getElementById('ir-duration').textContent = (irVisualization.totalDuration || 0).toFixed(2);
 }
-
-// Export for use in tv-simulator.js
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        initIRVisualization,
-        startIRVisualization,
-        stopIRVisualization
-    };
-}
-

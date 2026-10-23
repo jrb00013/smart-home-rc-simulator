@@ -323,3 +323,15 @@ function smoothVolumeTransition(fromVolume, toVolume) {
 }
 
 // IR signal particle system
+
+// Start HDMI input switch animation (progress is driven in main.js animate()).
+// Called from socket-state.js when tv_state.input_source changes.
+function startHDMIAnimation(oldInput, newInput) {
+    hdmiAnimation.isAnimating = true;
+    hdmiAnimation.startTime = Date.now();
+    hdmiAnimation.oldInput = oldInput;
+    hdmiAnimation.newInput = newInput;
+    hdmiAnimation.slideProgress = 0;
+    hdmiAnimation.fadeProgress = 1;
+    hdmiAnimation.logoScale = 0;
+}
