@@ -1,16 +1,14 @@
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
 #include "../include/system_handler.h"
 #include "../include/handlers.h"
+#include "time_util.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <unistd.h>
-#include <sys/time.h>
-#endif
 
 /* System Handler State */
 static system_state_t system_state = SYSTEM_STATE_UNINITIALIZED;
@@ -36,19 +34,6 @@ static system_state_change_handler_t state_change_handler = NULL;
 static system_health_check_handler_t health_check_handler = NULL;
 
 /**
- * @brief Get current timestamp in milliseconds
- */
-static uint32_t get_timestamp_ms(void) {
-#ifdef _WIN32
-    return (uint32_t)GetTickCount();
-#else
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (uint32_t)(ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
-#endif
-}
-
-/**
  * @brief Initialize system handler
  */
 int system_handler_init(void) {
@@ -57,7 +42,7 @@ int system_handler_init(void) {
     }
     
     system_state = SYSTEM_STATE_INITIALIZING;
-    system_start_time = get_timestamp_ms();
+    system_start_time = tu_monotonic_ms();
     
     memset(&system_health, 0, sizeof(system_health_t));
     system_health.current_state = SYSTEM_STATE_INITIALIZING;
@@ -225,7 +210,7 @@ int system_set_state(system_state_t new_state) {
     /* Trigger state change event */
     event_t event = {
         .type = EVENT_STATE_CHANGED,
-        .timestamp = get_timestamp_ms(),
+        .timestamp = tu_monotonic_ms(),
         .data.custom.data = NULL
     };
     handler_trigger_custom_event(&event);
@@ -273,12 +258,11 @@ int system_report_error(system_error_t error, const char* message) {
     }
     
     system_health.error_count++;
-    system_health.last_error_time = get_timestamp_ms();
+    system_health.last_error_time = tu_monotonic_ms();
     
     /* Update health score */
-    if (system_health.health_score > 0) {
-        system_health.health_score -= 5;  /* Decrease health score */
-    }
+    system_health.health_score = (system_health.health_score > 5)
+        ? (uint8_t)(system_health.health_score - 5) : 0;
     
     const char* error_name = "Unknown";
     switch (error) {
@@ -337,7 +321,7 @@ system_health_t* system_get_health(void) {
         return NULL;
     }
     
-    system_health.uptime_ms = get_timestamp_ms() - system_start_time;
+    system_health.uptime_ms = tu_monotonic_ms() - system_start_time;
     return &system_health;
 }
 
@@ -381,8 +365,9 @@ int system_reset(void) {
     
     /* Reset state */
     system_state = SYSTEM_STATE_UNINITIALIZED;
-    system_start_time = 0;
     memset(&system_health, 0, sizeof(system_health_t));
+    system_health.health_score = 100;
+    system_start_time = tu_monotonic_ms();
     
     /* Reinitialize */
     return system_init();
@@ -403,7 +388,7 @@ uint32_t system_get_uptime_ms(void) {
     if (system_start_time == 0) {
         return 0;
     }
-    return get_timestamp_ms() - system_start_time;
+    return tu_monotonic_ms() - system_start_time;
 }
 
 /**
