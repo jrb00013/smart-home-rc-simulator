@@ -329,11 +329,9 @@ function createRemoteControl() {
         { code: 0xFF, name: 'Dining', color: 0xFF9800 }
     ];
     
-    let deviceRow = 0;
     let deviceCol = 0;
     for (let i = 0; i < deviceButtons.length; i++) {
         if (i > 0 && i % 5 === 0) {
-            deviceRow++;
             deviceCol = 0;
             yPos -= 0.07;
         }
@@ -472,35 +470,57 @@ function createFirstPersonArm() {
 }
 
 // Update first-person arm to span from shoulder (derived from camera) to wrist (hand). Call from animate() when firstPersonMode.
+// Scratch objects reused every frame by updateFirstPersonArm (avoid per-frame GC churn)
+const _armScratch = {
+    wrist: null, camDir: null, camRight: null, shoulder: null,
+    elbow: null, dirUpper: null, dirForearm: null, yUp: null,
+    upperArm: null, forearm: null, armGroup: null
+};
+
 function updateFirstPersonArm() {
     if (!armGroup || !handGroup || !camera) return;
-    const wrist = new THREE.Vector3(-0.06, 0.02, 0);
+    const s = _armScratch;
+    if (!s.wrist) {
+        s.wrist = new THREE.Vector3();
+        s.camDir = new THREE.Vector3();
+        s.camRight = new THREE.Vector3();
+        s.shoulder = new THREE.Vector3();
+        s.elbow = new THREE.Vector3();
+        s.dirUpper = new THREE.Vector3();
+        s.dirForearm = new THREE.Vector3();
+        s.yUp = new THREE.Vector3(0, 1, 0);
+    }
+    if (s.armGroup !== armGroup) {
+        s.armGroup = armGroup;
+        s.forearm = armGroup.getObjectByName('forearm');
+        s.upperArm = armGroup.getObjectByName('upperArm');
+    }
+    const forearm = s.forearm;
+    const upperArm = s.upperArm;
+    if (!forearm || !upperArm) return;
+    const wrist = s.wrist.set(-0.06, 0.02, 0);
     handGroup.localToWorld(wrist);
     // Shoulder: in front of and below camera (right arm, so slightly to the right)
-    const camDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-    const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-    const shoulder = camera.position.clone()
-        .add(camRight.clone().multiplyScalar(0.22))
-        .add(new THREE.Vector3(0, -1, 0).multiplyScalar(0.5))
-        .add(camDir.clone().multiplyScalar(-0.35));
-    const forearm = armGroup.getObjectByName('forearm');
-    const upperArm = armGroup.getObjectByName('upperArm');
-    if (!forearm || !upperArm) return;
+    const camDir = s.camDir.set(0, 0, -1).applyQuaternion(camera.quaternion);
+    const camRight = s.camRight.set(1, 0, 0).applyQuaternion(camera.quaternion);
+    const shoulder = s.shoulder.copy(camera.position)
+        .addScaledVector(camRight, 0.22)
+        .add(s.elbow.set(0, -0.5, 0))
+        .addScaledVector(camDir, -0.35);
     // Elbow: 45% along from shoulder to wrist for a natural bend
-    const elbow = new THREE.Vector3().lerpVectors(shoulder, wrist, 0.45);
-    const dirUpper = new THREE.Vector3().subVectors(elbow, shoulder).normalize();
+    const elbow = s.elbow.lerpVectors(shoulder, wrist, 0.45);
+    const dirUpper = s.dirUpper.subVectors(elbow, shoulder).normalize();
     const lenUpper = shoulder.distanceTo(elbow);
-    const dirForearm = new THREE.Vector3().subVectors(wrist, elbow).normalize();
+    const dirForearm = s.dirForearm.subVectors(wrist, elbow).normalize();
     const lenForearm = elbow.distanceTo(wrist);
-    const yUp = new THREE.Vector3(0, 1, 0);
     // Upper arm: center at midpoint, Y axis along dirUpper
     upperArm.position.copy(shoulder).add(elbow).multiplyScalar(0.5);
     upperArm.scale.set(1, lenUpper, 1);
-    upperArm.quaternion.setFromUnitVectors(yUp, dirUpper);
+    upperArm.quaternion.setFromUnitVectors(s.yUp, dirUpper);
     // Forearm: center at midpoint elbow-wrist
     forearm.position.copy(elbow).add(wrist).multiplyScalar(0.5);
     forearm.scale.set(1, lenForearm, 1);
-    forearm.quaternion.setFromUnitVectors(yUp, dirForearm);
+    forearm.quaternion.setFromUnitVectors(s.yUp, dirForearm);
     armGroup.visible = true;
 }
 

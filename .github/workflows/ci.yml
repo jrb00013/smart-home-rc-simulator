@@ -92,7 +92,7 @@ jobs:
         run: pytest
 
   js:
-    name: JS lint
+    name: JS lint + smoke
     runs-on: ubuntu-24.04
     defaults:
       run:
@@ -100,31 +100,32 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Detect package.json
-        id: pkg
-        run: |
-          echo "present=$([ -f package.json ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
-          echo "lock=$([ -f package-lock.json ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
-
       - uses: actions/setup-node@v7
-        if: steps.pkg.outputs.present == 'true'
         with:
           node-version: 22
-          cache: ${{ steps.pkg.outputs.lock == 'true' && 'npm' || '' }}
+          cache: npm
           cache-dependency-path: test_simulator/package-lock.json
 
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: test_simulator/requirements*.txt
+
       - name: Install
-        if: steps.pkg.outputs.present == 'true'
         run: |
-          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+          npm ci
+          pip install -r requirements.txt
+          npx playwright install --with-deps chromium
 
       - name: ESLint
-        if: steps.pkg.outputs.present == 'true'
         run: npx eslint web_static/js
 
-      - name: Skip notice
-        if: steps.pkg.outputs.present != 'true'
-        run: echo "::notice::test_simulator/package.json not found; skipping JS lint."
+      - name: Headless page-load smoke test
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+        run: npm run smoke
 
   docker:
     name: Docker image

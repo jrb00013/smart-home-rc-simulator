@@ -193,7 +193,7 @@ function createGround() {
     var dctx = dc.getContext('2d');
     dctx.fillStyle = '#3a3a3a';
     dctx.fillRect(0, 0, 512, 512);
-    for (var i = 0; i < 2000; i++) {
+    for (let i = 0; i < 2000; i++) {
         dctx.fillStyle = 'rgba(50,50,50,' + (0.02 + Math.random() * 0.04) + ')';
         dctx.fillRect(Math.random() * 512, Math.random() * 512, Math.random() * 4, 1);
     }
@@ -211,7 +211,7 @@ function createGround() {
     var wctx = wc.getContext('2d');
     wctx.fillStyle = '#9a9a9a';
     wctx.fillRect(0, 0, 256, 512);
-    for (var i = 0; i < 800; i++) {
+    for (let i = 0; i < 800; i++) {
         wctx.fillStyle = 'rgba(140,140,140,' + (0.02 + Math.random() * 0.04) + ')';
         wctx.fillRect(Math.random() * 256, Math.random() * 512, 2, 1 + Math.random() * 3);
     }
@@ -315,11 +315,11 @@ function createExterior() {
     var shctx = shc.getContext('2d');
     shctx.fillStyle = '#4a3a2a';
     shctx.fillRect(0, 0, 256, 256);
-    for (var y = 0; y < 256; y += 16) {
+    for (let y = 0; y < 256; y += 16) {
         shctx.fillStyle = 'rgba(60,45,30,0.4)'; shctx.fillRect(0, y, 256, 8);
         shctx.fillStyle = 'rgba(80,65,50,0.3)'; shctx.fillRect(0, y + 8, 256, 8);
     }
-    for (var i = 0; i < 3000; i++) {
+    for (let i = 0; i < 3000; i++) {
         shctx.fillStyle = 'rgba(0,0,0,' + (0.01 + Math.random() * 0.03) + ')';
         shctx.fillRect(Math.random() * 256, Math.random() * 256, 2, 1 + Math.random() * 2);
     }
@@ -765,7 +765,7 @@ function createPorch() {
     railTop.position.set(0, 1.6, 26.0); roomGroup.add(railTop);
     var railBot = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.06, 0.06), railMat);
     railBot.position.set(0, 1.0, 26.0); roomGroup.add(railBot);
-    for (var i = 0; i < 6; i++) {
+    for (let i = 0; i < 6; i++) {
         var b = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.6, 0.04), railMat);
         b.position.set(-1.6 + i * 0.64, 1.3, 26.0); roomGroup.add(b);
     }
@@ -868,7 +868,6 @@ function createNeighborhood() {
         scene.add(body);
 
         var r1 = new THREE.Mesh(new THREE.BufferGeometry(), rm);
-        var rw = Math.sqrt((w/2)*(w/2) + 3*3);
         r1.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
             x - w/2, 6, z - d/2, x, 9, z - d/2, x - w/2, 6, z + d/2,
             x - w/2, 6, z + d/2, x, 9, z - d/2, x, 9, z + d/2
@@ -963,7 +962,7 @@ function createNeighborhood() {
     // Fence front
     var fenceMat = new THREE.MeshStandardMaterial({ color: 0xe8e0d4, roughness: 0.7 });
     var postMat = new THREE.MeshStandardMaterial({ color: 0xd8d0c4, roughness: 0.7 });
-    for (var i = -18; i <= 18; i += 3) {
+    for (let i = -18; i <= 18; i += 3) {
         if (Math.abs(i) < 2 || (i > -10 && i < -5)) continue;
         var p = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.8, 0.06), postMat);
         p.position.set(i, 0.4, 30); scene.add(p);
@@ -1203,20 +1202,8 @@ function createNeighborhood() {
     }
 }
 
-// Chimney smoke particles
-    window._smokeParticles = [];
-    setInterval(function() {
-        if (typeof scene === 'undefined') return;
-        var smMat = new THREE.MeshBasicMaterial({
-            color: 0xcccccc, transparent: true, opacity: 0.3,
-            blending: THREE.AdditiveBlending, depthWrite: false
-        });
-        var smoke = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 6), smMat);
-        smoke.position.set(16, 20.5, -10);
-        smoke.scale.set(1, 1, 1);
-        scene.add(smoke);
-        window._smokeParticles.push(smoke);
-    }, 800);
+    // Chimney smoke particles (pooled; spawned/animated from animate() in main.js)
+    initChimneySmoke();
 
 // Create 3D Remote Control
     createRemoteControl();
@@ -1247,11 +1234,72 @@ function createNeighborhood() {
     }
     console.log('[TV Simulator] Graphics preset applied: tier=' + (preset._tier || 'MEDIUM') + (preset._gpu_name ? ' gpu=' + preset._gpu_name : ' (no GPU detected)'));
 
-    // Handle window resize
+    // Merge static, same-material meshes to cut draw calls (?nobatch=1 disables, for A/B checks)
+    if (typeof batchStaticMeshes === 'function' && !/[?&]nobatch=1\b/.test(window.location.search)) {
+        try {
+            var batchStats = batchStaticMeshes(scene);
+            if (batchStats) console.log('[TV Simulator] Static batching: merged ' + batchStats.mergedMeshes + ' meshes into ' + batchStats.batches + ' batches');
+        } catch (err) {
+            console.warn('Static batching skipped:', err);
+        }
+    }
+
+    // Handle window resize (registered once even if initScene is re-run)
+    window.removeEventListener('resize', onWindowResize);
     window.addEventListener('resize', onWindowResize);
 
     // Start animation loop
     animate();
+}
+
+// Fill a w*h canvas with opaque gray pixels from value(x, y) in one putImageData call
+// (bump maps used to be drawn with one fillStyle parse + fillRect per pixel, ~120k calls).
+function fillGrayPixels(ctx, w, h, value) {
+    var img = ctx.createImageData(w, h);
+    var d = img.data;
+    for (var y = 0; y < h; y++) {
+        for (var x = 0; x < w; x++) {
+            var g = value(x, y);
+            var i = (y * w + x) * 4;
+            d[i] = d[i + 1] = d[i + 2] = g; // Uint8ClampedArray clamps + rounds
+            d[i + 3] = 255;
+        }
+    }
+    ctx.putImageData(img, 0, 0);
+}
+
+// Chimney smoke: a fixed pool of puffs sharing one geometry. The old code created a new
+// SphereGeometry + material every 800ms from setInterval and only scene.remove()d them,
+// leaking GPU buffers, and kept spawning while the tab was hidden (rAF paused).
+const SMOKE_POOL_SIZE = 8; // lifetime ~1.5s at 0.2 opacity/s fade, one puff per 0.8s
+function initChimneySmoke() {
+    if (window._smokeParticles) return;
+    var geo = new THREE.SphereGeometry(0.05, 6, 6);
+    window._smokeParticles = [];
+    for (var i = 0; i < SMOKE_POOL_SIZE; i++) {
+        var mat = new THREE.MeshBasicMaterial({
+            color: 0xcccccc, transparent: true, opacity: 0,
+            blending: THREE.AdditiveBlending, depthWrite: false
+        });
+        var puff = new THREE.Mesh(geo, mat);
+        puff.visible = false;
+        scene.add(puff);
+        window._smokeParticles.push(puff);
+    }
+}
+
+function spawnChimneySmoke() {
+    var pool = window._smokeParticles;
+    if (!pool) return;
+    for (var i = 0; i < pool.length; i++) {
+        var puff = pool[i];
+        if (puff.visible) continue;
+        puff.position.set(16, 20.5, -10);
+        puff.scale.set(1, 1, 1);
+        puff.material.opacity = 0.3;
+        puff.visible = true;
+        return;
+    }
 }
 
 // Create room environment - full living room (texture sizes from GPU preset)
@@ -1287,7 +1335,7 @@ function createRoom() {
         floorCtx.lineTo(g, fh);
         floorCtx.stroke();
     }
-    for (var g = 0; g < fh; g += 24) {
+    for (let g = 0; g < fh; g += 24) {
         floorCtx.beginPath();
         floorCtx.moveTo(0, g);
         floorCtx.lineTo(fw, g);
@@ -1310,13 +1358,9 @@ function createRoom() {
     floorBumpCanvas.width = 256;
     floorBumpCanvas.height = 128;
     var floorBumpCtx = floorBumpCanvas.getContext('2d');
-    for (var by = 0; by < 128; by++) {
-        for (var bx = 0; bx < 256; bx++) {
-            var g = 128 + (Math.sin(bx * 0.15) * 12) + (Math.random() - 0.5) * 20;
-            floorBumpCtx.fillStyle = 'rgb(' + Math.max(0, Math.min(255, g)) + ',' + Math.max(0, Math.min(255, g)) + ',' + Math.max(0, Math.min(255, g)) + ')';
-            floorBumpCtx.fillRect(bx, by, 1, 1);
-        }
-    }
+    fillGrayPixels(floorBumpCtx, 256, 128, function (bx) {
+        return 128 + (Math.sin(bx * 0.15) * 12) + (Math.random() - 0.5) * 20;
+    });
     var floorBumpTex = new THREE.CanvasTexture(floorBumpCanvas);
     floorBumpTex.wrapS = THREE.RepeatWrapping;
     floorBumpTex.wrapT = THREE.RepeatWrapping;
@@ -1366,13 +1410,9 @@ function createRoom() {
     wallBumpCanvas.width = 128;
     wallBumpCanvas.height = 128;
     var wallBumpCtx = wallBumpCanvas.getContext('2d');
-    for (var wy = 0; wy < 128; wy++) {
-        for (var wx = 0; wx < 128; wx++) {
-            var v = 128 + (Math.random() - 0.5) * 24;
-            wallBumpCtx.fillStyle = 'rgb(' + (v|0) + ',' + (v|0) + ',' + (v|0) + ')';
-            wallBumpCtx.fillRect(wx, wy, 1, 1);
-        }
-    }
+    fillGrayPixels(wallBumpCtx, 128, 128, function () {
+        return (128 + (Math.random() - 0.5) * 24) | 0;
+    });
     var wallBumpTex = new THREE.CanvasTexture(wallBumpCanvas);
     wallBumpTex.wrapS = wallBumpTex.wrapT = THREE.RepeatWrapping;
     wallBumpTex.repeat.set(2, 2);
@@ -1587,13 +1627,9 @@ function createRoom() {
     ceilBumpCanvas.width = 64;
     ceilBumpCanvas.height = 64;
     var ceilBumpCtx = ceilBumpCanvas.getContext('2d');
-    for (var cy = 0; cy < 64; cy++) {
-        for (var cx = 0; cx < 64; cx++) {
-            var cv = 128 + (Math.random() - 0.5) * 20;
-            ceilBumpCtx.fillStyle = 'rgb(' + (cv|0) + ',' + (cv|0) + ',' + (cv|0) + ')';
-            ceilBumpCtx.fillRect(cx, cy, 1, 1);
-        }
-    }
+    fillGrayPixels(ceilBumpCtx, 64, 64, function () {
+        return (128 + (Math.random() - 0.5) * 20) | 0;
+    });
     var ceilingBumpTex = new THREE.CanvasTexture(ceilBumpCanvas);
     ceilingBumpTex.wrapS = ceilingBumpTex.wrapT = THREE.RepeatWrapping;
     ceilingBumpTex.repeat.set(3, 3);
@@ -1696,14 +1732,10 @@ function createRoom() {
     rugBumpCanvas.width = 256;
     rugBumpCanvas.height = 256;
     var rugBumpCtx = rugBumpCanvas.getContext('2d');
-    for (var py = 0; py < 256; py++) {
-        for (var px = 0; px < 256; px++) {
-            var rv = 128 + (Math.sin(px * 0.08) * 8) + (Math.sin(py * 0.08) * 8) + (Math.random() - 0.5) * 12;
-            rv = Math.max(0, Math.min(255, rv));
-            rugBumpCtx.fillStyle = 'rgb(' + (rv|0) + ',' + (rv|0) + ',' + (rv|0) + ')';
-            rugBumpCtx.fillRect(px, py, 1, 1);
-        }
-    }
+    fillGrayPixels(rugBumpCtx, 256, 256, function (px, py) {
+        var rv = 128 + (Math.sin(px * 0.08) * 8) + (Math.sin(py * 0.08) * 8) + (Math.random() - 0.5) * 12;
+        return Math.max(0, Math.min(255, rv)) | 0;
+    });
     var rugBumpTex = new THREE.CanvasTexture(rugBumpCanvas);
     rugBumpTex.wrapS = rugBumpTex.wrapT = THREE.RepeatWrapping;
     const rugMat = new THREE.MeshStandardMaterial({
@@ -3792,17 +3824,17 @@ function createRoom() {
     roomGroup.add(toolBox);
 
     // ========== STAIRS TO MEZZANINE ==========
-    var stairMat = new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.85 });
+    var mezzStairMat = new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.85 });
     var riserMat = new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.85 });
     var railMatInt = new THREE.MeshStandardMaterial({ color: 0x6a5a4a, roughness: 0.7 });
-    var numSteps = 22;
+    var mezzNumSteps = 22;
     var rise = 0.3;
     var tread = 0.55;
     var stairWidth = 1.6;
     var stairStartX = -21.5;
     var stairStartZ = 2;
-    for (var si = 0; si < numSteps; si++) {
-        var t = new THREE.Mesh(new THREE.BoxGeometry(stairWidth, 0.04, tread), stairMat);
+    for (var si = 0; si < mezzNumSteps; si++) {
+        var t = new THREE.Mesh(new THREE.BoxGeometry(stairWidth, 0.04, tread), mezzStairMat);
         t.position.set(stairStartX, rise * si + 0.02, stairStartZ - tread * si);
         t.castShadow = true; t.receiveShadow = true;
         roomGroup.add(t);
@@ -3815,18 +3847,18 @@ function createRoom() {
     for (var ri = 0; ri < railPosts; ri++) {
         var p = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.9, 0.04), railMatInt);
         var t0 = ri / (railPosts - 1);
-        p.position.set(stairStartX + stairWidth / 2 + 0.15, 0.1 + t0 * rise * numSteps * 0.85, stairStartZ - t0 * tread * numSteps);
+        p.position.set(stairStartX + stairWidth / 2 + 0.15, 0.1 + t0 * rise * mezzNumSteps * 0.85, stairStartZ - t0 * tread * mezzNumSteps);
         roomGroup.add(p);
     }
-    var railBar = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, tread * numSteps + 0.5), railMatInt);
-    railBar.position.set(stairStartX + stairWidth / 2 + 0.15, rise * numSteps * 0.85 + 0.05, stairStartZ - tread * numSteps / 2);
+    var railBar = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, tread * mezzNumSteps + 0.5), railMatInt);
+    railBar.position.set(stairStartX + stairWidth / 2 + 0.15, rise * mezzNumSteps * 0.85 + 0.05, stairStartZ - tread * mezzNumSteps / 2);
     roomGroup.add(railBar);
 
     // Mezzanine floor
     var mezzMat = new THREE.MeshStandardMaterial({ color: 0x8a7a6a, roughness: 0.85 });
     var mezzFloor = new THREE.Mesh(new THREE.PlaneGeometry(16, 12), mezzMat);
     mezzFloor.rotation.x = -Math.PI / 2;
-    mezzFloor.position.set(-14, rise * numSteps, -16);
+    mezzFloor.position.set(-14, rise * mezzNumSteps, -16);
     mezzFloor.receiveShadow = true;
     roomGroup.add(mezzFloor);
 
@@ -3835,22 +3867,22 @@ function createRoom() {
     var mezzPosts = 12;
     for (var mi = 0; mi < mezzPosts; mi++) {
         var mp = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.8, 0.04), mezzRailMat);
-        mp.position.set(-22.1, rise * numSteps + 0.4, -22 + mi * 1.8);
+        mp.position.set(-22.1, rise * mezzNumSteps + 0.4, -22 + mi * 1.8);
         roomGroup.add(mp);
     }
-    for (var mi = 0; mi < 9; mi++) {
-        var mp = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.8, 0.04), mezzRailMat);
-        mp.position.set(-22 + mi * 1.8, rise * numSteps + 0.4, -10.1);
+    for (let mi = 0; mi < 9; mi++) {
+        let mp = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.8, 0.04), mezzRailMat);
+        mp.position.set(-22 + mi * 1.8, rise * mezzNumSteps + 0.4, -10.1);
         roomGroup.add(mp);
     }
     var mrb = new THREE.Mesh(new THREE.BoxGeometry(16, 0.05, 0.04), mezzRailMat);
-    mrb.position.set(-14, rise * numSteps + 0.8, -22.1);
+    mrb.position.set(-14, rise * mezzNumSteps + 0.8, -22.1);
     roomGroup.add(mrb);
     var mrl = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.05, 12), mezzRailMat);
-    mrl.position.set(-22.1, rise * numSteps + 0.8, -16);
+    mrl.position.set(-22.1, rise * mezzNumSteps + 0.8, -16);
     roomGroup.add(mrl);
     var mrt = new THREE.Mesh(new THREE.BoxGeometry(16, 0.05, 0.04), mezzRailMat);
-    mrt.position.set(-14, rise * numSteps + 0.8, -10.1);
+    mrt.position.set(-14, rise * mezzNumSteps + 0.8, -10.1);
     roomGroup.add(mrt);
 
     // Mezzanine lounge area
@@ -3858,27 +3890,27 @@ function createRoom() {
     var mlRug = new THREE.Mesh(new THREE.PlaneGeometry(4, 3),
         new THREE.MeshStandardMaterial({ color: 0x8a3a3a, roughness: 0.9 }));
     mlRug.rotation.x = -Math.PI / 2;
-    mlRug.position.set(-14, rise * numSteps + 0.01, -18);
+    mlRug.position.set(-14, rise * mezzNumSteps + 0.01, -18);
     roomGroup.add(mlRug);
     // Low table
     var lt = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.7), mlMat);
-    lt.position.set(-14, rise * numSteps + 0.08, -18);
+    lt.position.set(-14, rise * mezzNumSteps + 0.08, -18);
     roomGroup.add(lt);
     // Floor cushions
     var cusMat = new THREE.MeshStandardMaterial({ color: 0x446688, roughness: 0.85 });
     [[-15.5, -18.8], [-12.5, -18.8], [-14, -16.5]].forEach(function(cp) {
         var cu = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.06, 0.4), cusMat);
-        cu.position.set(cp[0], rise * numSteps + 0.07, cp[1]);
+        cu.position.set(cp[0], rise * mezzNumSteps + 0.07, cp[1]);
         roomGroup.add(cu);
     });
     // Floor plant
     var fpMat = new THREE.MeshStandardMaterial({ color: 0x5a3a2a, roughness: 0.8 });
     var fpPot = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.06, 0.15, 10), fpMat);
-    fpPot.position.set(-10, rise * numSteps + 0.075, -17);
+    fpPot.position.set(-10, rise * mezzNumSteps + 0.075, -17);
     roomGroup.add(fpPot);
     var fpLeaf = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8),
         new THREE.MeshStandardMaterial({ color: 0x2a6a2a, roughness: 0.9 }));
-    fpLeaf.position.set(-10, rise * numSteps + 0.2, -17);
+    fpLeaf.position.set(-10, rise * mezzNumSteps + 0.2, -17);
     roomGroup.add(fpLeaf);
 
     // ========== KITCHEN ==========
@@ -3908,9 +3940,9 @@ function createRoom() {
     var fr = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.6, 0.9), kfMat);
     fr.position.set(20.5, 0.8, 12.5); fr.castShadow = true;
     roomGroup.add(fr);
-    var fh = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.02, 0.88), ktMat);
-    fh.position.set(20.5, 1.6, 12.5);
-    roomGroup.add(fh);
+    var fh_2 = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.02, 0.88), ktMat);
+    fh_2.position.set(20.5, 1.6, 12.5);
+    roomGroup.add(fh_2);
     var fg = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.2, 0.02), ksMat);
     fg.position.set(20.5, 0.7, 12.1);
     roomGroup.add(fg);
@@ -3946,7 +3978,6 @@ function createRoom() {
 
     // Countertop appliances
     var micMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.3, metalness: 0.4 });
-    var micMat2 = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.4 });
     var micDoor = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.2 });
     // Microwave
     var mw = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.2, 0.25), micMat);
@@ -4009,9 +4040,9 @@ function createRoom() {
     // ========== DINING TABLE ==========
     var dtMat = new THREE.MeshStandardMaterial({ color: 0x5a3a1a, roughness: 0.7 });
     var dchMat = new THREE.MeshStandardMaterial({ color: 0x4a2a12, roughness: 0.75 });
-    var diningTable = new THREE.Mesh(new THREE.BoxGeometry(3, 0.08, 2), dtMat);
-    diningTable.position.set(13, 0.7, 10); diningTable.castShadow = true;
-    roomGroup.add(diningTable);
+    var bigDiningTable = new THREE.Mesh(new THREE.BoxGeometry(3, 0.08, 2), dtMat);
+    bigDiningTable.position.set(13, 0.7, 10); bigDiningTable.castShadow = true;
+    roomGroup.add(bigDiningTable);
     var dlMat = new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.7 });
     [[-1.3, -0.8], [1.3, -0.8], [-1.3, 0.8], [1.3, 0.8]].forEach(function(p) {
         var leg = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.65, 0.06), dlMat);
@@ -4039,10 +4070,10 @@ function createRoom() {
     roomGroup.add(vase);
 
     // ========== FIREPLACE ==========
-    var fpMat = new THREE.MeshStandardMaterial({ color: 0x8a7a6a, roughness: 0.85 });
+    var fireplaceMat = new THREE.MeshStandardMaterial({ color: 0x8a7a6a, roughness: 0.85 });
     var fpMat2 = new THREE.MeshStandardMaterial({ color: 0x6a5a4a, roughness: 0.8 });
     var fmMat = new THREE.MeshStandardMaterial({ color: 0x2a2010, roughness: 0.9 });
-    var fireplace = new THREE.Mesh(new THREE.BoxGeometry(2, 2.2, 0.5), fpMat);
+    var fireplace = new THREE.Mesh(new THREE.BoxGeometry(2, 2.2, 0.5), fireplaceMat);
     fireplace.position.set(21.5, 1.1, -6); fireplace.castShadow = true;
     roomGroup.add(fireplace);
     var mantel = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.1, 0.6), fpMat2);
@@ -4051,7 +4082,7 @@ function createRoom() {
     var firebox = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.9, 0.1), fmMat);
     firebox.position.set(21.5, 0.6, -5.75);
     roomGroup.add(firebox);
-    var hearth = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.06, 0.6), fpMat);
+    var hearth = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.06, 0.6), fireplaceMat);
     hearth.position.set(21.5, 0.03, -5.7);
     roomGroup.add(hearth);
     // Fire glow
@@ -4065,7 +4096,7 @@ function createRoom() {
     var shelf = new THREE.Mesh(new THREE.BoxGeometry(1.6, 2.4, 0.4), bMat);
     shelf.position.set(21.5, 1.2, -13); shelf.castShadow = true;
     roomGroup.add(shelf);
-    for (var si = 0; si < 4; si++) {
+    for (let si = 0; si < 4; si++) {
         var sd = new THREE.Mesh(new THREE.BoxGeometry(0.03, 2.2, 0.35), bMat);
         sd.position.set(21.5, 1.2, -13 + (-0.12 + si * 0.08));
         roomGroup.add(sd);
@@ -4079,9 +4110,9 @@ function createRoom() {
         for (var bk = 0; bk < 5; bk++) {
             var bc = 0x442200 + (bk * 200) + (sh * 50);
             var bMat2 = new THREE.MeshStandardMaterial({ color: bc, roughness: 0.7 });
-            var book = new THREE.Mesh(new THREE.BoxGeometry(0.1 + Math.random() * 0.08, 0.05 + Math.random() * 0.25, 0.3), bMat2);
-            book.position.set(21.5 + (-0.6 + bk * 0.3), 0.12 + sh * 0.5 + book.geometry.parameters.height / 2, -12.85 + Math.random() * 0.05);
-            roomGroup.add(book);
+            var shelfBook = new THREE.Mesh(new THREE.BoxGeometry(0.1 + Math.random() * 0.08, 0.05 + Math.random() * 0.25, 0.3), bMat2);
+            shelfBook.position.set(21.5 + (-0.6 + bk * 0.3), 0.12 + sh * 0.5 + shelfBook.geometry.parameters.height / 2, -12.85 + Math.random() * 0.05);
+            roomGroup.add(shelfBook);
         }
     }
 
@@ -4129,11 +4160,11 @@ function createRoom() {
     var etT = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.04, 0.55), ktMat);
     etT.position.set(12, 0.73, 20);
     roomGroup.add(etT);
-    // Key bowl
-    var bowl = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12, 0, Math.PI * 2, 0, Math.PI / 2),
+    // Key keyBowl
+    var keyBowl = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12, 0, Math.PI * 2, 0, Math.PI / 2),
         new THREE.MeshStandardMaterial({ color: 0x224488, roughness: 0.3 }));
-    bowl.position.set(12, 0.76, 20);
-    roomGroup.add(bowl);
+    keyBowl.position.set(12, 0.76, 20);
+    roomGroup.add(keyBowl);
     // Entry rug
     var erMat = new THREE.MeshStandardMaterial({ color: 0x2a1a0a, roughness: 0.95 });
     var erug = new THREE.Mesh(new THREE.PlaneGeometry(3, 2), erMat);
@@ -4199,9 +4230,9 @@ function createRoom() {
     p2.position.set(0.6, ry(0.6), rz(-2.55)); roomGroup.add(p2);
     // Blanket draped over sofa arm
     var blMat = new THREE.MeshStandardMaterial({ color: 0x886644, roughness: 0.9 });
-    var blanket = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.02, 0.35), blMat);
-    blanket.position.set(rx(-1.28), ry(0.7), rz(-2.9));
-    blanket.rotation.x = 0.15; roomGroup.add(blanket);
+    var throwBlanket = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.02, 0.35), blMat);
+    throwBlanket.position.set(rx(-1.28), ry(0.7), rz(-2.9));
+    throwBlanket.rotation.x = 0.15; roomGroup.add(throwBlanket);
     // Pet bed in corner
     var pbMat = new THREE.MeshStandardMaterial({ color: 0x5a3a2a, roughness: 0.9 });
     var pbMat2 = new THREE.MeshStandardMaterial({ color: 0x7a5a4a, roughness: 0.9 });

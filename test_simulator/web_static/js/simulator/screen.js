@@ -17,15 +17,21 @@ function updateTVScreen(state) {
         ? powerAnimation.currentBrightness 
         : (state.powered_on ? 1.0 : 0.0);
     
-    // Create screen texture based on state
-    const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 512;
-    const ctx = canvas.getContext('2d');
+    // Reuse one canvas + CanvasTexture for the screen. Allocating a new canvas,
+    // texture and forcing material.needsUpdate on every call (several times per
+    // frame while the TV is on) churned GPU memory and re-validated the shader.
+    const canvas = getTVScreenCanvas();
+    const ctx = canvas ? canvas.getContext('2d') : null;
     
     if (!ctx) {
         console.error('Failed to get canvas context');
         return;
+    }
+    // Fresh drawing state each frame (draw* helpers may leave transforms/alpha/filters set)
+    if (typeof ctx.reset === 'function') {
+        ctx.reset();
+    } else {
+        canvas.width = canvas.width; // eslint-disable-line no-self-assign
     }
     
     if (!effectivePoweredOn || brightness < 0.1) {
@@ -93,7 +99,6 @@ function updateTVScreen(state) {
         let channelX = 0;
         let channelOpacity = brightness;
         let channelScale = 1;
-        let channelBlur = 0;
         let channelParticles = [];
         
         if (channelAnimation.isAnimating) {
@@ -110,7 +115,6 @@ function updateTVScreen(state) {
             // Slide effect: old channel slides out left, new slides in from right
             channelX = (slideEase - 0.5) * canvas.width * 2.2;
             channelScale = 1 + (zoomEase - 0.5) * 0.3; // Zoom in/out effect
-            channelBlur = Math.sin(progress * Math.PI) * 8; // Blur during transition
             channelOpacity = brightness * (1 - Math.abs(progress - 0.5) * 1.5);
             
             // Generate particles during transition
@@ -868,27 +872,47 @@ function updateTVScreen(state) {
         console.warn('updateTVScreen: screenMesh.material not ready');
         return;
     }
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.needsUpdate = true;
+    const mat = screenMesh.material;
+    const texture = getTVScreenTexture(canvas);
+    texture.needsUpdate = true; // re-upload canvas pixels
     
-    // Dispose old texture to prevent memory leaks
-    if (screenMesh.material.map) {
-        screenMesh.material.map.dispose();
+    if (mat.map !== texture) {
+        // First use (or material swapped): dispose whatever map was there before
+        if (mat.map) mat.map.dispose();
+        mat.map = texture;
+        mat.needsUpdate = true; // map presence changes the shader program
     }
     
-    screenMesh.material.map = texture;
-    
     // Update emissive properties for screen glow (with animation)
-    screenMesh.material.emissive = new THREE.Color(0xffffff);
-    screenMesh.material.emissiveIntensity = brightness;
-    screenMesh.material.color = new THREE.Color(brightness, brightness, brightness);
-    
-    screenMesh.material.needsUpdate = true;
+    if (mat.emissive) mat.emissive.setHex(0xffffff);
+    mat.emissiveIntensity = brightness;
+    mat.color.setRGB(brightness, brightness, brightness);
     
     // Capture frame for streaming API: process and send when TV has content (throttled)
     if (socket && socket.connected && canvas) {
         captureAndSendFrame(canvas, effectivePoweredOn);
     }
+}
+
+// Shared TV screen canvas/texture (see updateTVScreen)
+let _tvScreenCanvas = null;
+let _tvScreenTexture = null;
+
+function getTVScreenCanvas() {
+    if (!_tvScreenCanvas) {
+        _tvScreenCanvas = document.createElement('canvas');
+        _tvScreenCanvas.width = 512;
+        _tvScreenCanvas.height = 512;
+    }
+    return _tvScreenCanvas;
+}
+
+function getTVScreenTexture(canvas) {
+    if (!_tvScreenTexture || _tvScreenTexture.image !== canvas) {
+        if (_tvScreenTexture) _tvScreenTexture.dispose();
+        _tvScreenTexture = new THREE.CanvasTexture(canvas);
+    }
+    return _tvScreenTexture;
 }
 
 // Frame capture for streaming API - ensures /api/frame is always processing latest TV output
@@ -1778,7 +1802,6 @@ function drawHBOMaxContent(ctx, canvas, brightness, time, state) {
 function drawDefaultContent(ctx, canvas, brightness, time, state) {
     // Default animated background
     const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-    const phase = time * 0.3;
     gradient.addColorStop(0, `rgba(30, 30, 50, ${brightness})`);
     gradient.addColorStop(0.5, `rgba(50, 30, 70, ${brightness * 0.8})`);
     gradient.addColorStop(1, `rgba(30, 30, 50, ${brightness})`);
@@ -1809,7 +1832,6 @@ function drawDefaultContent(ctx, canvas, brightness, time, state) {
 // Draw TV Show Content - Multiple different shows with unique visuals
 function drawTVShowContent(ctx, canvas, brightness, time, state, tvShow) {
     const showType = tvShow.type;
-    const showColor = tvShow.color;
     
     // Route to specific show type renderer
     switch(showType) {

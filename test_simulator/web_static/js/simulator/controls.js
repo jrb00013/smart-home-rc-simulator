@@ -21,6 +21,15 @@ window.enterWalkMode = function() {
     console.warn('enterWalkMode called before controls initialized');
 };
 
+// True when a key event originates from something the user is typing into or a
+// focused control that handles the key itself (so global shortcuts must not fire).
+function isTypingTarget(target) {
+    if (!target || target === document.body || target === document.documentElement) return false;
+    if (target.isContentEditable) return true;
+    var tag = target.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+}
+
 // Enhanced VR-like controls with smooth movement
 function initControls() {
     let isDragging = false;
@@ -37,10 +46,18 @@ function initControls() {
     
     const canvas = renderer.domElement;
     
+    // Pointer position -> normalized device coords relative to the canvas (not the window)
+    function setMouseFromEvent(e) {
+        const rect = canvas.getBoundingClientRect();
+        const w = rect.width || window.innerWidth;
+        const h = rect.height || window.innerHeight;
+        mouse.x = ((e.clientX - rect.left) / w) * 2 - 1;
+        mouse.y = -((e.clientY - rect.top) / h) * 2 + 1;
+    }
+    
     // Mouse click for remote interaction
     canvas.addEventListener('click', (e) => {
-        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        setMouseFromEvent(e);
         
         raycaster.setFromCamera(mouse, camera);
         const intersects = raycaster.intersectObjects(remoteGroup.children, true);
@@ -92,8 +109,7 @@ function initControls() {
         }
         if (!isDragging) {
             // Check for button hover
-            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            setMouseFromEvent(e);
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects(remoteGroup.children, true);
             
@@ -150,6 +166,7 @@ function initControls() {
     // WASD keyup: clear movement flags (walk mode)
     window.addEventListener('keyup', (e) => {
         if (!walkMode) return;
+        // (no typing guard: always release movement keys)
         if (e.code === 'KeyW') moveForward = false;
         if (e.code === 'KeyS') moveBackward = false;
         if (e.code === 'KeyA') moveLeft = false;
@@ -157,8 +174,16 @@ function initControls() {
     });
 
     // Only place (with the two buttons below) that set camera targets – no other logic may touch them
+    // Window lost focus (alt-tab, devtools): keyup never arrives, so stop walking
+    window.addEventListener('blur', () => {
+        moveForward = moveBackward = moveLeft = moveRight = false;
+    });
+
     window.addEventListener('keydown', (e) => {
         if (e.repeat) return; // ignore key hold so orbit/scroll don't get overwritten by repeated reset
+        if (isTypingTarget(e.target)) return; // don't hijack keys while typing in a field
+        // Space/Enter on a focused button should press that button, not reset the camera
+        if ((e.code === 'Space' || e.code === 'Enter') && e.target && e.target.tagName === 'BUTTON') return;
         if (walkMode) {
             if (e.code === 'KeyW') { e.preventDefault(); moveForward = true; return; }
             if (e.code === 'KeyS') { e.preventDefault(); moveBackward = true; return; }
@@ -170,7 +195,10 @@ function initControls() {
                 return;
             }
         }
-        if (e.code === 'Space') {
+        const hasModifier = e.ctrlKey || e.metaKey || e.altKey;
+        if (hasModifier) {
+            // Leave browser shortcuts (Ctrl+P print, Ctrl+D bookmark, Ctrl+1 tab...) alone
+        } else if (e.code === 'Space') {
             e.preventDefault();
             firstPersonMode = false;
             if (armGroup) armGroup.visible = false;
@@ -247,31 +275,25 @@ function initControls() {
                 }
             }
         }
-        // F1–F8: Room / Smart Home scenes and devices (0xE0–0xE7)
-        if (e.code >= 'F1' && e.code <= 'F8' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-            const idx = parseInt(e.code.slice(1), 10) - 1;
-            const code = 0xE0 + idx;
-            e.preventDefault();
-            if (socket && socket.connected) {
-                socket.emit('button_press', { button_code: code });
+        // Function keys -> room / smart-home codes. Match F1..F8 exactly: the old string
+        // range check ('F1' <= code <= 'F8') also matched F10-F12, and plain F1-F8 fired
+        // together with Shift+F1-F8, sending two button codes per press.
+        const fMatch = /^F([1-8])$/.exec(e.code);
+        if (fMatch && !e.metaKey) {
+            const idx = parseInt(fMatch[1], 10) - 1;
+            let code = null;
+            if (e.ctrlKey && !e.shiftKey && !e.altKey) {
+                if (idx < 4) code = 0xF0 + idx;        // Ctrl+F1–F4: more house devices (0xF0–0xF3)
+            } else if (e.shiftKey && !e.ctrlKey && !e.altKey) {
+                code = 0xE8 + idx;                     // Shift+F1–F8: house device toggles (0xE8–0xEF)
+            } else if (!e.ctrlKey && !e.shiftKey && !e.altKey) {
+                code = 0xE0 + idx;                     // F1–F8: scenes and devices (0xE0–0xE7)
             }
-        }
-        // Shift+F1–F8: House device toggles (0xE8–0xEF)
-        if (e.shiftKey && e.code >= 'F1' && e.code <= 'F8' && !e.ctrlKey && !e.metaKey) {
-            const idx = parseInt(e.code.slice(1), 10) - 1;
-            const code = 0xE8 + idx;
-            e.preventDefault();
-            if (socket && socket.connected) {
-                socket.emit('button_press', { button_code: code });
-            }
-        }
-        // Ctrl+F1–F4: More house devices (0xF0–0xF3)
-        if (e.ctrlKey && !e.metaKey && e.code >= 'F1' && e.code <= 'F4') {
-            const idx = parseInt(e.code.slice(1), 10) - 1;
-            const code = 0xF0 + idx;
-            e.preventDefault();
-            if (socket && socket.connected) {
-                socket.emit('button_press', { button_code: code });
+            if (code !== null) {
+                e.preventDefault();
+                if (socket && socket.connected) {
+                    socket.emit('button_press', { button_code: code });
+                }
             }
         }
     });
@@ -318,6 +340,8 @@ function initControls() {
         }
     });
 
+    const _lookTarget = new THREE.Vector3(); // scratch for walk-mode lookAt (no per-frame allocation)
+
     // Smooth camera interpolation (position and lookAt); dt for walk mode movement
     function updateCamera(dt) {
         if (walkMode && playerPosition) {
@@ -339,16 +363,19 @@ function initControls() {
             }
             playerPosition.y = EYE_HEIGHT;
             camera.position.set(playerPosition.x, EYE_HEIGHT, playerPosition.z);
-            const lookDir = new THREE.Vector3(
+            _lookTarget.set(
                 Math.sin(playerYaw) * Math.cos(playerPitch),
                 Math.sin(playerPitch),
                 Math.cos(playerYaw) * Math.cos(playerPitch)
-            );
-            camera.lookAt(camera.position.clone().add(lookDir));
+            ).add(camera.position);
+            camera.lookAt(_lookTarget);
             return;
         }
-        currentCameraPosition.lerp(targetCameraPosition, 0.1);
-        currentCameraLookAt.lerp(targetCameraLookAt, 0.1);
+        // Same feel as the old fixed 0.1/frame at 60 fps, but frame-rate independent
+        const frameDt = typeof dt === 'number' && dt > 0 ? Math.min(dt, 0.1) : 1 / 60;
+        const k = 1 - Math.pow(0.9, frameDt * 60);
+        currentCameraPosition.lerp(targetCameraPosition, k);
+        currentCameraLookAt.lerp(targetCameraLookAt, k);
         camera.position.copy(currentCameraPosition);
         camera.lookAt(currentCameraLookAt);
     }
@@ -687,11 +714,9 @@ function createDigitalRemote() {
         { code: 0xFF, name: '💡', color: 0xFF9800 }
     ];
     
-    let row = 0;
     let col = 0;
     for (let i = 0; i < smartHomeButtons.length; i++) {
         if (i > 0 && i % 5 === 0) {
-            row++;
             col = 0;
             yPos -= 0.07;
         }

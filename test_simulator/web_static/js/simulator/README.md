@@ -16,4 +16,5 @@ The simulator is split into modules (replacing the former single `tv-simulator.j
 | `screen.js` | `updateTVScreen`, `captureAndSendFrame`, all `draw*` content |
 | `controls.js` | `hexToRgb`, `initControls` (orbit + walk mode) |
 | `room-devices.js` | `updateRoomDevicesFromTVState` |
+| `static-batch.js` | Merges never-moving meshes that share a material to cut draw calls (`?nobatch=1` disables) |
 | `main.js` | `animate`, `addAmbientEffects`, `onWindowResize`, `DOMContentLoaded` |

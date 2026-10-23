@@ -104,6 +104,8 @@ const BUTTON_IR_CODES = {
 
 // Initialize IR visualization
 function initIRVisualization() {
+    // Called on every socket (re)connect: build the panel only once
+    if (document.getElementById('ir-visualization-panel')) return;
     // Create visualization panel
     const panel = document.createElement('div');
     panel.id = 'ir-visualization-panel';
@@ -191,8 +193,9 @@ function startIRVisualization(buttonCode, buttonName) {
     // Update details
     updateIRDetails();
     
-    // Auto-hide after 5 seconds
-    setTimeout(() => {
+    // Auto-hide after 5 seconds (restart the timer so an older press can't hide a newer one)
+    clearTimeout(irVisualization._hideTimer);
+    irVisualization._hideTimer = setTimeout(() => {
         if (irVisualization.active) {
             stopIRVisualization();
         }
@@ -349,7 +352,6 @@ function drawCarrierWaveform() {
     const height = canvas.height;
     const frequency = irVisualization.frequency; // 38kHz
     const sampleRate = 1000000; // 1MHz sample rate
-    const samplesPerPeriod = sampleRate / frequency;
     
     // Clear
     ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
@@ -370,7 +372,6 @@ function drawCarrierWaveform() {
     if (!firstMark) return;
     
     const markDuration = firstMark.duration / 1000; // ms
-    const timeScale = width / (markDuration * 0.1); // Show 10% of mark duration
     
     ctx.strokeStyle = '#ff6b6b';
     ctx.lineWidth = 2;
@@ -405,13 +406,3 @@ function updateIRDetails() {
     document.getElementById('ir-frequency').textContent = irVisualization.frequency.toLocaleString();
     document.getElementById('ir-duration').textContent = (irVisualization.totalDuration || 0).toFixed(2);
 }
-
-// Export for use in tv-simulator.js
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        initIRVisualization,
-        startIRVisualization,
-        stopIRVisualization
-    };
-}
-
