@@ -1,10 +1,17 @@
-#define _POSIX_C_SOURCE 199309L
+/* setitimer() and SA_RESTART are XSI extensions */
+#ifndef _XOPEN_SOURCE
+#define _XOPEN_SOURCE 700
+#endif
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
 #include "../include/handlers.h"
 #include "../include/remote_control.h"
 #include "../include/remote_buttons.h"
 #ifdef SIMULATOR
 # include "../include/tv_simulator.h"
 #endif
+#include "time_util.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -50,6 +57,7 @@ void handler_cleanup(void) {
         return;
     }
     
+    handler_stop_timer();
     handler_unregister_all();
     handlers_initialized = 0;
 }
@@ -188,6 +196,7 @@ int handler_register_all(handlers_t* handlers) {
     }
     
     registered_handlers = *handlers;
+    interrupt_callback_storage = handlers->interrupt_handler;
     return 0;
 }
 
@@ -196,6 +205,7 @@ int handler_register_all(handlers_t* handlers) {
  */
 void handler_unregister_all(void) {
     memset(&registered_handlers, 0, sizeof(handlers_t));
+    interrupt_callback_storage = NULL;
 }
 
 /* Universal TV Handler Registration Functions */
@@ -303,19 +313,6 @@ int handler_trigger_universal_brand_detected(uint8_t brand, const char* brand_na
 }
 
 /**
- * @brief Get current timestamp in milliseconds
- */
-static uint32_t get_timestamp(void) {
-#ifdef _WIN32
-    return (uint32_t)GetTickCount();
-#else
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (uint32_t)(ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
-#endif
-}
-
-/**
  * @brief Trigger button press event
  */
 int handler_trigger_button_pressed(unsigned char button_code) {
@@ -414,7 +411,7 @@ int handler_trigger_custom_event(event_t* event) {
     
     /* Set timestamp if not set */
     if (event->timestamp == 0) {
-        event->timestamp = get_timestamp();
+        event->timestamp = tu_monotonic_ms();
     }
     
     if (registered_handlers.custom_event != NULL) {
@@ -424,50 +421,42 @@ int handler_trigger_custom_event(event_t* event) {
     return 0;
 }
 
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
-
-/* Timer and Interrupt Handler Support */
-
-static timer_handler_t timer_callback = NULL;
+/* Timer and Interrupt Handler Support
+ *
+ * The timer fires asynchronously (SIGALRM on POSIX, a thread-pool callback on
+ * Windows). Neither context may safely run arbitrary user code (printf,
+ * malloc, the handler table...), so the asynchronous side only bumps a
+ * pending counter and handler_dispatch_timer() runs the registered
+ * timer_handler from the caller's normal context.
+ */
 
 #ifdef _WIN32
 static HANDLE timer_handle = NULL;
-#else
-static struct itimerval timer_value;
-static struct sigaction sa;
-#endif
+static volatile LONG timer_pending = 0;
 
-/**
- * @brief Timer interrupt handler (platform-specific)
- */
-#ifdef _WIN32
 static VOID CALLBACK timer_callback_wrapper(PVOID lpParam, BOOLEAN TimerOrWaitFired) {
     (void)lpParam;
     (void)TimerOrWaitFired;
-    if (timer_callback != NULL) {
-        timer_callback(0);
-    }
+    InterlockedIncrement(&timer_pending);
 }
 #else
+static volatile sig_atomic_t timer_pending = 0;
+static int timer_active = 0;
+
 static void timer_signal_handler(int sig) {
     (void)sig;
-    if (timer_callback != NULL) {
-        timer_callback(0);
-    }
+    /* Async-signal-safe: only touch a sig_atomic_t */
+    timer_pending = 1;
 }
 #endif
 
 /**
- * @brief Setup hardware timer
- * @param interval_ms Timer interval in milliseconds
+ * @brief Setup periodic timer that drives the registered timer handler
+ * @param interval_ms Timer interval in milliseconds (must be > 0)
  * @return 0 on success, -1 on failure
  */
 int handler_setup_timer(uint32_t interval_ms) {
-    if (timer_callback == NULL) {
+    if (registered_handlers.timer_handler == NULL || interval_ms == 0) {
         return -1;
     }
     
@@ -475,37 +464,66 @@ int handler_setup_timer(uint32_t interval_ms) {
     /* Windows: Use CreateTimerQueueTimer */
     if (timer_handle != NULL) {
         DeleteTimerQueueTimer(NULL, timer_handle, NULL);
+        timer_handle = NULL;
     }
     
     if (!CreateTimerQueueTimer(&timer_handle, NULL, timer_callback_wrapper, NULL,
                                interval_ms, interval_ms, WT_EXECUTEDEFAULT)) {
+        timer_handle = NULL;
         return -1;
     }
 #else
     /* Unix/Linux: Use setitimer */
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(sa));
     sa.sa_handler = timer_signal_handler;
     sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
+    /* Restart interrupted syscalls so blocking reads (e.g. fgets on stdin)
+     * are not aborted with EINTR every tick */
+    sa.sa_flags = SA_RESTART;
     
     if (sigaction(SIGALRM, &sa, NULL) == -1) {
         return -1;
     }
     
-    timer_value.it_value.tv_sec = interval_ms / 1000;
-    timer_value.it_value.tv_usec = (interval_ms % 1000) * 1000;
-    timer_value.it_interval.tv_sec = interval_ms / 1000;
-    timer_value.it_interval.tv_usec = (interval_ms % 1000) * 1000;
+    struct itimerval timer_value;
+    timer_value.it_value.tv_sec = (time_t)(interval_ms / 1000);
+    timer_value.it_value.tv_usec = (suseconds_t)((interval_ms % 1000) * 1000);
+    timer_value.it_interval = timer_value.it_value;
     
     if (setitimer(ITIMER_REAL, &timer_value, NULL) == -1) {
         return -1;
     }
+    timer_active = 1;
 #endif
     
     return 0;
 }
 
 /**
- * @brief Stop hardware timer
+ * @brief Run the timer handler for any timer expirations since the last call
+ * @return 1 if the handler was dispatched, 0 if nothing was pending,
+ *         -1 if a tick was pending but no timer handler is registered
+ */
+int handler_dispatch_timer(void) {
+#ifdef _WIN32
+    LONG pending = InterlockedExchange(&timer_pending, 0);
+#else
+    int pending = timer_pending;
+    timer_pending = 0;
+#endif
+    if (!pending) {
+        return 0;
+    }
+    if (registered_handlers.timer_handler == NULL) {
+        return -1;
+    }
+    registered_handlers.timer_handler(0);
+    return 1;
+}
+
+/**
+ * @brief Stop timer
  */
 void handler_stop_timer(void) {
 #ifdef _WIN32
@@ -513,12 +531,15 @@ void handler_stop_timer(void) {
         DeleteTimerQueueTimer(NULL, timer_handle, NULL);
         timer_handle = NULL;
     }
+    InterlockedExchange(&timer_pending, 0);
 #else
-    timer_value.it_value.tv_sec = 0;
-    timer_value.it_value.tv_usec = 0;
-    timer_value.it_interval.tv_sec = 0;
-    timer_value.it_interval.tv_usec = 0;
-    setitimer(ITIMER_REAL, &timer_value, NULL);
+    if (timer_active) {
+        struct itimerval timer_value;
+        memset(&timer_value, 0, sizeof(timer_value));
+        setitimer(ITIMER_REAL, &timer_value, NULL);
+        timer_active = 0;
+    }
+    timer_pending = 0;
 #endif
 }
 
@@ -542,7 +563,6 @@ int handler_setup_interrupt(int interrupt_number) {
 }
 
 /* Interrupt state tracking */
-static volatile unsigned char last_gpio_state = 0;
 static volatile uint32_t interrupt_timestamp = 0;
 static volatile int interrupt_type = 0; /* 0 = timer, 1 = GPIO */
 static volatile unsigned char pending_button_code = 0; /* Button code from hardware interrupt */
@@ -591,7 +611,10 @@ void interrupt_callback(void) {
         /* Read GPIO state to detect which button was pressed */
         unsigned char button_code = read_gpio_button_state();
         
-        if (button_code != 0 && button_code != last_gpio_state) {
+        /* Each simulated GPIO interrupt carries exactly one press (the code is
+         * consumed above), so repeated presses of the same button are real
+         * presses and must not be filtered out. */
+        if (button_code != 0) {
             /* Button press detected - trigger C command chain */
             printf("[Interrupt] Button press detected: 0x%02X\n", button_code);
 #ifdef SIMULATOR
@@ -603,17 +626,8 @@ void interrupt_callback(void) {
                 registered_handlers.interrupt_handler();
             }
             
-            /* Trigger button press handler - this is the C command */
-            if (registered_handlers.button_pressed != NULL) {
-                const char* button_name = get_button_name(button_code);
-                registered_handlers.button_pressed(button_code, button_name);
-            }
-            
-            /* Also trigger via handler system for full event chain */
+            /* Trigger button press handler (exactly once) */
             handler_trigger_button_pressed(button_code);
-            
-            /* Update last state */
-            last_gpio_state = button_code;
         }
     } else {
         /* Timer interrupt - handle IR timing */
