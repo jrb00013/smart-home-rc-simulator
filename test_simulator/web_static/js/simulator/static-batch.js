@@ -58,8 +58,10 @@ function canBatch(mesh) {
     if (Object.keys(geo.morphAttributes || {}).length > 0) return false;
     if (attributeSignature(geo).indexOf(':i') !== -1) return false; // interleaved: skip
     if (mesh.matrixWorld.determinant() <= 0) return false; // mirrored: winding would flip
+    if (mesh.userData && mesh.userData.fpDynamic) return false;
     for (let p = mesh.parent; p; p = p.parent) {
         if (!p.visible) return false;
+        if (p.userData && p.userData.fpDynamic) return false;
     }
     return true;
 }

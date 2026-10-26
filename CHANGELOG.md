@@ -14,6 +14,8 @@ reconstructed from the git log.
   into `test_simulator/TESTING.md`, and the two latency docs into `docs/LATENCY.md`.
 
 ### Added
+- First-person walk mode: collision and stairs, sprint / crouch / jump, doors and
+  household interactions, procedural sound, and a clock-based day/night cycle.
 - `CONTRIBUTING.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/BUTTONS.md`, `docs/C_REMOTE.md`.
 - `scripts/check_links.py` to check relative links and anchors in Markdown files.
 

@@ -73,6 +73,7 @@
         ['C', 'Crouch'],
         ['Space', 'Jump'],
         ['E', 'Use / interact'],
+        ['R', 'Stow / draw remote'],
         ['Click', 'Press remote buttons'],
         ['Esc', 'Pause menu'],
     ];

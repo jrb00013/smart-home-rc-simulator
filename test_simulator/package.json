@@ -8,7 +8,8 @@
     "lint": "eslint web_static/js",
     "lint:all": "eslint .",
     "smoke": "node scripts/smoke.mjs",
-    "test:fp-hud": "node scripts/fp-hud.mjs"
+    "test:fp-hud": "node scripts/fp-hud.mjs",
+    "test:fp": "node scripts/fp-immersive.mjs"
   },
   "devDependencies": {
     "axe-core": "^4.14.0",

@@ -547,7 +547,7 @@ function animate() {
 
     // Ceiling fan rotation
     if (window._fanBlades) {
-        window._fanBlades.rotation.y += dt * 1.5;
+        window._fanBlades.rotation.y += dt * (window._fanSpeed == null ? 1.5 : window._fanSpeed);
     }
 
     // Butterfly animation

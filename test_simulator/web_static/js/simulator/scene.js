@@ -1234,6 +1234,12 @@ function createNeighborhood() {
     }
     console.log('[TV Simulator] Graphics preset applied: tier=' + (preset._tier || 'MEDIUM') + (preset._gpu_name ? ' gpu=' + preset._gpu_name : ' (no GPU detected)'));
 
+    // Collision from the un-merged meshes, including hinged front and garage doors.
+    if (typeof FP !== 'undefined' && FP.collide && FP.collide.collect) {
+        try { FP.collide.collect(scene); }
+        catch (err) { console.warn('FP collision skipped:', err); }
+    }
+
     // Merge static, same-material meshes to cut draw calls (?nobatch=1 disables, for A/B checks)
     if (typeof batchStaticMeshes === 'function' && !/[?&]nobatch=1\b/.test(window.location.search)) {
         try {
