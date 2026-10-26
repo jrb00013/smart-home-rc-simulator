@@ -326,7 +326,9 @@ function initControls() {
             playerYaw = Math.atan2(forward.x, forward.z);
             playerPitch = Math.asin(Math.max(-1, Math.min(1, forward.y)));
             if (playerBody) playerBody.visible = true;
+            FP.emit('enter');
         } else {
+            const wasWalking = walkMode;
             walkMode = false;
             moveForward = moveBackward = moveLeft = moveRight = false;
             if (playerBody) playerBody.visible = false;
@@ -337,6 +339,7 @@ function initControls() {
                 currentCameraLookAt.copy(targetCameraLookAt);
                 cameraDistance = camera.position.distanceTo(targetCameraLookAt);
             }
+            if (wasWalking) FP.emit('exit');
         }
     });
 

@@ -17,6 +17,7 @@ function animate() {
     if (window.updateCamera) {
         window.updateCamera(dt);
     }
+    FP.update(dt);
     
     // Power on/off animation
     if (powerAnimation.isAnimating && screenMesh) {
@@ -683,6 +684,7 @@ function initSmartHomePanel() {
 window.addEventListener('DOMContentLoaded', () => {
     // Initialize scene first
     initScene();
+    FP.init();
     
     // Then initialize socket connection
     initSocket();
