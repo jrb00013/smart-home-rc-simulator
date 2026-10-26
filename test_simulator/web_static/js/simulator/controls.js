@@ -94,9 +94,12 @@ function initControls() {
     canvas.addEventListener('mousemove', (e) => {
         // Walk mode: pointer lock look (FIXED: inverted controls)
         if (walkMode && document.pointerLockElement === canvas) {
-            playerYaw -= e.movementX * 0.002;  // Inverted: move mouse right = turn right
-            playerPitch -= e.movementY * 0.002; // Inverted: move mouse up = look up
-            playerPitch = Math.max(-Math.PI / 2 + 0.15, Math.min(Math.PI / 2 - 0.15, playerPitch));
+            if (FP.input && FP.input.lookDelta) FP.input.lookDelta(e.movementX, e.movementY);
+            else {
+                playerYaw -= e.movementX * 0.002;
+                playerPitch -= e.movementY * 0.002;
+                playerPitch = Math.max(-Math.PI / 2 + 0.15, Math.min(Math.PI / 2 - 0.15, playerPitch));
+            }
             return;
         }
         if (!isDragging) {
@@ -192,6 +195,12 @@ function initControls() {
             if (e.code === 'Escape') {
                 e.preventDefault();
                 document.exitPointerLock();
+                return;
+            }
+            // Jump, crouch, use and stow are handled by the FP modules. Swallow them
+            // here so Space does not also reset the orbit camera.
+            if (e.code === 'Space' || e.code === 'KeyC' || e.code === 'KeyE' || e.code === 'KeyR' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+                if (e.code === 'Space') e.preventDefault();
                 return;
             }
         }
@@ -299,38 +308,39 @@ function initControls() {
     });
     
     // Pointer lock: enter/exit walk mode
+    function beginWalk() {
+        if (walkMode) return;
+        walkMode = true;
+        moveForward = moveBackward = moveLeft = moveRight = false;
+        firstPersonMode = true;
+        if (armGroup) armGroup.visible = true;
+        if (handGroup) handGroup.visible = true;
+        if (remoteGroup && firstPersonHolder && remoteGroup.parent !== firstPersonHolder) {
+            if (remoteGroup.parent) remoteGroup.parent.remove(remoteGroup);
+            remoteGroup.position.set(0.22, -0.35, -0.95);
+            remoteGroup.rotation.set(0.28, -0.15, 0.08);
+            remoteGroup.scale.setScalar(1);
+            firstPersonHolder.add(remoteGroup);
+        }
+        document.getElementById('btn-zoom-tv')?.classList.remove('active');
+        document.getElementById('btn-look-remote')?.classList.remove('active');
+        if (!playerPosition) playerPosition = new THREE.Vector3();
+        playerPosition.copy(camera.position);
+        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+        playerYaw = Math.atan2(forward.x, forward.z);
+        playerPitch = Math.asin(Math.max(-1, Math.min(1, forward.y)));
+        if (playerBody) playerBody.visible = true;
+        FP.emit('enter');
+    }
+    FP.startWalk = beginWalk;
+
     document.addEventListener('pointerlockchange', () => {
         if (document.pointerLockElement === canvas) {
             if (walkMode) {
                 FP.emit('resume'); // re-locked after the pause menu: keep position and view
                 return;
             }
-            walkMode = true;
-            moveForward = moveBackward = moveLeft = moveRight = false;
-            firstPersonMode = true; // Enable first person mode to show hand/arm
-            // Show arm and hand in walk mode
-            if (armGroup) armGroup.visible = true;
-            if (handGroup) handGroup.visible = true;
-            // Attach remote+hand to first person holder so they follow camera
-            if (remoteGroup && firstPersonHolder) {
-                if (remoteGroup.parent) remoteGroup.parent.remove(remoteGroup);
-                remoteGroup.position.set(0, -0.35, -1.05);
-                remoteGroup.rotation.set(0.25, 0, 0.05);
-                remoteGroup.scale.setScalar(1);
-                firstPersonHolder.add(remoteGroup);
-            }
-            document.getElementById('btn-zoom-tv')?.classList.remove('active');
-            document.getElementById('btn-look-remote')?.classList.remove('active');
-            if (!playerPosition) playerPosition = new THREE.Vector3();
-            playerPosition.copy(camera.position);
-            playerPosition.y = EYE_HEIGHT;
-            playerPosition.x = Math.max(-ROOM_BOUND, Math.min(ROOM_BOUND, playerPosition.x));
-            playerPosition.z = Math.max(-ROOM_BOUND, Math.min(ROOM_BOUND, playerPosition.z));
-            const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-            playerYaw = Math.atan2(forward.x, forward.z);
-            playerPitch = Math.asin(Math.max(-1, Math.min(1, forward.y)));
-            if (playerBody) playerBody.visible = true;
-            FP.emit('enter');
+            beginWalk();
         } else {
             // Losing the lock (Esc, alt-tab) pauses walk mode when the HUD offers a
             // pause menu, instead of dropping straight back to the orbit view
@@ -367,11 +377,13 @@ function initControls() {
         if (wasWalking) FP.emit('exit');
     }
     window.exitWalkMode = exitWalkMode;
+    FP.stopWalk = exitWalkMode;
 
     const _lookTarget = new THREE.Vector3(); // scratch for walk-mode lookAt (no per-frame allocation)
 
     // Smooth camera interpolation (position and lookAt); dt for walk mode movement
     function updateCamera(dt) {
+        if (walkMode && FP.player) return; // fp-move.js places the camera
         if (walkMode && playerPosition) {
             const move = (moveForward ? 1 : 0) - (moveBackward ? 1 : 0);
             const strafe = (moveRight ? 1 : 0) - (moveLeft ? 1 : 0);
