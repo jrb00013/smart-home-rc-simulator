@@ -168,10 +168,10 @@
         }
         #btn-look-remote:hover { background: rgba(33, 150, 243, 1); }
         #btn-look-remote.active { background: rgba(25, 118, 210, 1); }
-        #btn-walk:hover { background: rgba(156, 39, 176, 1); }
         .remote-style-btn { padding: 8px 14px; font-size: 12px; }
         .remote-style-btn.active { background: rgba(76, 175, 80, 1); border-color: rgba(255,255,255,0.5); }
     </style>
+    <link rel="stylesheet" href="/static/css/fp-hud.css">
 </head>
 <body>
     <div id="canvas-container">
@@ -216,7 +216,7 @@
         
         <button type="button" id="btn-zoom-tv" class="view-btn" title="Zoom in on the TV" onclick="switchViewToTVZoom()">Zoom on TV</button>
         <button type="button" id="btn-look-remote" class="view-btn" title="First-person view: your arm extends to the remote" onclick="switchViewToRemote()">First person (arm + remote)</button>
-        <button type="button" id="btn-walk" class="view-btn" title="First-person walk: WASD move, mouse look, visible body" onclick="typeof enterWalkMode === 'function' && enterWalkMode()" style="left: 50%; transform: translateX(calc(-50% + 200px)); background: rgba(156, 39, 176, 0.9);">Walk around</button>
+        <button type="button" id="btn-walk" class="fp-explore-btn" title="Walk through the house in first person (WASD + mouse)" onclick="window.FP && FP.hud ? FP.hud.enter() : (typeof enterWalkMode === 'function' && enterWalkMode())"><span class="fp-explore-icon" aria-hidden="true">&#9654;</span>Explore the house<kbd aria-hidden="true">Enter</kbd></button>
         
         <div id="remote-style" style="position: absolute; bottom: 20px; right: 20px; z-index: 101; display: flex; gap: 8px; align-items: center;">
             <span style="color: #aaa; font-size: 12px;">Remote:</span>
@@ -226,7 +226,7 @@
         
         <div id="controls">
             <h3>Controls</h3>
-            <p><strong>Walk around:</strong> First-person walk with body. <strong>WASD</strong> move, <strong>mouse</strong> look. <strong>Escape</strong> to exit.</p>
+            <p><strong>Explore the house</strong> (or <strong>Enter</strong>): first-person walk. <strong>WASD</strong> move, <strong>mouse</strong> look, <strong>Esc</strong> menu.</p>
             <p><strong>Zoom on TV:</strong> Close-up view of the TV</p>
             <p><strong>First person (arm + remote):</strong> Your view with an arm extending to the remote</p>
             <p><strong>P:</strong> Power (turn TV on/off)</p>
@@ -270,6 +270,7 @@
     <script src="/static/js/ir-visualization.js"></script>
     <script src="/static/js/simulator/globals.js"></script>
     <script src="/static/js/simulator/fp-core.js"></script>
+    <script src="/static/js/simulator/fp-hud.js"></script>
     <script src="/static/js/simulator/socket-state.js"></script>
     <script src="/static/js/simulator/utils.js"></script>
     <script src="/static/js/simulator/animations.js"></script>

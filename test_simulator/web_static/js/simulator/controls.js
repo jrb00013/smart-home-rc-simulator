@@ -301,6 +301,10 @@ function initControls() {
     // Pointer lock: enter/exit walk mode
     document.addEventListener('pointerlockchange', () => {
         if (document.pointerLockElement === canvas) {
+            if (walkMode) {
+                FP.emit('resume'); // re-locked after the pause menu: keep position and view
+                return;
+            }
             walkMode = true;
             moveForward = moveBackward = moveLeft = moveRight = false;
             firstPersonMode = true; // Enable first person mode to show hand/arm
@@ -328,20 +332,41 @@ function initControls() {
             if (playerBody) playerBody.visible = true;
             FP.emit('enter');
         } else {
-            const wasWalking = walkMode;
-            walkMode = false;
-            moveForward = moveBackward = moveLeft = moveRight = false;
-            if (playerBody) playerBody.visible = false;
-            if (targetCameraPosition && currentCameraPosition) {
-                targetCameraPosition.copy(camera.position);
-                currentCameraPosition.copy(camera.position);
-                targetCameraLookAt.copy(camera.position.clone().add(new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion)));
-                currentCameraLookAt.copy(targetCameraLookAt);
-                cameraDistance = camera.position.distanceTo(targetCameraLookAt);
+            // Losing the lock (Esc, alt-tab) pauses walk mode when the HUD offers a
+            // pause menu, instead of dropping straight back to the orbit view
+            const leaving = exitRequested;
+            exitRequested = false;
+            if (!leaving && walkMode && FP.hud && FP.hud.onPointerLockLost && FP.hud.onPointerLockLost()) {
+                moveForward = moveBackward = moveLeft = moveRight = false;
+                return;
             }
-            if (wasWalking) FP.emit('exit');
+            exitWalkMode();
         }
     });
+
+    // Leave walk mode and hand the current view to the orbit camera (also used by
+    // the HUD's "Exit to overview" while paused, when the pointer is already unlocked)
+    let exitRequested = false;
+    function exitWalkMode() {
+        if (document.pointerLockElement === canvas) {
+            exitRequested = true;
+            document.exitPointerLock(); // pointerlockchange calls back in here
+            return;
+        }
+        const wasWalking = walkMode;
+        walkMode = false;
+        moveForward = moveBackward = moveLeft = moveRight = false;
+        if (playerBody) playerBody.visible = false;
+        if (targetCameraPosition && currentCameraPosition) {
+            targetCameraPosition.copy(camera.position);
+            currentCameraPosition.copy(camera.position);
+            targetCameraLookAt.copy(camera.position.clone().add(new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion)));
+            currentCameraLookAt.copy(targetCameraLookAt);
+            cameraDistance = camera.position.distanceTo(targetCameraLookAt);
+        }
+        if (wasWalking) FP.emit('exit');
+    }
+    window.exitWalkMode = exitWalkMode;
 
     const _lookTarget = new THREE.Vector3(); // scratch for walk-mode lookAt (no per-frame allocation)
 
