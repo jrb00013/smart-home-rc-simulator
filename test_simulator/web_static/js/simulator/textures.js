@@ -294,3 +294,25 @@ Tex.define('stone.slate', function (ctx, w, h, o) {
     }
     Tex.speckle(ctx, w, h, { seed: 813, count: Math.round(w * h / 500), size: 2, base: [70, 78, 92], spread: 30, alpha: 0.16 });
 });
+
+Tex.define('stone.terrazzo', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 909);
+    ctx.fillStyle = o.base || '#dfdcd4';
+    ctx.fillRect(0, 0, w, h);
+    var palette = ['#c94f3d', '#3d7ac9', '#e0b23c', '#3da05a', '#8a5ac9', '#2f2f33', '#ffffff'];
+    for (var i = 0; i < Math.round(w * h / 140); i++) {
+        ctx.fillStyle = palette[(rand() * palette.length) | 0];
+        ctx.globalAlpha = 0.5 + rand() * 0.4;
+        var x = rand() * w, y = rand() * h, n = 5 + (rand() * 5 | 0), rad = 2 + rand() * 4;
+        ctx.beginPath();
+        for (var p = 0; p < n; p++) {
+            var a = (p / n) * Math.PI * 2;
+            var rr = rad * (0.6 + rand() * 0.6);
+            var px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr;
+            if (p === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+});
