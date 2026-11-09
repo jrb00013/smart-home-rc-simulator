@@ -278,3 +278,19 @@ Tex.define('stone.granite', function (ctx, w, h, o) {
     }
     ctx.globalAlpha = 1;
 });
+
+Tex.define('stone.slate', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 808);
+    ctx.fillStyle = o.base || '#3d4450';
+    ctx.fillRect(0, 0, w, h);
+    var rows = o.rows || 6;
+    for (var r = 0; r < rows; r++) {
+        var y = (r / rows) * h;
+        var rh = h / rows;
+        ctx.fillStyle = 'rgba(' + (50 + rand() * 20 | 0) + ',' + (58 + rand() * 20 | 0) + ',' + (70 + rand() * 20 | 0) + ',0.5)';
+        ctx.fillRect(0, y, w, rh - 1);
+        ctx.fillStyle = 'rgba(20,24,30,0.7)';
+        ctx.fillRect(0, y + rh - 1, w, 1);
+    }
+    Tex.speckle(ctx, w, h, { seed: 813, count: Math.round(w * h / 500), size: 2, base: [70, 78, 92], spread: 30, alpha: 0.16 });
+});
