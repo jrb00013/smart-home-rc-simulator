@@ -316,3 +316,25 @@ Tex.define('stone.terrazzo', function (ctx, w, h, o) {
     }
     ctx.globalAlpha = 1;
 });
+
+Tex.define('tile.ceramic', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 1001);
+    var n = o.tiles || 4;
+    var gap = o.gap || 4;
+    var tw = w / n, th = h / n;
+    ctx.fillStyle = o.grout || '#b9b6ae';
+    ctx.fillRect(0, 0, w, h);
+    for (var r = 0; r < n; r++) {
+        for (var c = 0; c < n; c++) {
+            var x = c * tw + gap / 2, y = r * th + gap / 2;
+            var t = -8 + rand() * 16;
+            var g = ctx.createLinearGradient(x, y, x, y + th - gap);
+            g.addColorStop(0, 'rgba(' + ((236 + t) | 0) + ',' + ((238 + t) | 0) + ',' + ((240 + t) | 0) + ',1)');
+            g.addColorStop(1, 'rgba(' + ((214 + t) | 0) + ',' + ((218 + t) | 0) + ',' + ((224 + t) | 0) + ',1)');
+            ctx.fillStyle = g;
+            ctx.fillRect(x, y, tw - gap, th - gap);
+            ctx.fillStyle = 'rgba(255,255,255,0.35)';
+            ctx.fillRect(x + 1, y + 1, tw - gap - 2, 1.5);
+        }
+    }
+});
