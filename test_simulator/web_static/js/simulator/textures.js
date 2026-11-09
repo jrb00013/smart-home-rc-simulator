@@ -510,3 +510,22 @@ Tex.define('metal.brushed', function (ctx, w, h, o) {
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y + (rand() - 0.5) * 2); ctx.stroke();
     }
 });
+
+Tex.define('metal.galvanized', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 1900);
+    ctx.fillStyle = o.base || '#9aa0a6';
+    ctx.fillRect(0, 0, w, h);
+    for (var i = 0; i < Math.round(w * h / 160); i++) {
+        var g = 130 + rand() * 70;
+        ctx.fillStyle = 'rgba(' + (g | 0) + ',' + (g | 0) + ',' + ((g + 6) | 0) + ',0.25)';
+        var n = 4 + (rand() * 4 | 0), rad = 2 + rand() * 5;
+        var x = rand() * w, y = rand() * h;
+        ctx.beginPath();
+        for (var p = 0; p < n; p++) {
+            var a = (p / n) * Math.PI * 2;
+            var px = x + Math.cos(a) * rad, py = y + Math.sin(a) * rad;
+            if (p === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.closePath(); ctx.fill();
+    }
+});
