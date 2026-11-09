@@ -541,3 +541,20 @@ Tex.define('carpet.pile', function (ctx, w, h, o) {
         ctx.fillRect(x, y, 1, 2 + rand() * 3);
     }
 });
+
+Tex.define('grass.lawn', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 2100);
+    ctx.fillStyle = o.base || '#4a7a3a';
+    ctx.fillRect(0, 0, w, h);
+    for (var i = 0; i < Math.round(w * h / 22); i++) {
+        var g = 90 + rand() * 70;
+        ctx.strokeStyle = 'rgba(' + ((30 + rand() * 50) | 0) + ',' + (g | 0) + ',' + ((25 + rand() * 45) | 0) + ',0.55)';
+        ctx.lineWidth = 1;
+        var x = rand() * w, y = rand() * h;
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + (rand() - 0.5) * 3, y - 2 - rand() * 3); ctx.stroke();
+    }
+    for (var m = 0; m < 6; m++) {
+        ctx.fillStyle = 'rgba(40,70,30,0.15)';
+        ctx.beginPath(); ctx.arc(rand() * w, rand() * h, 10 + rand() * 20, 0, Math.PI * 2); ctx.fill();
+    }
+});
