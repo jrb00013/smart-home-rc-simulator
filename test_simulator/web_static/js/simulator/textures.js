@@ -418,3 +418,16 @@ Tex.define('concrete', function (ctx, w, h, o) {
     }
     Tex.speckle(ctx, w, h, { seed: 1203, count: Math.round(w * h / 260), size: 1.5, base: [150, 150, 148], spread: 40, alpha: 0.22 });
 });
+
+Tex.define('plaster', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 1300);
+    ctx.fillStyle = o.base || '#d8cfc0';
+    ctx.fillRect(0, 0, w, h);
+    for (var i = 0; i < Math.round(w * h / 400); i++) {
+        ctx.fillStyle = (rand() > 0.5) ? 'rgba(255,255,255,0.06)' : 'rgba(120,110,96,0.05)';
+        ctx.beginPath();
+        ctx.arc(rand() * w, rand() * h, 1 + rand() * 4, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    Tex.speckle(ctx, w, h, { seed: 1307, count: Math.round(w * h / 1200), size: 1, base: [216, 207, 192], spread: 18, alpha: 0.12 });
+});
