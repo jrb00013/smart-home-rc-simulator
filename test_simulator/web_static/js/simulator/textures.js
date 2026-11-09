@@ -192,3 +192,27 @@ Tex.define('wood.oak', function (ctx, w, h, o) {
     }
     Tex.speckle(ctx, w, h, { seed: (o.seed || 101) + 7, count: Math.round(w * h / 900), size: 2, base: [90, 60, 30], spread: 30, alpha: 0.12 });
 });
+
+Tex.define('wood.walnut', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 202);
+    ctx.fillStyle = o.base || '#5a3a22';
+    ctx.fillRect(0, 0, w, h);
+    for (var g = 0; g < 70; g++) {
+        var y = rand() * h;
+        ctx.strokeStyle = 'rgba(' + (30 + rand() * 40 | 0) + ',' + (18 + rand() * 24 | 0) + ',10,' + (0.06 + rand() * 0.14) + ')';
+        ctx.lineWidth = 0.6 + rand() * 1.8;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y + (rand() - 0.5) * 8);
+        ctx.stroke();
+    }
+    for (var k = 0; k < 5; k++) {
+        var kx = rand() * w, ky = rand() * h;
+        ctx.strokeStyle = 'rgba(24,12,6,0.45)';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.ellipse(kx, ky, 6 + rand() * 8, 2 + rand() * 3, rand() * Math.PI, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+    Tex.speckle(ctx, w, h, { seed: 209, count: Math.round(w * h / 1100), size: 2, base: [60, 38, 22], spread: 26, alpha: 0.14 });
+});
