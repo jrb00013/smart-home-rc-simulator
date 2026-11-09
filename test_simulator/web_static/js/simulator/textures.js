@@ -558,3 +558,14 @@ Tex.define('grass.lawn', function (ctx, w, h, o) {
         ctx.beginPath(); ctx.arc(rand() * w, rand() * h, 10 + rand() * 20, 0, Math.PI * 2); ctx.fill();
     }
 });
+
+Tex.define('asphalt', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 2200);
+    ctx.fillStyle = o.base || '#3a3a3c';
+    ctx.fillRect(0, 0, w, h);
+    for (var i = 0; i < Math.round(w * h / 30); i++) {
+        var g = 40 + rand() * 80;
+        ctx.fillStyle = 'rgba(' + (g | 0) + ',' + (g | 0) + ',' + ((g + 4) | 0) + ',0.35)';
+        ctx.fillRect(rand() * w, rand() * h, 1 + rand() * 2, 1 + rand() * 2);
+    }
+});
