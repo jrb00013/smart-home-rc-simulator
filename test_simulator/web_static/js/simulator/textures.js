@@ -164,3 +164,31 @@ var Tex = (function () {
         clearCache: clearCache
     };
 })();
+
+// ---- Wood species and plank patterns ----
+Tex.define('wood.oak', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 101);
+    ctx.fillStyle = o.base || '#b07a45';
+    ctx.fillRect(0, 0, w, h);
+    var planks = o.planks || 4;
+    var ph = h / planks;
+    for (var p = 0; p < planks; p++) {
+        var y0 = p * ph;
+        var shade = -14 + rand() * 28;
+        ctx.fillStyle = 'rgba(' + ((86 + shade) | 0) + ',' + ((54 + shade * 0.7) | 0) + ',' + ((28 + shade * 0.5) | 0) + ',0.35)';
+        ctx.fillRect(0, y0, w, ph - 1);
+        for (var g = 0; g < 26; g++) {
+            var gy = y0 + 2 + rand() * (ph - 4);
+            ctx.strokeStyle = 'rgba(60,36,16,' + (0.05 + rand() * 0.12) + ')';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, gy);
+            var cx = 0;
+            while (cx < w) { cx += 8 + rand() * 22; ctx.lineTo(cx, gy + (rand() - 0.5) * 3); }
+            ctx.stroke();
+        }
+        ctx.fillStyle = 'rgba(30,18,8,0.55)';
+        ctx.fillRect(0, y0 + ph - 1, w, 1);
+    }
+    Tex.speckle(ctx, w, h, { seed: (o.seed || 101) + 7, count: Math.round(w * h / 900), size: 2, base: [90, 60, 30], spread: 30, alpha: 0.12 });
+});
