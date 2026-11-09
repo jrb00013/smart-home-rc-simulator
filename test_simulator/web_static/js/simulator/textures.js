@@ -382,3 +382,25 @@ Tex.define('brick.red', function (ctx, w, h, o) {
         }
     }
 });
+
+Tex.define('brick.stone', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 1101);
+    ctx.fillStyle = o.mortar || '#8f8a80';
+    ctx.fillRect(0, 0, w, h);
+    var rows = o.rows || 5;
+    var bh = h / rows;
+    for (var r = 0; r < rows; r++) {
+        var y = r * bh;
+        var x = -rand() * 40;
+        while (x < w) {
+            var bw = 30 + rand() * 50;
+            var t = rand() * 36 - 18;
+            ctx.fillStyle = 'rgba(' + ((150 + t) | 0) + ',' + ((140 + t) | 0) + ',' + ((124 + t) | 0) + ',1)';
+            ctx.fillRect(x + 2, y + 2, bw - 4, bh - 4);
+            ctx.strokeStyle = 'rgba(90,84,74,0.5)';
+            ctx.strokeRect(x + 2.5, y + 2.5, bw - 5, bh - 5);
+            x += bw;
+        }
+    }
+    Tex.speckle(ctx, w, h, { seed: 1109, count: Math.round(w * h / 900), size: 2, base: [150, 140, 124], spread: 26, alpha: 0.12 });
+});
