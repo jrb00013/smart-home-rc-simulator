@@ -404,3 +404,17 @@ Tex.define('brick.stone', function (ctx, w, h, o) {
     }
     Tex.speckle(ctx, w, h, { seed: 1109, count: Math.round(w * h / 900), size: 2, base: [150, 140, 124], spread: 26, alpha: 0.12 });
 });
+
+Tex.define('concrete', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 1200);
+    ctx.fillStyle = o.base || '#9a9a98';
+    ctx.fillRect(0, 0, w, h);
+    for (var i = 0; i < Math.round(w * h / 3000); i++) {
+        ctx.fillStyle = 'rgba(120,120,118,' + (0.05 + rand() * 0.1) + ')';
+        var r = 6 + rand() * 20;
+        ctx.beginPath();
+        ctx.arc(rand() * w, rand() * h, r, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    Tex.speckle(ctx, w, h, { seed: 1203, count: Math.round(w * h / 260), size: 1.5, base: [150, 150, 148], spread: 40, alpha: 0.22 });
+});
