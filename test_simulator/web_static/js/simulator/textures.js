@@ -466,3 +466,19 @@ Tex.define('fabric.upholstery', function (ctx, w, h, o) {
     }
     Tex.speckle(ctx, w, h, { seed: 1511, count: Math.round(w * h / 900), size: 1.5, base: [74, 90, 106], spread: 26, alpha: 0.2 });
 });
+
+Tex.define('fabric.tweed', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 1600);
+    ctx.fillStyle = o.base || '#6b5a44';
+    ctx.fillRect(0, 0, w, h);
+    for (var i = 0; i < Math.round(w * h / 40); i++) {
+        var g = 40 + rand() * 120;
+        ctx.fillStyle = 'rgba(' + (g | 0) + ',' + ((g * 0.85) | 0) + ',' + ((g * 0.6) | 0) + ',0.25)';
+        ctx.fillRect(rand() * w, rand() * h, 1 + rand() * 3, 1 + rand() * 3);
+    }
+    for (var s = 0; s < 30; s++) {
+        ctx.strokeStyle = 'rgba(40,32,20,' + (0.05 + rand() * 0.08) + ')';
+        var x = rand() * w;
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + (rand() - 0.5) * 6, h); ctx.stroke();
+    }
+});
