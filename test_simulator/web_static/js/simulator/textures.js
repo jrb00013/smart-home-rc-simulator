@@ -431,3 +431,19 @@ Tex.define('plaster', function (ctx, w, h, o) {
     }
     Tex.speckle(ctx, w, h, { seed: 1307, count: Math.round(w * h / 1200), size: 1, base: [216, 207, 192], spread: 18, alpha: 0.12 });
 });
+
+Tex.define('fabric.linen', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 1400);
+    ctx.fillStyle = o.base || '#e6ddc9';
+    ctx.fillRect(0, 0, w, h);
+    var step = o.step || 4;
+    for (var x = 0; x < w; x += step) {
+        ctx.fillStyle = (Math.floor(x / step) % 2) ? 'rgba(255,255,255,0.10)' : 'rgba(120,108,86,0.10)';
+        ctx.fillRect(x, 0, step / 2, h);
+    }
+    for (var y = 0; y < h; y += step) {
+        ctx.fillStyle = (Math.floor(y / step) % 2) ? 'rgba(255,255,255,0.08)' : 'rgba(120,108,86,0.08)';
+        ctx.fillRect(0, y, w, step / 2);
+    }
+    Tex.speckle(ctx, w, h, { seed: 1407, count: Math.round(w * h / 1400), size: 1, base: [220, 210, 190], spread: 20, alpha: 0.14 });
+});
