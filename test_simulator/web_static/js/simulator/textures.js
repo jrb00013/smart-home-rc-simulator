@@ -594,3 +594,21 @@ Tex.define('wallpaper.damask', function (ctx, w, h, o) {
     }
     Tex.speckle(ctx, w, h, { seed: 2309, count: Math.round(w * h / 2000), size: 1, base: [47, 58, 72], spread: 16, alpha: 0.2 });
 });
+
+Tex.define('tile.mosaic', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 2400);
+    var n = o.tiles || 12;
+    var s = w / n;
+    ctx.fillStyle = o.grout || '#cfcabf';
+    ctx.fillRect(0, 0, w, h);
+    var palette = o.palette || ['#3d6fa8', '#e0d7c2', '#88a9c4', '#2f4f72', '#d9c9a8'];
+    for (var r = 0; r < n; r++) {
+        for (var c = 0; c < n; c++) {
+            ctx.fillStyle = palette[(rand() * palette.length) | 0];
+            var pad = 0.8;
+            ctx.fillRect(c * s + pad, r * s + pad, s - pad * 2, s - pad * 2);
+            ctx.fillStyle = 'rgba(255,255,255,0.18)';
+            ctx.fillRect(c * s + pad, r * s + pad, s - pad * 2, 1);
+        }
+    }
+});
