@@ -360,3 +360,25 @@ Tex.define('tile.subway', function (ctx, w, h, o) {
         }
     }
 });
+
+Tex.define('brick.red', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 1100);
+    var rows = o.rows || 8;
+    var cols = o.cols || 4;
+    var bh = h / rows, bw = w / cols;
+    ctx.fillStyle = o.mortar || '#b8b0a4';
+    ctx.fillRect(0, 0, w, h);
+    for (var r = 0; r < rows; r++) {
+        var offset = (r % 2) ? bw / 2 : 0;
+        for (var c = -1; c <= cols; c++) {
+            var x = c * bw + offset + 2, y = r * bh + 2;
+            var t = rand() * 40 - 20;
+            ctx.fillStyle = 'rgba(' + ((150 + t) | 0) + ',' + ((72 + t * 0.6) | 0) + ',' + ((52 + t * 0.4) | 0) + ',1)';
+            ctx.fillRect(x, y, bw - 4, bh - 4);
+            for (var k = 0; k < 6; k++) {
+                ctx.fillStyle = 'rgba(60,28,20,' + (0.04 + rand() * 0.08) + ')';
+                ctx.fillRect(x + rand() * (bw - 6), y + rand() * (bh - 6), 2 + rand() * 4, 1 + rand() * 2);
+            }
+        }
+    }
+});
