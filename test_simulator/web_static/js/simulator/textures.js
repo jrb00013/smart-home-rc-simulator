@@ -262,3 +262,19 @@ Tex.define('stone.marble', function (ctx, w, h, o) {
     }
     Tex.speckle(ctx, w, h, { seed: 611, count: Math.round(w * h / 2500), size: 1, base: [200, 198, 194], spread: 24, alpha: 0.2 });
 });
+
+Tex.define('stone.granite', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 707);
+    ctx.fillStyle = o.base || '#6c6c70';
+    ctx.fillRect(0, 0, w, h);
+    var chips = ['#2f2f33', '#8a8a90', '#b4b4ba', '#5a3a30', '#4a4a52'];
+    ctx.globalAlpha = 0.5;
+    for (var i = 0; i < Math.round(w * h / 60); i++) {
+        ctx.fillStyle = chips[(rand() * chips.length) | 0];
+        var s = 1 + rand() * 3.5;
+        ctx.beginPath();
+        ctx.arc(rand() * w, rand() * h, s, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+});
