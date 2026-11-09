@@ -244,3 +244,21 @@ Tex.define('wood.parquet', function (ctx, w, h, o) {
         }
     }
 });
+
+// ---- Stone and aggregate surfaces ----
+Tex.define('stone.marble', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 606);
+    ctx.fillStyle = o.base || '#e8e6e0';
+    ctx.fillRect(0, 0, w, h);
+    for (var v = 0; v < 18; v++) {
+        var x = rand() * w, y = rand() * h;
+        ctx.strokeStyle = 'rgba(' + (110 + rand() * 60 | 0) + ',' + (110 + rand() * 60 | 0) + ',' + (120 + rand() * 60 | 0) + ',' + (0.12 + rand() * 0.2) + ')';
+        ctx.lineWidth = 0.5 + rand() * 2.2;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        var steps = 8 + (rand() * 10 | 0);
+        for (var s = 0; s < steps; s++) { x += (rand() - 0.3) * 26; y += (rand() - 0.5) * 18; ctx.lineTo(x, y); }
+        ctx.stroke();
+    }
+    Tex.speckle(ctx, w, h, { seed: 611, count: Math.round(w * h / 2500), size: 1, base: [200, 198, 194], spread: 24, alpha: 0.2 });
+});
