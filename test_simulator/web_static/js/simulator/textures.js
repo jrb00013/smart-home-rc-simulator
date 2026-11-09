@@ -569,3 +569,28 @@ Tex.define('asphalt', function (ctx, w, h, o) {
         ctx.fillRect(rand() * w, rand() * h, 1 + rand() * 2, 1 + rand() * 2);
     }
 });
+
+Tex.define('wallpaper.damask', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 2300);
+    ctx.fillStyle = o.base || '#2f3a48';
+    ctx.fillRect(0, 0, w, h);
+    var cell = o.cell || 32;
+    ctx.strokeStyle = 'rgba(180,196,214,0.18)';
+    ctx.lineWidth = 1.5;
+    for (var y = 0; y < h; y += cell) {
+        for (var x = 0; x < w; x += cell) {
+            var ox = ((Math.floor(y / cell)) % 2) ? cell / 2 : 0;
+            var cx = x + ox + cell / 2, cy = y + cell / 2, r = cell * 0.34;
+            ctx.beginPath();
+            for (var p = 0; p <= 8; p++) {
+                var a = (p / 8) * Math.PI * 2;
+                var rr = r * (p % 2 ? 0.6 : 1);
+                var px = cx + Math.cos(a) * rr, py = cy + Math.sin(a) * rr;
+                if (p === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            }
+            ctx.stroke();
+            ctx.beginPath(); ctx.arc(cx, cy, r * 0.18, 0, Math.PI * 2); ctx.stroke();
+        }
+    }
+    Tex.speckle(ctx, w, h, { seed: 2309, count: Math.round(w * h / 2000), size: 1, base: [47, 58, 72], spread: 16, alpha: 0.2 });
+});
