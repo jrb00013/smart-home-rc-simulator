@@ -216,3 +216,31 @@ Tex.define('wood.walnut', function (ctx, w, h, o) {
     }
     Tex.speckle(ctx, w, h, { seed: 209, count: Math.round(w * h / 1100), size: 2, base: [60, 38, 22], spread: 26, alpha: 0.14 });
 });
+
+Tex.define('wood.parquet', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 303);
+    ctx.fillStyle = o.base || '#9a6a3c';
+    ctx.fillRect(0, 0, w, h);
+    var cols = o.cols || 4;
+    var rows = o.rows || 4;
+    var bw = w / cols, bh = h / rows;
+    for (var r = 0; r < rows; r++) {
+        for (var c = 0; c < cols; c++) {
+            var vertical = ((r + c) % 2) === 0;
+            var x = c * bw, y = r * bh;
+            var t = -10 + rand() * 20;
+            ctx.fillStyle = 'rgba(' + ((120 + t) | 0) + ',' + ((82 + t) | 0) + ',' + ((44 + t) | 0) + ',0.9)';
+            ctx.fillRect(x + 1, y + 1, bw - 2, bh - 2);
+            ctx.strokeStyle = 'rgba(40,24,12,0.5)';
+            ctx.lineWidth = 1;
+            for (var i = 1; i < 6; i++) {
+                ctx.beginPath();
+                if (vertical) { ctx.moveTo(x + (bw / 6) * i, y + 2); ctx.lineTo(x + (bw / 6) * i, y + bh - 2); }
+                else { ctx.moveTo(x + 2, y + (bh / 6) * i); ctx.lineTo(x + bw - 2, y + (bh / 6) * i); }
+                ctx.stroke();
+            }
+            ctx.strokeStyle = 'rgba(30,18,8,0.85)';
+            ctx.strokeRect(x + 0.5, y + 0.5, bw - 1, bh - 1);
+        }
+    }
+});
