@@ -338,3 +338,25 @@ Tex.define('tile.ceramic', function (ctx, w, h, o) {
         }
     }
 });
+
+Tex.define('tile.subway', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 1002);
+    var rows = o.rows || 8;
+    var cols = o.cols || 4;
+    var bh = h / rows, bw = w / cols;
+    ctx.fillStyle = o.grout || '#c7c3ba';
+    ctx.fillRect(0, 0, w, h);
+    for (var r = 0; r < rows; r++) {
+        var offset = (r % 2) ? bw / 2 : 0;
+        for (var c = -1; c <= cols; c++) {
+            var x = c * bw + offset + 1.5, y = r * bh + 1.5;
+            var t = -6 + rand() * 12;
+            ctx.fillStyle = 'rgba(' + ((240 + t) | 0) + ',' + ((242 + t) | 0) + ',' + ((244 + t) | 0) + ',1)';
+            ctx.fillRect(x, y, bw - 3, bh - 3);
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            ctx.fillRect(x + 1, y + 1, bw - 5, 1);
+            ctx.fillStyle = 'rgba(150,150,155,0.25)';
+            ctx.fillRect(x + 1, y + bh - 4, bw - 5, 1);
+        }
+    }
+});
