@@ -497,3 +497,16 @@ Tex.define('leather', function (ctx, w, h, o) {
     }
     Tex.speckle(ctx, w, h, { seed: 1709, count: Math.round(w * h / 1500), size: 1, base: [90, 58, 40], spread: 20, alpha: 0.16 });
 });
+
+Tex.define('metal.brushed', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 1800);
+    ctx.fillStyle = o.base || '#b8bcc0';
+    ctx.fillRect(0, 0, w, h);
+    for (var i = 0; i < Math.round(h * 1.6); i++) {
+        var y = rand() * h;
+        var a = 0.02 + rand() * 0.08;
+        ctx.strokeStyle = (rand() > 0.5) ? 'rgba(255,255,255,' + a + ')' : 'rgba(60,64,70,' + a + ')';
+        ctx.lineWidth = 0.5 + rand();
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y + (rand() - 0.5) * 2); ctx.stroke();
+    }
+});
