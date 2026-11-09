@@ -482,3 +482,18 @@ Tex.define('fabric.tweed', function (ctx, w, h, o) {
         ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + (rand() - 0.5) * 6, h); ctx.stroke();
     }
 });
+
+Tex.define('leather', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 1700);
+    ctx.fillStyle = o.base || '#5a3826';
+    ctx.fillRect(0, 0, w, h);
+    for (var i = 0; i < Math.round(w * h / 90); i++) {
+        var r = 2 + rand() * 5;
+        var t = rand() * 30 - 15;
+        ctx.fillStyle = 'rgba(' + ((120 + t) | 0) + ',' + ((76 + t) | 0) + ',' + ((50 + t) | 0) + ',0.18)';
+        ctx.beginPath();
+        ctx.ellipse(rand() * w, rand() * h, r, r * 0.8, rand() * Math.PI, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    Tex.speckle(ctx, w, h, { seed: 1709, count: Math.round(w * h / 1500), size: 1, base: [90, 58, 40], spread: 20, alpha: 0.16 });
+});
