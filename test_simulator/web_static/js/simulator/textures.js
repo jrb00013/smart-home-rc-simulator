@@ -529,3 +529,15 @@ Tex.define('metal.galvanized', function (ctx, w, h, o) {
         ctx.closePath(); ctx.fill();
     }
 });
+
+Tex.define('carpet.pile', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 2000);
+    ctx.fillStyle = o.base || '#6a5a4a';
+    ctx.fillRect(0, 0, w, h);
+    for (var i = 0; i < Math.round(w * h / 12); i++) {
+        var t = rand() * 40 - 20;
+        ctx.fillStyle = 'rgba(' + ((108 + t) | 0) + ',' + ((92 + t) | 0) + ',' + ((74 + t) | 0) + ',0.5)';
+        var x = rand() * w, y = rand() * h;
+        ctx.fillRect(x, y, 1, 2 + rand() * 3);
+    }
+});
