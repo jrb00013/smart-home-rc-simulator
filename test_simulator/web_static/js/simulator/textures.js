@@ -447,3 +447,22 @@ Tex.define('fabric.linen', function (ctx, w, h, o) {
     }
     Tex.speckle(ctx, w, h, { seed: 1407, count: Math.round(w * h / 1400), size: 1, base: [220, 210, 190], spread: 20, alpha: 0.14 });
 });
+
+Tex.define('fabric.upholstery', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 1500);
+    ctx.fillStyle = o.base || '#4a5a6a';
+    ctx.fillRect(0, 0, w, h);
+    var step = o.step || 6;
+    ctx.lineWidth = 1;
+    for (var y = 0; y < h; y += step) {
+        ctx.strokeStyle = 'rgba(255,255,255,' + (0.03 + rand() * 0.05) + ')';
+        ctx.beginPath(); ctx.moveTo(0, y + 0.5); ctx.lineTo(w, y + 0.5); ctx.stroke();
+        ctx.strokeStyle = 'rgba(0,0,0,' + (0.05 + rand() * 0.06) + ')';
+        ctx.beginPath(); ctx.moveTo(0, y + step / 2); ctx.lineTo(w, y + step / 2); ctx.stroke();
+    }
+    for (var x = 0; x < w; x += step) {
+        ctx.strokeStyle = 'rgba(0,0,0,0.04)';
+        ctx.beginPath(); ctx.moveTo(x + 0.5, 0); ctx.lineTo(x + 0.5, h); ctx.stroke();
+    }
+    Tex.speckle(ctx, w, h, { seed: 1511, count: Math.round(w * h / 900), size: 1.5, base: [74, 90, 106], spread: 26, alpha: 0.2 });
+});
