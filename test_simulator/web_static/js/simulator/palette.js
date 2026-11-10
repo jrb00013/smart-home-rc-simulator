@@ -53,3 +53,4 @@ Tex.variant('mosaic.blue', 'tile.mosaic', { base: '#d0dce6' });
 Tex.variant('mosaic.green', 'tile.mosaic', { base: '#c8dcc8' });
 Tex.variant('mosaic.gold', 'tile.mosaic', { base: '#e6d8b0' });
 Tex.variant('brick.whitewashed', 'brick.red', { base: '#c8bcac' });
+Tex.variant('brick.brown', 'brick.red', { base: '#8a5a3a' });
