@@ -100,3 +100,4 @@ Tex.variant('carpet.beige', 'carpet.pile', { base: '#b8a888' });
 Tex.variant('carpet.navy', 'carpet.pile', { base: '#2a3a56' });
 Tex.variant('carpet.sage', 'carpet.pile', { base: '#6a7a5a' });
 Tex.variant('carpet.rust', 'carpet.pile', { base: '#8a4a3a' });
+Tex.variant('damask.navy', 'wallpaper.damask', { base: '#2f3a48' });
