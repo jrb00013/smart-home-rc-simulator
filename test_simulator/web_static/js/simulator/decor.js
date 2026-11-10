@@ -270,3 +270,12 @@ Decor.addSpec('walnut-bookshelf', {
         { size: [0.75, 1.25, 0.7], color: 0x2f6a4a, position: [0.4, 0.78, 0.95] }
     ]
 });
+
+Decor.addSpec('floor-lamp', {
+    position: [-14, 0, -18.5],
+    parts: [
+        { type: 'cyl', size: [0.9, 0.12], texture: 'metal.chrome', matProps: { metalness: 0.8, roughness: 0.25 }, position: [0, 0.12, 0] },
+        { type: 'cyl', size: [0.09, 4.2], texture: 'metal.chrome', matProps: { metalness: 0.8, roughness: 0.25 }, position: [0, 2.2, 0] },
+        { type: 'cyl', radiusTop: 0.55, radiusBottom: 0.85, size: [1.7, 1.1], texture: 'fabric.linen', texOpts: { base: '#efe6d2' }, matProps: { roughness: 0.9 }, position: [0, 4.4, 0] }
+    ]
+});
