@@ -471,3 +471,23 @@ Env.addEffect('lightning', function (api) {
         }
     };
 });
+
+// Interior lights: warm point lights switch on as daylight fades.
+Env.addEffect('interior-lights', function (api) {
+    var THREE = api.THREE;
+    var spots = [[0, 8, 0], [-10, 7, 6], [10, 7, -6], [0, 7, 14]];
+    var lights = spots.map(function (p) {
+        var l = new THREE.PointLight(0xffd9a0, 0, 34, 2);
+        l.position.set(p[0], p[1], p[2]);
+        api.scene.add(l);
+        return l;
+    });
+    return {
+        update: function (dt, st) {
+            var target = st.daylight < 0.5 ? (1 - st.daylight) * 1.6 : 0;
+            lights.forEach(function (l) {
+                l.intensity += (target - l.intensity) * Math.min(1, dt * 2);
+            });
+        }
+    };
+});
