@@ -454,3 +454,13 @@ Decor.addSpec('wall-hook-rack', {
         { type: 'sphere', radius: 0.08, texture: 'metal.brass', position: [0.8, -0.15, 0.1] }
     ]
 });
+
+Decor.addSpec('shoe-bench', {
+    position: [17, 0, 20],
+    parts: [
+        { size: [2.6, 0.14, 0.9], texture: 'wood.oak', position: [0, 0.55, 0] },
+        { size: [2.4, 0.08, 0.8], texture: 'wood.oak', position: [0, 0.2, 0] },
+        { size: [0.14, 0.55, 0.8], texture: 'wood.oak', position: [-1.2, 0.28, 0] },
+        { size: [0.14, 0.55, 0.8], texture: 'wood.oak', position: [1.2, 0.28, 0] }
+    ]
+});
