@@ -14,3 +14,4 @@ Tex.variant('walnut.red', 'wood.walnut', { base: '#6a3a26' });
 Tex.variant('walnut.light', 'wood.walnut', { base: '#8a6a48' });
 Tex.variant('pine.white', 'wood.pine', { base: '#e8dcc0' });
 Tex.variant('pine.antique', 'wood.pine', { base: '#c8a86a' });
+Tex.variant('pine.knotty', 'wood.pine', { base: '#d0b080' });
