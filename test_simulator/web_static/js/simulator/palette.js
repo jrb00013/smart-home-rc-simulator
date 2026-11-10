@@ -109,3 +109,4 @@ Tex.variant('asphalt.dark', 'asphalt', { base: '#2a2a2c' });
 Tex.variant('concrete.light', 'concrete', { base: '#b8b8b6' });
 Tex.variant('concrete.dark', 'concrete', { base: '#6a6a68' });
 Tex.variant('plaster.warm', 'plaster', { base: '#d8cfc0' });
+Tex.variant('plaster.grey', 'plaster', { base: '#c0c0bc' });
