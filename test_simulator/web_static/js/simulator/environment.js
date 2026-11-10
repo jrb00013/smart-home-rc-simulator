@@ -280,6 +280,8 @@ var Env = (function () {
         resume: resume,
         toggle: toggle,
         attachHud: attachHud,
+        daylightAt: daylightAt,
+        formatClock: formatClock,
         effects: effects
     };
 })();
