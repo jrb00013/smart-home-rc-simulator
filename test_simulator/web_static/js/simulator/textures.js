@@ -749,3 +749,22 @@ Tex.define('metal.copper', function (ctx, w, h, o) {
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y + (rand() - 0.5) * 2); ctx.stroke();
     }
 });
+
+Tex.define('metal.chrome', function (ctx, w, h, o) {
+    ctx.fillStyle = o.base || '#c8ccd2';
+    ctx.fillRect(0, 0, w, h);
+    var g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, 'rgba(255,255,255,0.55)');
+    g.addColorStop(0.35, 'rgba(150,156,164,0.15)');
+    g.addColorStop(0.5, 'rgba(255,255,255,0.5)');
+    g.addColorStop(0.65, 'rgba(120,126,134,0.15)');
+    g.addColorStop(1, 'rgba(220,224,230,0.4)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+    var v = ctx.createLinearGradient(0, 0, w, 0);
+    v.addColorStop(0, 'rgba(255,255,255,0.2)');
+    v.addColorStop(0.5, 'rgba(0,0,0,0.08)');
+    v.addColorStop(1, 'rgba(255,255,255,0.2)');
+    ctx.fillStyle = v;
+    ctx.fillRect(0, 0, w, h);
+});
