@@ -57,3 +57,4 @@ Tex.variant('brick.brown', 'brick.red', { base: '#8a5a3a' });
 Tex.variant('brick.charcoal', 'brick.red', { base: '#4a4a4a' });
 Tex.variant('fieldstone.grey', 'brick.stone', { base: '#a8a8a0' });
 Tex.variant('fieldstone.tan', 'brick.stone', { base: '#c8b89a' });
+Tex.variant('paint.white', 'paint.wall', { base: '#eef0f2' });
