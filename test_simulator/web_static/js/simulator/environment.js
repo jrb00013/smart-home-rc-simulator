@@ -365,3 +365,40 @@ Env.addEffect('snow', function (api) {
         }
     };
 });
+
+// Fireflies: warm points that hover near the ground on summer nights.
+Env.addEffect('fireflies', function (api) {
+    var THREE = api.THREE;
+    var count = 140;
+    var geo = new THREE.BufferGeometry();
+    var arr = new Float32Array(count * 3);
+    var phases = new Float32Array(count);
+    var rand = (typeof Tex !== 'undefined') ? Tex.rng(4400) : Math.random;
+    for (var i = 0; i < count; i++) {
+        arr[i * 3] = rand() * 70 - 35;
+        arr[i * 3 + 1] = 0.5 + rand() * 4;
+        arr[i * 3 + 2] = rand() * 70 - 35;
+        phases[i] = rand() * Math.PI * 2;
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(arr, 3).setUsage(THREE.DynamicDrawUsage));
+    var mat = new THREE.PointsMaterial({ color: 0xd8ff8a, size: 0.45, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
+    var points = new THREE.Points(geo, mat);
+    points.name = 'env-fireflies';
+    api.scene.add(points);
+    var t = 0;
+    return {
+        update: function (dt, st) {
+            var target = (st.daylight < 0.25 && st.weather === 'clear') ? 0.9 : 0;
+            mat.opacity += (target - mat.opacity) * Math.min(1, dt * 1.5);
+            points.visible = mat.opacity > 0.02;
+            if (!points.visible) return;
+            t += dt;
+            for (var i = 0; i < count; i++) {
+                arr[i * 3] += Math.sin(t * 1.3 + phases[i]) * 0.5 * dt;
+                arr[i * 3 + 1] += Math.cos(t * 0.9 + phases[i]) * 0.3 * dt;
+                arr[i * 3 + 2] += Math.cos(t * 1.1 + phases[i]) * 0.5 * dt;
+            }
+            geo.attributes.position.needsUpdate = true;
+        }
+    };
+});
