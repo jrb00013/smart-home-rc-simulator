@@ -628,3 +628,16 @@ Tex.define('wood.pine', function (ctx, w, h, o) {
         ctx.beginPath(); ctx.ellipse(kx, ky, 4 + rand() * 5, 2 + rand() * 2, 0, 0, Math.PI * 2); ctx.stroke();
     }
 });
+
+Tex.define('wood.cherry', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 3002);
+    ctx.fillStyle = o.base || '#7a3220';
+    ctx.fillRect(0, 0, w, h);
+    for (var i = 0; i < 60; i++) {
+        var y = rand() * h;
+        ctx.strokeStyle = 'rgba(' + (40 + rand() * 60 | 0) + ',' + (16 + rand() * 24 | 0) + ',10,' + (0.06 + rand() * 0.12) + ')';
+        ctx.lineWidth = 0.5 + rand() * 1.8;
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y + (rand() - 0.5) * 6); ctx.stroke();
+    }
+    Tex.speckle(ctx, w, h, { seed: 3009, count: Math.round(w * h / 1000), size: 2, base: [122, 50, 32], spread: 24, alpha: 0.14 });
+});
