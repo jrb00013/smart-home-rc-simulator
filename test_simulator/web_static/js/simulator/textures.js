@@ -687,3 +687,15 @@ Tex.define('marble.black', function (ctx, w, h, o) {
         ctx.stroke();
     }
 });
+
+Tex.define('stone.limestone', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 3300);
+    ctx.fillStyle = o.base || '#d6cdb8';
+    ctx.fillRect(0, 0, w, h);
+    for (var i = 0; i < Math.round(w * h / 200); i++) {
+        var t = rand() * 30 - 15;
+        ctx.fillStyle = 'rgba(' + ((214 + t) | 0) + ',' + ((205 + t) | 0) + ',' + ((184 + t) | 0) + ',0.4)';
+        ctx.beginPath(); ctx.ellipse(rand() * w, rand() * h, 2 + rand() * 6, 1 + rand() * 3, rand() * Math.PI, 0, Math.PI * 2); ctx.fill();
+    }
+    Tex.speckle(ctx, w, h, { seed: 3309, count: Math.round(w * h / 700), size: 1, base: [190, 182, 164], spread: 20, alpha: 0.16 });
+});
