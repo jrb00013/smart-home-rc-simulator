@@ -92,3 +92,4 @@ Tex.variant('leather.olive', 'leather', { base: '#5a5a32' });
 Tex.variant('metal.steel', 'metal.brushed', { base: '#b8bcc0' });
 Tex.variant('metal.brass', 'metal.brushed', { base: '#c8a860' });
 Tex.variant('metal.zinc', 'metal.galvanized', { base: '#b0b4b8' });
+Tex.variant('metal.chrome.dark', 'metal.chrome', { base: '#8a9098' });
