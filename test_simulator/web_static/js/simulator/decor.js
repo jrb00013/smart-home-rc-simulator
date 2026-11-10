@@ -409,3 +409,10 @@ Decor.addSpec('garden-lantern', {
         { type: 'cone', radius: 0.5, size: [0.9, 0.4], texture: 'metal.rust', position: [0, 5.0, 0] }
     ]
 });
+
+Decor.addSpec('red-door-mat', {
+    position: [0, 0.02, 24.5],
+    parts: [
+        { size: [2.2, 0.04, 1.2], texture: 'carpet.pile', texOpts: { base: '#8a2a22' }, matProps: { roughness: 1 } }
+    ]
+});
