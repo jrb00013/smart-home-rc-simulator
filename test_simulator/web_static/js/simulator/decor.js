@@ -322,3 +322,14 @@ Decor.addSpec('umbrella-stand', {
         { type: 'cyl', size: [0.07, 1.5], color: 0x7a3030, position: [0.18, 1.0, -0.05], rotation: [-0.05, 0, -0.06] }
     ]
 });
+
+Decor.addSpec('coat-rack', {
+    position: [-20.4, 0, 20],
+    parts: [
+        { type: 'cyl', size: [0.12, 5.4], texture: 'wood.walnut', position: [0, 2.7, 0] },
+        { type: 'cyl', size: [0.6, 0.1], texture: 'wood.walnut', position: [0, 0.05, 0] },
+        { type: 'sphere', radius: 0.1, texture: 'metal.chrome', matProps: { metalness: 0.8, roughness: 0.2 }, position: [0, 5.4, 0] },
+        { size: [1.2, 0.08, 0.08], texture: 'wood.walnut', position: [0.5, 5.1, 0], rotation: [0, 0, -0.2] },
+        { size: [1.2, 0.08, 0.08], texture: 'wood.walnut', position: [-0.5, 4.8, 0], rotation: [0, 0, 0.2] }
+    ]
+});
