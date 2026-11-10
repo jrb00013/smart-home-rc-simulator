@@ -140,6 +140,7 @@ var Env = (function () {
         state.initialized = true;
         state.enabled = true;
         apply();
+        if (typeof document !== 'undefined') attachHud();
         return { effects: effects.length, started: started, failed: failures };
     }
 
