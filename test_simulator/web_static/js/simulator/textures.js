@@ -677,6 +677,29 @@ Tex.define('wood.weathered', function (ctx, w, h, o) {
     }
 });
 
+Tex.define('wood.bamboo', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 3004);
+    ctx.fillStyle = o.base || '#dcc088';
+    ctx.fillRect(0, 0, w, h);
+    for (var i = 0; i < 90; i++) {
+        var x = rand() * w;
+        ctx.strokeStyle = 'rgba(150,116,64,' + (0.04 + rand() * 0.1) + ')';
+        ctx.lineWidth = 0.5 + rand();
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + (rand() - 0.5) * 4, h); ctx.stroke();
+    }
+    var nodes = o.nodes || 3;
+    for (var n = 0; n < nodes; n++) {
+        var ny = (n + 0.5) * (h / nodes) + (rand() - 0.5) * 8;
+        ctx.strokeStyle = 'rgba(96,68,36,0.35)';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.moveTo(0, ny); ctx.lineTo(w, ny); ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,240,200,0.25)';
+        ctx.lineWidth = 0.8;
+        ctx.beginPath(); ctx.moveTo(0, ny + 2); ctx.lineTo(w, ny + 2); ctx.stroke();
+    }
+    Tex.speckle(ctx, w, h, { seed: 3011, count: Math.round(w * h / 1800), size: 1, base: [220, 192, 136], spread: 14, alpha: 0.1 });
+});
+
 Tex.define('paint.wall', function (ctx, w, h, o) {
     var rand = Tex.rng(o.seed || 3100);
     ctx.fillStyle = o.base || '#c9d6de';
