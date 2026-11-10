@@ -333,3 +333,11 @@ Decor.addSpec('coat-rack', {
         { size: [1.2, 0.08, 0.08], texture: 'wood.walnut', position: [-0.5, 4.8, 0], rotation: [0, 0, 0.2] }
     ]
 });
+
+Decor.addSpec('pet-bed', {
+    position: [12, 0, 16],
+    parts: [
+        { type: 'cyl', radiusTop: 1.0, radiusBottom: 0.9, size: [1.9, 0.4], texture: 'fabric.tweed', texOpts: { base: '#6b5a44' }, matProps: { roughness: 0.95 }, position: [0, 0.2, 0] },
+        { type: 'cyl', radiusTop: 0.75, radiusBottom: 0.75, size: [1.6, 0.18], texture: 'fabric.linen', texOpts: { base: '#d8cbb0' }, matProps: { roughness: 0.95 }, position: [0, 0.42, 0] }
+    ]
+});
