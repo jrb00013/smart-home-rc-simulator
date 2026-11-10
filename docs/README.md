@@ -33,6 +33,9 @@ Start with the [project README](../README.md), then [GETTING_STARTED.md](GETTING
 | [../test_simulator/README.md](../test_simulator/README.md) | Module map, how the pieces talk, graphics preset, brand detection |
 | [../test_simulator/web_static/js/simulator/README.md](../test_simulator/web_static/js/simulator/README.md) | Front-end JavaScript modules and load order |
 | [../test_simulator/gpu_runtime/UPGRADE.md](../test_simulator/gpu_runtime/UPGRADE.md) | Graphics runtime: config persistence, hysteresis |
+| [TEXTURES.md](TEXTURES.md) | Procedural texture library, palette and how to register a generator |
+| [ENVIRONMENT.md](ENVIRONMENT.md) | Time-of-day, weather, presets, HUD and ambient effects |
+| [DECOR.md](DECOR.md) | Decorative prop registry and the declarative spec format |
 | [ML_CV_AI_AUDIT.md](ML_CV_AI_AUDIT.md) | What ML/CV/AI the project does and does not use |
 
 ## Contributing
