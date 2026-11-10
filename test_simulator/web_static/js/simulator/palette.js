@@ -28,3 +28,4 @@ Tex.variant('marble.carrara', 'stone.marble', { base: '#ece9e2' });
 Tex.variant('marble.calacatta', 'stone.marble', { base: '#f0ede6' });
 Tex.variant('marble.grey', 'stone.marble', { base: '#c8c8c8' });
 Tex.variant('marble.cream', 'stone.marble', { base: '#efe6d0' });
+Tex.variant('granite.black', 'stone.granite', { base: '#3a3a3e' });
