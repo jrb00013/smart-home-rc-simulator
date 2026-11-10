@@ -571,3 +571,12 @@ Decor.addSpec('firewood-stack', {
         { type: 'cyl', size: [0.16, 1.4], rotation: [0, 0, Math.PI / 2], texture: 'wood.weathered', position: [0, 0.7, 0] }
     ]
 });
+
+Decor.addSpec('watering-can', {
+    position: [-34, 0, 50],
+    parts: [
+        { type: 'cyl', radiusTop: 0.3, radiusBottom: 0.36, size: [0.65, 0.7], texture: 'metal.galvanized', position: [0, 0.35, 0] },
+        { type: 'cyl', size: [0.05, 0.8], rotation: [0, 0, 0.7], texture: 'metal.galvanized', position: [0.45, 0.55, 0] },
+        { type: 'cone', radius: 0.1, size: [0.2, 0.18], rotation: [0, 0, -1.2], texture: 'metal.galvanized', position: [0.78, 0.78, 0] }
+    ]
+});
