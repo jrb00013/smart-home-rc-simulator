@@ -97,3 +97,12 @@ var Decor = (function () {
         material: mat
     };
 })();
+
+Decor.add('marble-side-table', function (api) {
+    var top = api.mat('decor-marble', 'stone.marble', { roughness: 0.32, metalness: 0.05 });
+    var leg = api.mat('decor-walnut', 'wood.walnut', { roughness: 0.55, metalness: 0.0 });
+    api.cyl(0.52, 0.52, 0.07, 24, top, -16, 1.02, -12);
+    api.cyl(0.06, 0.09, 1.0, 10, leg, -16, 0.51, -12);
+    api.cyl(0.34, 0.34, 0.04, 20, leg, -16, 0.03, -12);
+    return true;
+});
