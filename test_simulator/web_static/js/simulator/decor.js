@@ -532,3 +532,12 @@ Decor.addSpec('potted-herbs', {
         { type: 'cone', radius: 0.16, size: [0.32, 0.45], color: 0x2f6a2f, position: [0.4, 0.48, 0] }
     ]
 });
+
+Decor.addSpec('garden-gnome', {
+    position: [-22, 0, 44],
+    parts: [
+        { type: 'cone', radius: 0.35, size: [0.7, 0.9], color: 0x3a8a4a, position: [0, 0.45, 0] },
+        { type: 'sphere', radius: 0.22, color: 0xe0b89a, position: [0, 1.0, 0] },
+        { type: 'cone', radius: 0.24, size: [0.45, 0.6], color: 0xc83a2a, position: [0, 1.35, 0] }
+    ]
+});
