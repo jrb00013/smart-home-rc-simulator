@@ -24,3 +24,4 @@ Tex.variant('parquet.walnut', 'wood.parquet', { base: '#6a4a30' });
 Tex.variant('weathered.white', 'wood.weathered', { base: '#d8d4cc' });
 Tex.variant('weathered.grey', 'wood.weathered', { base: '#8a8580' });
 Tex.variant('weathered.barn', 'wood.weathered', { base: '#7a6a5a' });
+Tex.variant('marble.carrara', 'stone.marble', { base: '#ece9e2' });
