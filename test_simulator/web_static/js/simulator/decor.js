@@ -148,3 +148,10 @@ Decor.add('fern-planter', function (api) {
     }
     return true;
 });
+
+Decor.add('denim-floor-cushion', function (api) {
+    var denim = api.mat('decor-denim', 'fabric.upholstery', { roughness: 0.95 }, { base: '#3a4a66', seed: 1503 });
+    var c = api.box(1.4, 0.28, 1.4, denim, 8, 0.16, -6);
+    c.rotation.y = 0.3;
+    return true;
+});
