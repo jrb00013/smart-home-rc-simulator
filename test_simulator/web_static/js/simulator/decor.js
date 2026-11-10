@@ -464,3 +464,11 @@ Decor.addSpec('shoe-bench', {
         { size: [0.14, 0.55, 0.8], texture: 'wood.oak', position: [1.2, 0.28, 0] }
     ]
 });
+
+Decor.addSpec('laundry-basket', {
+    position: [-18, 0, 16],
+    parts: [
+        { type: 'cyl', radiusTop: 0.55, radiusBottom: 0.42, size: [1.1, 1.0], texture: 'fabric.linen', texOpts: { base: '#d8c8a8' }, position: [0, 0.5, 0] },
+        { type: 'cyl', size: [0.5, 0.05], color: 0x8a4a3a, position: [0, 0.9, 0] }
+    ]
+});
