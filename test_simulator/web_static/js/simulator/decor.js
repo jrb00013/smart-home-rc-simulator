@@ -115,3 +115,11 @@ Decor.add('oak-console', function (api) {
     api.box(3.6, 0.08, 0.9, wood, 15.5, 0.6, -20.4);
     return true;
 });
+
+Decor.add('leather-ottoman', function (api) {
+    var hide = api.mat('decor-leather', 'leather', { roughness: 0.7, metalness: 0.0 }, { seed: 1701 });
+    var m = api.cyl(0.9, 0.9, 0.45, 24, hide, 12, 0.45, 4);
+    m.scale.set(1.3, 1, 1.3);
+    api.cyl(0.92, 0.92, 0.05, 24, api.mat('decor-chrome', 'metal.chrome', { roughness: 0.25, metalness: 0.8 }), 12, 0.22, 4).scale.set(1.3, 1, 1.3);
+    return true;
+});
