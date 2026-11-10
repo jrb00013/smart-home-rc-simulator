@@ -301,3 +301,15 @@ Decor.addSpec('floating-wall-shelf', {
         { size: [0.5, 0.7, 0.2], color: 0x24506e, position: [1.0, 0.4, 0] }
     ]
 });
+
+Decor.addSpec('nesting-tables', {
+    position: [16, 0, 8],
+    parts: [
+        { size: [1.6, 0.1, 1.0], texture: 'wood.parquet', matProps: { roughness: 0.5 }, position: [0, 1.1, 0] },
+        { size: [0.1, 1.1, 0.9], texture: 'wood.parquet', position: [-0.7, 0.55, 0] },
+        { size: [0.1, 1.1, 0.9], texture: 'wood.parquet', position: [0.7, 0.55, 0] },
+        { size: [1.1, 0.1, 0.8], texture: 'wood.parquet', matProps: { roughness: 0.5 }, position: [-0.7, 0.8, 0.7] },
+        { size: [0.08, 0.8, 0.7], texture: 'wood.parquet', position: [-1.2, 0.4, 0.7] },
+        { size: [0.08, 0.8, 0.7], texture: 'wood.parquet', position: [-0.2, 0.4, 0.7] }
+    ]
+});
