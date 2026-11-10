@@ -424,3 +424,13 @@ Decor.addSpec('tall-floor-vase', {
         { type: 'cyl', radiusTop: 0.3, radiusBottom: 0.24, size: [0.6, 0.25], texture: 'tile.ceramic', texOpts: { base: '#3d7ac9' }, position: [0, 2.3, 0] }
     ]
 });
+
+Decor.addSpec('candle-holder', {
+    position: [15.5, 1.11, -20.4],
+    parts: [
+        { type: 'cyl', size: [0.18, 0.05], texture: 'metal.brass', position: [0, 0.03, 0] },
+        { type: 'cyl', size: [0.05, 0.5], texture: 'metal.brass', position: [0, 0.3, 0] },
+        { type: 'cyl', size: [0.12, 0.05], texture: 'metal.brass', position: [0, 0.55, 0] },
+        { type: 'cyl', size: [0.1, 0.5], color: 0xf4ead0, position: [0, 0.82, 0] }
+    ]
+});
