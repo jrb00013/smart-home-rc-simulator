@@ -5,3 +5,4 @@
 // these names, so a wall colour or wood tone is changed in one place. Kept separate
 // from the generators so the library stays about rendering and this file stays about
 // the house's material choices.
+Tex.variant('oak.natural', 'wood.oak', { base: '#b07a45' });
