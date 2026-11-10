@@ -641,3 +641,24 @@ Tex.define('wood.cherry', function (ctx, w, h, o) {
     }
     Tex.speckle(ctx, w, h, { seed: 3009, count: Math.round(w * h / 1000), size: 2, base: [122, 50, 32], spread: 24, alpha: 0.14 });
 });
+
+Tex.define('wood.weathered', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 3003);
+    ctx.fillStyle = o.base || '#8a8580';
+    ctx.fillRect(0, 0, w, h);
+    var planks = o.planks || 5;
+    var ph = h / planks;
+    for (var p = 0; p < planks; p++) {
+        var t = -14 + rand() * 28;
+        ctx.fillStyle = 'rgba(' + ((138 + t) | 0) + ',' + ((133 + t) | 0) + ',' + ((128 + t) | 0) + ',0.6)';
+        ctx.fillRect(0, p * ph, w, ph - 1);
+        for (var g = 0; g < 18; g++) {
+            var gy = p * ph + rand() * ph;
+            ctx.strokeStyle = 'rgba(70,66,62,' + (0.06 + rand() * 0.12) + ')';
+            ctx.lineWidth = 0.5 + rand();
+            ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(w, gy + (rand() - 0.5) * 3); ctx.stroke();
+        }
+        ctx.fillStyle = 'rgba(50,48,45,0.5)';
+        ctx.fillRect(0, p * ph + ph - 1, w, 1);
+    }
+});
