@@ -443,3 +443,14 @@ Decor.addSpec('book-stack', {
         { size: [0.9, 0.12, 0.66], color: 0x2f6a4a, position: [-0.02, 0.33, 0] }
     ]
 });
+
+Decor.addSpec('wall-hook-rack', {
+    position: [21.4, 4.2, 6],
+    rotation: [0, -Math.PI / 2, 0],
+    parts: [
+        { size: [2.4, 0.3, 0.1], texture: 'wood.oak' },
+        { type: 'sphere', radius: 0.08, texture: 'metal.brass', position: [-0.8, -0.15, 0.1] },
+        { type: 'sphere', radius: 0.08, texture: 'metal.brass', position: [0, -0.15, 0.1] },
+        { type: 'sphere', radius: 0.08, texture: 'metal.brass', position: [0.8, -0.15, 0.1] }
+    ]
+});
