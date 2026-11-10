@@ -433,7 +433,6 @@ Tex.define('plaster', function (ctx, w, h, o) {
 });
 
 Tex.define('fabric.linen', function (ctx, w, h, o) {
-    var rand = Tex.rng(o.seed || 1400);
     ctx.fillStyle = o.base || '#e6ddc9';
     ctx.fillRect(0, 0, w, h);
     var step = o.step || 4;
@@ -571,7 +570,6 @@ Tex.define('asphalt', function (ctx, w, h, o) {
 });
 
 Tex.define('wallpaper.damask', function (ctx, w, h, o) {
-    var rand = Tex.rng(o.seed || 2300);
     ctx.fillStyle = o.base || '#2f3a48';
     ctx.fillRect(0, 0, w, h);
     var cell = o.cell || 32;
