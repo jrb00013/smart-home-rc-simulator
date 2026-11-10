@@ -580,3 +580,15 @@ Decor.addSpec('watering-can', {
         { type: 'cone', radius: 0.1, size: [0.2, 0.18], rotation: [0, 0, -1.2], texture: 'metal.galvanized', position: [0.78, 0.78, 0] }
     ]
 });
+
+Decor.addSpec('garden-trellis', {
+    position: [26, 0, 46],
+    parts: [
+        { size: [0.1, 5.0, 0.1], texture: 'wood.weathered', position: [-1.2, 2.5, 0] },
+        { size: [0.1, 5.0, 0.1], texture: 'wood.weathered', position: [1.2, 2.5, 0] },
+        { size: [2.5, 0.08, 0.08], texture: 'wood.weathered', position: [0, 1.0, 0] },
+        { size: [2.5, 0.08, 0.08], texture: 'wood.weathered', position: [0, 2.0, 0] },
+        { size: [2.5, 0.08, 0.08], texture: 'wood.weathered', position: [0, 3.0, 0] },
+        { size: [2.5, 0.08, 0.08], texture: 'wood.weathered', position: [0, 4.0, 0] }
+    ]
+});
