@@ -361,3 +361,12 @@ Decor.addSpec('garden-stool', {
         { type: 'cyl', size: [0.07, 0.9], texture: 'wood.oak', position: [0, 0.45, -0.25] }
     ]
 });
+
+Decor.addSpec('wooden-crate', {
+    position: [34, 0, 38],
+    parts: [
+        { size: [1.2, 1.0, 1.2], texture: 'wood.weathered', position: [0, 0.5, 0] },
+        { size: [1.26, 0.08, 1.26], texture: 'wood.weathered', position: [0, 0.75, 0] },
+        { size: [1.26, 0.08, 1.26], texture: 'wood.weathered', position: [0, 0.25, 0] }
+    ]
+});
