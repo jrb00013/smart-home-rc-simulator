@@ -444,3 +444,30 @@ Env.addEffect('leaves', function (api) {
         }
     };
 });
+
+// Lightning: random white flashes during storm weather.
+Env.addEffect('lightning', function (api) {
+    var THREE = api.THREE;
+    var bolt = new THREE.DirectionalLight(0xdfe8ff, 0);
+    bolt.position.set(-40, 120, -80);
+    api.scene.add(bolt);
+    var timer = 2 + Math.random() * 4;
+    var flash = 0;
+    return {
+        update: function (dt, st) {
+            if (st.weather === 'storm') {
+                timer -= dt;
+                if (timer <= 0) {
+                    flash = 4.5;
+                    timer = 3 + Math.random() * 6;
+                }
+            }
+            if (flash > 0) {
+                bolt.intensity = flash;
+                flash = Math.max(0, flash - dt * 14);
+            } else {
+                bolt.intensity = 0;
+            }
+        }
+    };
+});
