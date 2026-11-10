@@ -17,6 +17,17 @@ var Decor = (function () {
         return Decor;
     }
 
+    // Declarative prop: { position, rotation, parts: [{ type, size, position, texture, color, ... }] }
+    // Collapses most furniture into data, so adding a prop is a manifest entry rather
+    // than a new builder function.
+    function addSpec(name, spec) {
+        add(name, function (api) {
+            var full = { name: name, position: spec.position, rotation: spec.rotation, parts: spec.parts };
+            return api.spec(full);
+        });
+        return Decor;
+    }
+
     function mat(name, texName, matProps, texOpts) {
         var key = name;
         if (!materialCache[key]) {
@@ -31,6 +42,52 @@ var Decor = (function () {
 
         var group = new THREE.Group();
         group.name = 'decor-props';
+
+        function buildSpec(spec) {
+            if (!spec || !spec.parts) return null;
+            var g = new THREE.Group();
+            var base = spec.position || [0, 0, 0];
+            var rot = spec.rotation || [0, 0, 0];
+            g.position.set(base[0], base[1], base[2]);
+            g.rotation.set(rot[0], rot[1], rot[2]);
+            g.name = spec.name || 'decor-prop';
+            spec.parts.forEach(function (p) {
+                var material;
+                if (p.material) {
+                    material = p.material;
+                } else if (p.texture) {
+                    material = mat('spec-' + p.texture + '-' + JSON.stringify(p.matProps || {}) + JSON.stringify(p.texOpts || {}),
+                        p.texture, p.matProps || {}, p.texOpts || {});
+                } else {
+                    material = new THREE.MeshStandardMaterial({
+                        color: p.color != null ? p.color : 0x8a8a8a,
+                        roughness: p.roughness != null ? p.roughness : 0.8,
+                        metalness: p.metalness || 0
+                    });
+                }
+                var size = p.size || [1, 1, 1];
+                var geo;
+                if (p.type === 'cyl') {
+                    geo = new THREE.CylinderGeometry(p.radiusTop != null ? p.radiusTop : size[0] / 2, p.radiusBottom != null ? p.radiusBottom : size[0] / 2, size[1], p.segments || 16);
+                } else if (p.type === 'sphere') {
+                    geo = new THREE.SphereGeometry(p.radius || 0.5, p.segments || 16, p.segments || 12);
+                } else if (p.type === 'cone') {
+                    geo = new THREE.ConeGeometry(p.radius || size[0] / 2, size[1], p.segments || 12);
+                } else {
+                    geo = new THREE.BoxGeometry(size[0], size[1], size[2]);
+                }
+                var mesh = new THREE.Mesh(geo, material);
+                var pp = p.position || [0, 0, 0];
+                mesh.position.set(pp[0], pp[1], pp[2]);
+                if (p.rotation) mesh.rotation.set(p.rotation[0], p.rotation[1], p.rotation[2]);
+                if (p.scale) mesh.scale.set(p.scale[0], p.scale[1], p.scale[2]);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                g.add(mesh);
+            });
+            group.add(g);
+            return g;
+        }
 
         var api = {
             THREE: THREE,
@@ -54,6 +111,7 @@ var Decor = (function () {
                 group.add(m);
                 return m;
             },
+            spec: buildSpec,
             sphere: function (r, seg, material, x, y, z) {
                 var m = new THREE.Mesh(new THREE.SphereGeometry(r, seg || 16, seg || 12), material);
                 m.position.set(x || 0, y || 0, z || 0);
@@ -90,6 +148,7 @@ var Decor = (function () {
 
     return {
         add: add,
+        addSpec: addSpec,
         init: init,
         reset: reset,
         entries: entries,
@@ -188,4 +247,12 @@ Decor.add('framed-canvas', function (api) {
     g.rotation.y = Math.PI / 2;
     api.add(g);
     return true;
+});
+
+Decor.addSpec('oval-wool-rug', {
+    position: [6, 0.02, -8],
+    parts: [
+        { type: 'cyl', size: [4.6, 0.03], texture: 'carpet.pile', texOpts: { base: '#7a4a3a', repeat: [2, 2] }, matProps: { roughness: 0.98 }, scale: [1.5, 1, 1] },
+        { type: 'cyl', size: [3.6, 0.035], texture: 'fabric.tweed', texOpts: { base: '#8a5a44' }, matProps: { roughness: 0.95 }, scale: [1.5, 1, 1] }
+    ]
 });
