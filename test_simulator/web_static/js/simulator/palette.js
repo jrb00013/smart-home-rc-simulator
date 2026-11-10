@@ -87,3 +87,4 @@ Tex.variant('tweed.green', 'fabric.tweed', { base: '#5a6a4a' });
 Tex.variant('leather.tan', 'leather', { base: '#a87850' });
 Tex.variant('leather.black', 'leather', { base: '#25221f' });
 Tex.variant('leather.burgundy', 'leather', { base: '#5a2028' });
+Tex.variant('leather.cream', 'leather', { base: '#d8c8a8' });
