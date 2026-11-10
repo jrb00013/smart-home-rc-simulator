@@ -104,6 +104,7 @@ var Env = (function () {
         }
         if (refs.ambient) refs.ambient.intensity = 0.08 + day * 0.34;
         if (refs.hemi) refs.hemi.intensity = 0.12 + day * 0.48;
+        updateHud(hour, day);
     }
 
     function addEffect(name, build) {
@@ -214,6 +215,51 @@ var Env = (function () {
     function setTimeScale(scale) { state.timeScale = Math.max(0, scale || 0); }
     function setWind(w) { state.wind = clamp(w, 0, 1); }
 
+    var hud = null;
+    var hudText = '';
+
+    function formatClock(hour) {
+        var h = Math.floor(((hour % 24) + 24) % 24);
+        var m = Math.floor((hour - Math.floor(hour)) * 60);
+        return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+    }
+
+    function updateHud(hour, day) {
+        if (!hud) return;
+        var label = formatClock(hour) + '  ' + state.weather +
+            '  wind ' + Math.round(state.wind * 100) + '%' +
+            (day < 0.05 ? '  (night)' : '');
+        if (label !== hudText) { hudText = label; hud.label.textContent = label; }
+    }
+
+    function attachHud() {
+        if (hud || typeof document === 'undefined') return hud;
+        var box = document.createElement('div');
+        box.id = 'env-hud';
+        box.style.cssText = 'position:fixed;right:14px;bottom:14px;z-index:50;display:flex;gap:8px;align-items:center;' +
+            'padding:8px 12px;border-radius:10px;background:rgba(10,16,26,0.62);color:#e8eef7;' +
+            'font:12px/1.2 ui-monospace,monospace;backdrop-filter:blur(6px);user-select:none';
+        var label = document.createElement('span');
+        label.textContent = '\u2014';
+        box.appendChild(label);
+        function button(text, title, fn) {
+            var b = document.createElement('button');
+            b.textContent = text;
+            b.title = title;
+            b.style.cssText = 'all:unset;cursor:pointer;padding:3px 8px;border-radius:6px;background:rgba(255,255,255,0.12)';
+            b.addEventListener('click', fn);
+            box.appendChild(b);
+            return b;
+        }
+        button('weather', 'Cycle weather', function () { cycleWeather(); });
+        button('+1h', 'Advance one hour', function () { setTime(state.time + 1); });
+        button('pause', 'Pause or resume the environment', function () { toggle(); });
+        document.body.appendChild(box);
+        hud = { box: box, label: label };
+        updateHud(state.time, state.daylight);
+        return hud;
+    }
+
     return {
         state: state,
         init: init,
@@ -232,6 +278,7 @@ var Env = (function () {
         pause: pause,
         resume: resume,
         toggle: toggle,
+        attachHud: attachHud,
         effects: effects
     };
 })();
