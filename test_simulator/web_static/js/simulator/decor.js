@@ -510,3 +510,15 @@ Decor.addSpec('bar-stool-b', {
         { type: 'cyl', size: [0.3, 0.04], texture: 'metal.chrome', position: [0, 0.5, 0] }
     ]
 });
+
+Decor.addSpec('wine-rack', {
+    position: [18, 0, 14],
+    rotation: [0, -0.5, 0],
+    parts: [
+        { size: [2.0, 2.2, 0.4], texture: 'wood.walnut', position: [0, 1.1, 0] },
+        { type: 'cyl', size: [0.14, 0.9], rotation: [0, 0, Math.PI / 2], color: 0x3a2a1a, position: [-0.5, 1.6, 0.1] },
+        { type: 'cyl', size: [0.14, 0.9], rotation: [0, 0, Math.PI / 2], color: 0x3a2a1a, position: [0.5, 1.6, 0.1] },
+        { type: 'cyl', size: [0.14, 0.9], rotation: [0, 0, Math.PI / 2], color: 0x3a2a1a, position: [-0.5, 0.9, 0.1] },
+        { type: 'cyl', size: [0.14, 0.9], rotation: [0, 0, Math.PI / 2], color: 0x3a2a1a, position: [0.5, 0.9, 0.1] }
+    ]
+});
