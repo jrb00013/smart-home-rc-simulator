@@ -289,3 +289,15 @@ Decor.addSpec('snake-plant', {
         { type: 'cone', radius: 0.08, size: [0.16, 1.6], color: 0x2b5f2b, position: [-0.15, 1.55, -0.1], rotation: [-0.1, 0, 0.12] }
     ]
 });
+
+Decor.addSpec('floating-wall-shelf', {
+    position: [0, 4.6, -21.6],
+    parts: [
+        { size: [4.2, 0.14, 0.7], texture: 'wood.oak', matProps: { roughness: 0.6 } },
+        { size: [0.1, 0.5, 0.6], color: 0x3a3a3a, position: [-1.8, -0.3, 0] },
+        { size: [0.1, 0.5, 0.6], color: 0x3a3a3a, position: [1.8, -0.3, 0] },
+        { type: 'sphere', radius: 0.18, color: 0x3d7ac9, position: [-1.2, 0.2, 0] },
+        { type: 'sphere', radius: 0.15, color: 0xc94f3d, position: [-0.8, 0.17, 0] },
+        { size: [0.5, 0.7, 0.2], color: 0x24506e, position: [1.0, 0.4, 0] }
+    ]
+});
