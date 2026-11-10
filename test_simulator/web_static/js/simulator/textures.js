@@ -699,3 +699,26 @@ Tex.define('stone.limestone', function (ctx, w, h, o) {
     }
     Tex.speckle(ctx, w, h, { seed: 3309, count: Math.round(w * h / 700), size: 1, base: [190, 182, 164], spread: 20, alpha: 0.16 });
 });
+
+Tex.define('tile.hex', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 3400);
+    var r = o.radius || 16;
+    ctx.fillStyle = o.grout || '#b8b4aa';
+    ctx.fillRect(0, 0, w, h);
+    var dx = r * 1.5, dy = Math.sqrt(3) * r;
+    for (var col = -1; col * dx < w + dx; col++) {
+        for (var row = -1; row * dy < h + dy; row++) {
+            var cx = col * dx;
+            var cy = row * dy + ((col % 2) ? dy / 2 : 0);
+            var t = rand() * 24 - 12;
+            ctx.fillStyle = 'rgba(' + ((235 + t) | 0) + ',' + ((236 + t) | 0) + ',' + ((232 + t) | 0) + ',1)';
+            ctx.beginPath();
+            for (var p = 0; p < 6; p++) {
+                var a = (Math.PI / 3) * p;
+                var px = cx + Math.cos(a) * (r - 1.5), py = cy + Math.sin(a) * (r - 1.5);
+                if (p === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            }
+            ctx.closePath(); ctx.fill();
+        }
+    }
+});
