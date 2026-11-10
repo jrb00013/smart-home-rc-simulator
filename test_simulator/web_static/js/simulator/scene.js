@@ -1234,6 +1234,17 @@ function createNeighborhood() {
     }
     console.log('[TV Simulator] Graphics preset applied: tier=' + (preset._tier || 'MEDIUM') + (preset._gpu_name ? ' gpu=' + preset._gpu_name : ' (no GPU detected)'));
 
+    // Populate texture-rich decorative props before collision + static batching so
+    // they participate in both (Decor lives in decor.js and is optional).
+    if (typeof Decor !== 'undefined' && Decor && typeof Decor.init === 'function') {
+        try {
+            var decorStats = Decor.init();
+            if (decorStats) console.log('[TV Simulator] Decor props: built ' + decorStats.built + '/' + decorStats.registered + (decorStats.failed ? ' (' + decorStats.failed + ' failed)' : ''));
+        } catch (err) {
+            console.warn('Decor skipped:', err);
+        }
+    }
+
     // Collision from the un-merged meshes, including hinged front and garage doors.
     if (typeof FP !== 'undefined' && FP.collide && FP.collide.collect) {
         try { FP.collide.collect(scene); }
