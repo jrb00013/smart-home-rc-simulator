@@ -351,3 +351,13 @@ Decor.addSpec('terrarium', {
         { type: 'sphere', radius: 0.18, color: 0x3a8a4a, position: [0.25, 0.22, 0.1] }
     ]
 });
+
+Decor.addSpec('garden-stool', {
+    position: [-30, 0, 40],
+    parts: [
+        { type: 'cyl', size: [0.6, 0.12], texture: 'wood.oak', position: [0, 0.9, 0] },
+        { type: 'cyl', size: [0.07, 0.9], texture: 'wood.oak', position: [0.22, 0.45, 0.12] },
+        { type: 'cyl', size: [0.07, 0.9], texture: 'wood.oak', position: [-0.22, 0.45, 0.12] },
+        { type: 'cyl', size: [0.07, 0.9], texture: 'wood.oak', position: [0, 0.45, -0.25] }
+    ]
+});
