@@ -175,3 +175,17 @@ Decor.add('wall-clock', function (api) {
     api.add(clock);
     return true;
 });
+
+Decor.add('framed-canvas', function (api) {
+    var frameMat = api.mat('decor-walnut2', 'wood.walnut', { roughness: 0.5 });
+    var canvas = new THREE.MeshStandardMaterial({ color: 0x24506e, roughness: 0.85 });
+    var g = new THREE.Group();
+    var f = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.7, 0.1), frameMat);
+    var art = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 1.4), canvas);
+    art.position.z = 0.06;
+    g.add(f); g.add(art);
+    g.position.set(-21.3, 6.4, 3);
+    g.rotation.y = Math.PI / 2;
+    api.add(g);
+    return true;
+});
