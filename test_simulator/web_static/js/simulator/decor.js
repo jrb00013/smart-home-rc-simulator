@@ -541,3 +541,14 @@ Decor.addSpec('garden-gnome', {
         { type: 'cone', radius: 0.24, size: [0.45, 0.6], color: 0xc83a2a, position: [0, 1.35, 0] }
     ]
 });
+
+Decor.addSpec('planter-box-long', {
+    position: [0, 0, 21.4],
+    parts: [
+        { size: [6.0, 0.8, 0.8], texture: 'wood.weathered', position: [0, 0.4, 0] },
+        { size: [5.6, 0.1, 0.6], color: 0x3a2a1a, position: [0, 0.82, 0] },
+        { type: 'sphere', radius: 0.35, color: 0x3a7a3a, position: [-2.0, 0.95, 0] },
+        { type: 'sphere', radius: 0.35, color: 0x2f6a2f, position: [0, 0.95, 0] },
+        { type: 'sphere', radius: 0.35, color: 0x3a7a3a, position: [2.0, 0.95, 0] }
+    ]
+});
