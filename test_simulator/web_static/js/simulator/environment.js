@@ -286,3 +286,41 @@ Env.addEffect('clouds', function (api) {
         }
     };
 });
+
+// Rain: a column of falling points around the house, active in rain/storm weather.
+Env.addEffect('rain', function (api) {
+    var THREE = api.THREE;
+    var count = 1800;
+    var geo = new THREE.BufferGeometry();
+    var arr = new Float32Array(count * 3);
+    var rand = (typeof Tex !== 'undefined') ? Tex.rng(4200) : Math.random;
+    for (var i = 0; i < count; i++) {
+        arr[i * 3] = rand() * 120 - 60;
+        arr[i * 3 + 1] = rand() * 44;
+        arr[i * 3 + 2] = rand() * 120 - 60;
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(arr, 3).setUsage(THREE.DynamicDrawUsage));
+    var mat = new THREE.PointsMaterial({ color: 0xa8c6e6, size: 0.28, transparent: true, opacity: 0, depthWrite: false });
+    var points = new THREE.Points(geo, mat);
+    points.name = 'env-rain';
+    api.scene.add(points);
+    return {
+        update: function (dt, st) {
+            var active = st.weather === 'rain' || st.weather === 'storm';
+            var target = active ? (st.weather === 'storm' ? 0.75 : 0.5) : 0;
+            mat.opacity += (target - mat.opacity) * Math.min(1, dt * 2);
+            points.visible = mat.opacity > 0.02;
+            if (!points.visible) return;
+            var fall = (st.weather === 'storm' ? 40 : 27) * dt;
+            for (var i = 0; i < count; i++) {
+                arr[i * 3 + 1] -= fall;
+                if (arr[i * 3 + 1] < 0) {
+                    arr[i * 3 + 1] = 44;
+                    arr[i * 3] = rand() * 120 - 60;
+                    arr[i * 3 + 2] = rand() * 120 - 60;
+                }
+            }
+            geo.attributes.position.needsUpdate = true;
+        }
+    };
+});
