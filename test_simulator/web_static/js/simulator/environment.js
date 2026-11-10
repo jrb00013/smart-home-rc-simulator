@@ -166,6 +166,10 @@ var Env = (function () {
         return Env;
     }
 
+    function pause() { state.enabled = false; return Env; }
+    function resume() { if (state.initialized) state.enabled = true; return Env; }
+    function toggle() { state.enabled = !state.enabled; return Env; }
+
     return {
             time: state.time,
             weather: state.weather,
@@ -225,6 +229,9 @@ var Env = (function () {
         WEATHER_ORDER: WEATHER_ORDER,
         preset: preset,
         PRESETS: PRESETS,
+        pause: pause,
+        resume: resume,
+        toggle: toggle,
         effects: effects
     };
 })();
