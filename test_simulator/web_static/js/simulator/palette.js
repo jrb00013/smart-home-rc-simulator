@@ -76,3 +76,4 @@ Tex.variant('linen.oat', 'fabric.linen', { base: '#d8c8a8' });
 Tex.variant('linen.charcoal', 'fabric.linen', { base: '#4a4a48' });
 Tex.variant('linen.sage', 'fabric.linen', { base: '#c0c8b0' });
 Tex.variant('upholstery.navy', 'fabric.upholstery', { base: '#2a3a56' });
+Tex.variant('upholstery.green', 'fabric.upholstery', { base: '#3a5a44' });
