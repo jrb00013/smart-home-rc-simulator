@@ -1265,6 +1265,14 @@ function createNeighborhood() {
     window.removeEventListener('resize', onWindowResize);
     window.addEventListener('resize', onWindowResize);
 
+    // Start time-of-day / weather effects after batching (optional, environment.js)
+    if (typeof Env !== 'undefined' && Env && typeof Env.init === 'function') {
+        try {
+            var envStats = Env.init();
+            if (envStats) console.log('[TV Simulator] Environment: ' + envStats.started + '/' + envStats.effects + ' effects');
+        } catch (err) { console.warn('Environment skipped:', err); }
+    }
+
     // Start animation loop
     animate();
 }
