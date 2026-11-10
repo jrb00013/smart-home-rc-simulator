@@ -106,3 +106,4 @@ Tex.variant('damask.burgundy', 'wallpaper.damask', { base: '#48282f' });
 Tex.variant('lawn.lush', 'grass.lawn', { base: '#4a8a3a' });
 Tex.variant('lawn.dry', 'grass.lawn', { base: '#8a8a4a' });
 Tex.variant('asphalt.dark', 'asphalt', { base: '#2a2a2c' });
+Tex.variant('concrete.light', 'concrete', { base: '#b8b8b6' });
