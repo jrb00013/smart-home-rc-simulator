@@ -341,3 +341,13 @@ Decor.addSpec('pet-bed', {
         { type: 'cyl', radiusTop: 0.75, radiusBottom: 0.75, size: [1.6, 0.18], texture: 'fabric.linen', texOpts: { base: '#d8cbb0' }, matProps: { roughness: 0.95 }, position: [0, 0.42, 0] }
     ]
 });
+
+Decor.addSpec('terrarium', {
+    position: [-8, 0, -20.5],
+    parts: [
+        { size: [1.2, 0.12, 0.8], texture: 'wood.walnut', position: [0, 0.06, 0] },
+        { size: [1.1, 0.7, 0.7], color: 0xbfe0ec, roughness: 0.1, metalness: 0.1, position: [0, 0.5, 0] },
+        { type: 'sphere', radius: 0.22, color: 0x2f6a2f, position: [-0.25, 0.25, 0] },
+        { type: 'sphere', radius: 0.18, color: 0x3a8a4a, position: [0.25, 0.22, 0.1] }
+    ]
+});
