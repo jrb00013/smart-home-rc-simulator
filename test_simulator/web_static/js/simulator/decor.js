@@ -599,3 +599,11 @@ Decor.addSpec('welcome-mat', {
         { size: [3.0, 0.05, 1.6], texture: 'carpet.pile', texOpts: { base: '#4a3a2a' }, matProps: { roughness: 1 } }
     ]
 });
+
+Decor.addSpec('bench-cushion', {
+    position: [30, 1.08, 52],
+    rotation: [0, -0.4, 0],
+    parts: [
+        { size: [3.0, 0.14, 0.7], texture: 'fabric.tweed', texOpts: { base: '#8a6a4a' }, position: [0, 0.06, 0] }
+    ]
+});
