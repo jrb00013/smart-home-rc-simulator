@@ -279,3 +279,13 @@ Decor.addSpec('floor-lamp', {
         { type: 'cyl', radiusTop: 0.55, radiusBottom: 0.85, size: [1.7, 1.1], texture: 'fabric.linen', texOpts: { base: '#efe6d2' }, matProps: { roughness: 0.9 }, position: [0, 4.4, 0] }
     ]
 });
+
+Decor.addSpec('snake-plant', {
+    position: [18.5, 0, -8],
+    parts: [
+        { type: 'cyl', radiusTop: 0.42, radiusBottom: 0.32, size: [0.7, 0.9], texture: 'stone.limestone', texOpts: { base: '#b8763f' }, matProps: { roughness: 0.9 }, position: [0, 0.45, 0] },
+        { type: 'cone', radius: 0.1, size: [0.2, 1.8], color: 0x2f6a2f, position: [0, 1.7, 0], rotation: [0.1, 0, 0] },
+        { type: 'cone', radius: 0.08, size: [0.16, 1.5], color: 0x377a37, position: [0.18, 1.5, 0.05], rotation: [0.15, 0, -0.12] },
+        { type: 'cone', radius: 0.08, size: [0.16, 1.6], color: 0x2b5f2b, position: [-0.15, 1.55, -0.1], rotation: [-0.1, 0, 0.12] }
+    ]
+});
