@@ -245,3 +245,44 @@ Env.addEffect('moon', function (api) {
         }
     };
 });
+
+// Drifting cloud sprites high above the neighbourhood.
+Env.addEffect('clouds', function (api) {
+    var THREE = api.THREE;
+    var c = document.createElement('canvas');
+    c.width = 256; c.height = 128;
+    var ctx = c.getContext('2d');
+    var rand = (typeof Tex !== 'undefined') ? Tex.rng(4100) : Math.random;
+    for (var b = 0; b < 26; b++) {
+        var x = 40 + rand() * 176, y = 50 + rand() * 40, r = 18 + rand() * 34;
+        var g = ctx.createRadialGradient(x, y, 0, x, y, r);
+        g.addColorStop(0, 'rgba(255,255,255,0.5)');
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, 256, 128);
+    }
+    var cloudTex = new THREE.CanvasTexture(c);
+    var group = new THREE.Group();
+    group.name = 'env-clouds';
+    var clouds = [];
+    for (var i = 0; i < 10; i++) {
+        var m = new THREE.SpriteMaterial({ map: cloudTex, transparent: true, opacity: 0.5, depthWrite: false, fog: false });
+        var s = new THREE.Sprite(m);
+        s.position.set(-160 + rand() * 320, 70 + rand() * 45, -180 + rand() * 120);
+        var sc = 40 + rand() * 70;
+        s.scale.set(sc, sc * 0.5, 1);
+        group.add(s);
+        clouds.push({ sprite: s, speed: 1.5 + rand() * 3 });
+    }
+    api.scene.add(group);
+    return {
+        update: function (dt, st) {
+            for (var i = 0; i < clouds.length; i++) {
+                var cl = clouds[i];
+                cl.sprite.position.x += cl.speed * dt * (0.4 + st.wind);
+                if (cl.sprite.position.x > 200) cl.sprite.position.x = -200;
+                cl.sprite.material.opacity = 0.18 + st.daylight * 0.35;
+            }
+        }
+    };
+});
