@@ -45,3 +45,4 @@ Tex.variant('ceramic.sage', 'tile.ceramic', { base: '#c8d4c0' });
 Tex.variant('ceramic.blue', 'tile.ceramic', { base: '#bcd0e0' });
 Tex.variant('subway.white', 'tile.subway', { base: '#f6f6f4' });
 Tex.variant('subway.black', 'tile.subway', { base: '#2a2a2c' });
+Tex.variant('subway.green', 'tile.subway', { base: '#c0d4c4' });
