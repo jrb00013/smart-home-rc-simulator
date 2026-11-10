@@ -145,6 +145,19 @@ var Tex = (function () {
         return mat;
     }
 
+
+    // Register a named preset of an existing generator (a "material variant").
+    function variant(name, base, overrides) {
+        var entry = registry[base];
+        if (!entry) throw new Error('Tex.variant: unknown base "' + base + '"');
+        var defaults = {};
+        var k;
+        for (k in entry.defaults) if (Object.prototype.hasOwnProperty.call(entry.defaults, k)) defaults[k] = entry.defaults[k];
+        if (overrides) for (k in overrides) if (Object.prototype.hasOwnProperty.call(overrides, k)) defaults[k] = overrides[k];
+        define(name, entry.draw, defaults);
+        return Tex;
+    }
+
     function has(name) { return Object.prototype.hasOwnProperty.call(registry, name); }
     function list() { return Object.keys(registry).sort(); }
     function clearCache() { cache = {}; }
@@ -156,6 +169,7 @@ var Tex = (function () {
         verticalGradient: verticalGradient,
         wrappedLine: wrappedLine,
         define: define,
+        variant: variant,
         surface: surface,
         texture: texture,
         material: material,
