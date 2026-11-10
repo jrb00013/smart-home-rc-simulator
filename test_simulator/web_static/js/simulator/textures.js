@@ -610,3 +610,21 @@ Tex.define('tile.mosaic', function (ctx, w, h, o) {
         }
     }
 });
+
+// ---- Additional woods and finishes ----
+Tex.define('wood.pine', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 3001);
+    ctx.fillStyle = o.base || '#d8b878';
+    ctx.fillRect(0, 0, w, h);
+    for (var i = 0; i < 50; i++) {
+        var y = rand() * h;
+        ctx.strokeStyle = 'rgba(150,110,60,' + (0.06 + rand() * 0.14) + ')';
+        ctx.lineWidth = 0.6 + rand() * 1.6;
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y + (rand() - 0.5) * 5); ctx.stroke();
+    }
+    for (var k = 0; k < 3; k++) {
+        var kx = rand() * w, ky = rand() * h;
+        ctx.strokeStyle = 'rgba(120,80,40,0.4)';
+        ctx.beginPath(); ctx.ellipse(kx, ky, 4 + rand() * 5, 2 + rand() * 2, 0, 0, Math.PI * 2); ctx.stroke();
+    }
+});
