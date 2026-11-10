@@ -72,3 +72,4 @@ Tex.variant('paint.sky', 'paint.wall', { base: '#bcd4e6' });
 Tex.variant('paint.butter', 'paint.wall', { base: '#f0e2a8' });
 Tex.variant('paint.lilac', 'paint.wall', { base: '#c8b8d8' });
 Tex.variant('linen.natural', 'fabric.linen', { base: '#e6ddc9' });
+Tex.variant('linen.oat', 'fabric.linen', { base: '#d8c8a8' });
