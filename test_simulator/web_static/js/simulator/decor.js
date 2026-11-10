@@ -123,3 +123,12 @@ Decor.add('leather-ottoman', function (api) {
     api.cyl(0.92, 0.92, 0.05, 24, api.mat('decor-chrome', 'metal.chrome', { roughness: 0.25, metalness: 0.8 }), 12, 0.22, 4).scale.set(1.3, 1, 1.3);
     return true;
 });
+
+Decor.add('ceramic-vase-trio', function (api) {
+    var clay = api.mat('decor-ceramic', 'tile.ceramic', { roughness: 0.35, metalness: 0.0 }, { repeat: [1, 1] });
+    var terra = api.mat('decor-terracotta', 'stone.limestone', { roughness: 0.85 });
+    api.cyl(0.16, 0.22, 0.9, 18, clay, -18.4, 0.45, -6.0);
+    api.cyl(0.20, 0.16, 0.65, 18, terra, -17.8, 0.33, -6.6);
+    api.sphere(0.26, 16, clay, -18.4, 0.26, -6.8);
+    return true;
+});
