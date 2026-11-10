@@ -90,3 +90,4 @@ Tex.variant('leather.burgundy', 'leather', { base: '#5a2028' });
 Tex.variant('leather.cream', 'leather', { base: '#d8c8a8' });
 Tex.variant('leather.olive', 'leather', { base: '#5a5a32' });
 Tex.variant('metal.steel', 'metal.brushed', { base: '#b8bcc0' });
+Tex.variant('metal.brass', 'metal.brushed', { base: '#c8a860' });
