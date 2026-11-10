@@ -18,3 +18,4 @@ Tex.variant('pine.knotty', 'wood.pine', { base: '#d0b080' });
 Tex.variant('cherry.dark', 'wood.cherry', { base: '#5a2416' });
 Tex.variant('cherry.warm', 'wood.cherry', { base: '#8a4026' });
 Tex.variant('bamboo.blonde', 'wood.bamboo', { base: '#dcc088' });
+Tex.variant('bamboo.dark', 'wood.bamboo', { base: '#9a7a48' });
