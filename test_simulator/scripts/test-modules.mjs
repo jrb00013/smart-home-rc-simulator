@@ -198,6 +198,30 @@ test('environment presets expose the expected names', () => {
     }
 });
 
+
+test('daylightAt is 0 at midnight and full at noon', () => {
+    assertEqual(Env.daylightAt(0), 0, 'midnight');
+    assertEqual(Env.daylightAt(12), 1, 'noon');
+});
+
+test('daylightAt ramps during dawn and dusk', () => {
+    const dawn = Env.daylightAt(6.5);
+    const dusk = Env.daylightAt(19.5);
+    assert(dawn > 0 && dawn < 1, 'dawn ramp: ' + dawn);
+    assert(dusk > 0 && dusk < 1, 'dusk ramp: ' + dusk);
+});
+
+test('formatClock renders zero-padded HH:MM', () => {
+    assertEqual(Env.formatClock(9), '09:00', '9am');
+    assertEqual(Env.formatClock(18.5), '18:30', '6:30pm');
+    assertEqual(Env.formatClock(0.25), '00:15', 'quarter past midnight');
+});
+
+test('formatClock wraps hours past a full day', () => {
+    assertEqual(Env.formatClock(25), '01:00', '25h');
+    assertEqual(Env.formatClock(-1), '23:00', 'negative hour');
+});
+
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 if (failed > 0) {
     for (const f of failures) console.error('\n' + f.name + '\n' + (f.err.stack || f.err.message));
