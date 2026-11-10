@@ -38,3 +38,4 @@ Tex.variant('terrazzo.pink', 'stone.terrazzo', { base: '#f0d8d0' });
 Tex.variant('terrazzo.green', 'stone.terrazzo', { base: '#d8e6d8' });
 Tex.variant('limestone.white', 'stone.limestone', { base: '#e6ddc8' });
 Tex.variant('limestone.grey', 'stone.limestone', { base: '#c0b8a8' });
+Tex.variant('limestone.sand', 'stone.limestone', { base: '#d8c8a8' });
