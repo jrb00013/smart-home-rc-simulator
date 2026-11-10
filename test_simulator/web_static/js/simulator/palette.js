@@ -65,3 +65,4 @@ Tex.variant('paint.terracotta', 'paint.wall', { base: '#c07a5a' });
 Tex.variant('paint.grey', 'paint.wall', { base: '#b0b4b8' });
 Tex.variant('paint.blush', 'paint.wall', { base: '#e0c4c0' });
 Tex.variant('paint.teal', 'paint.wall', { base: '#3a7a7a' });
+Tex.variant('paint.sand', 'paint.wall', { base: '#d8c8a8' });
