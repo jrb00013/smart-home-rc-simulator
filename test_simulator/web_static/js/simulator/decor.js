@@ -561,3 +561,13 @@ Decor.addSpec('outdoor-side-table', {
         { type: 'cyl', size: [0.4, 0.06], texture: 'metal.rust', position: [0, 0.03, 0] }
     ]
 });
+
+Decor.addSpec('firewood-stack', {
+    position: [-21, 0, -16],
+    rotation: [0, 0.3, 0],
+    parts: [
+        { type: 'cyl', size: [0.16, 1.4], rotation: [0, 0, Math.PI / 2], texture: 'wood.weathered', position: [0, 0.2, 0] },
+        { type: 'cyl', size: [0.16, 1.4], rotation: [0, 0, Math.PI / 2], texture: 'wood.weathered', position: [0, 0.45, 0] },
+        { type: 'cyl', size: [0.16, 1.4], rotation: [0, 0, Math.PI / 2], texture: 'wood.weathered', position: [0, 0.7, 0] }
+    ]
+});
