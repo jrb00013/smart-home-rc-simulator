@@ -67,3 +67,4 @@ Tex.variant('paint.blush', 'paint.wall', { base: '#e0c4c0' });
 Tex.variant('paint.teal', 'paint.wall', { base: '#3a7a7a' });
 Tex.variant('paint.sand', 'paint.wall', { base: '#d8c8a8' });
 Tex.variant('paint.charcoal', 'paint.wall', { base: '#3a3d42' });
+Tex.variant('paint.olive', 'paint.wall', { base: '#7a7a4a' });
