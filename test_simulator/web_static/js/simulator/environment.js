@@ -177,3 +177,35 @@ var Env = (function () {
         effects: effects
     };
 })();
+
+// Star field: a shell of points that fades in after dusk.
+Env.addEffect('stars', function (api) {
+    var THREE = api.THREE;
+    var count = 900;
+    var geo = new THREE.BufferGeometry();
+    var pos = new Float32Array(count * 3);
+    var rand = (typeof Tex !== 'undefined') ? Tex.rng(4001) : Math.random;
+    for (var i = 0; i < count; i++) {
+        var u = rand() * Math.PI * 2;
+        var v = Math.acos(1 - rand() * 0.9);
+        var r = 320;
+        pos[i * 3] = Math.sin(v) * Math.cos(u) * r;
+        pos[i * 3 + 1] = Math.cos(v) * r + 20;
+        pos[i * 3 + 2] = Math.sin(v) * Math.sin(u) * r;
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    var mat = new THREE.PointsMaterial({ color: 0xffffff, size: 1.3, transparent: true, opacity: 0, depthWrite: false });
+    var points = new THREE.Points(geo, mat);
+    points.name = 'env-stars';
+    api.scene.add(points);
+    var t = 0;
+    return {
+        update: function (dt, st) {
+            var target = Math.max(0, (1 - st.daylight) - 0.25) / 0.75;
+            mat.opacity += (target - mat.opacity) * Math.min(1, dt * 3);
+            t += dt;
+            mat.size = 1.2 + Math.sin(t * 2) * 0.15;
+            points.visible = mat.opacity > 0.02;
+        }
+    };
+});
