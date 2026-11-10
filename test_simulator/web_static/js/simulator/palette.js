@@ -20,3 +20,4 @@ Tex.variant('cherry.warm', 'wood.cherry', { base: '#8a4026' });
 Tex.variant('bamboo.blonde', 'wood.bamboo', { base: '#dcc088' });
 Tex.variant('bamboo.dark', 'wood.bamboo', { base: '#9a7a48' });
 Tex.variant('parquet.maple', 'wood.parquet', { base: '#c9a86a' });
+Tex.variant('parquet.walnut', 'wood.parquet', { base: '#6a4a30' });
