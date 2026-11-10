@@ -402,3 +402,45 @@ Env.addEffect('fireflies', function (api) {
         }
     };
 });
+
+// Falling leaves blown around when the wind is up.
+Env.addEffect('leaves', function (api) {
+    var THREE = api.THREE;
+    var count = 220;
+    var geo = new THREE.BufferGeometry();
+    var arr = new Float32Array(count * 3);
+    var phases = new Float32Array(count);
+    var rand = (typeof Tex !== 'undefined') ? Tex.rng(4500) : Math.random;
+    for (var i = 0; i < count; i++) {
+        arr[i * 3] = rand() * 120 - 60;
+        arr[i * 3 + 1] = rand() * 20;
+        arr[i * 3 + 2] = rand() * 120 - 60;
+        phases[i] = rand() * Math.PI * 2;
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(arr, 3).setUsage(THREE.DynamicDrawUsage));
+    var mat = new THREE.PointsMaterial({ color: 0xb07a3a, size: 0.4, transparent: true, opacity: 0, depthWrite: false });
+    var points = new THREE.Points(geo, mat);
+    points.name = 'env-leaves';
+    api.scene.add(points);
+    var t = 0;
+    return {
+        update: function (dt, st) {
+            var target = st.wind > 0.45 ? Math.min(1, (st.wind - 0.45) * 3) : 0;
+            mat.opacity += (target - mat.opacity) * Math.min(1, dt * 1.5);
+            points.visible = mat.opacity > 0.02;
+            if (!points.visible) return;
+            t += dt;
+            for (var i = 0; i < count; i++) {
+                arr[i * 3] += (6 * st.wind) * dt;
+                arr[i * 3 + 1] -= (1.2 + st.wind) * dt;
+                arr[i * 3 + 2] += Math.sin(t + phases[i]) * 1.2 * dt;
+                if (arr[i * 3 + 1] < 0 || arr[i * 3] > 70) {
+                    arr[i * 3] = -60 + rand() * 20;
+                    arr[i * 3 + 1] = 16 + rand() * 8;
+                    arr[i * 3 + 2] = rand() * 120 - 60;
+                }
+            }
+            geo.attributes.position.needsUpdate = true;
+        }
+    };
+});
