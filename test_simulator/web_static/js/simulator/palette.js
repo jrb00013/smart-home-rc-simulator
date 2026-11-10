@@ -102,3 +102,4 @@ Tex.variant('carpet.sage', 'carpet.pile', { base: '#6a7a5a' });
 Tex.variant('carpet.rust', 'carpet.pile', { base: '#8a4a3a' });
 Tex.variant('damask.navy', 'wallpaper.damask', { base: '#2f3a48' });
 Tex.variant('damask.green', 'wallpaper.damask', { base: '#2f4838' });
+Tex.variant('damask.burgundy', 'wallpaper.damask', { base: '#48282f' });
