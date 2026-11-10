@@ -22,3 +22,4 @@ Tex.variant('bamboo.dark', 'wood.bamboo', { base: '#9a7a48' });
 Tex.variant('parquet.maple', 'wood.parquet', { base: '#c9a86a' });
 Tex.variant('parquet.walnut', 'wood.parquet', { base: '#6a4a30' });
 Tex.variant('weathered.white', 'wood.weathered', { base: '#d8d4cc' });
+Tex.variant('weathered.grey', 'wood.weathered', { base: '#8a8580' });
