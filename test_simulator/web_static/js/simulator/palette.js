@@ -70,3 +70,4 @@ Tex.variant('paint.charcoal', 'paint.wall', { base: '#3a3d42' });
 Tex.variant('paint.olive', 'paint.wall', { base: '#7a7a4a' });
 Tex.variant('paint.sky', 'paint.wall', { base: '#bcd4e6' });
 Tex.variant('paint.butter', 'paint.wall', { base: '#f0e2a8' });
+Tex.variant('paint.lilac', 'paint.wall', { base: '#c8b8d8' });
