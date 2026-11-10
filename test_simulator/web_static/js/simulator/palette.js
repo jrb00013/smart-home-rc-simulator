@@ -34,3 +34,4 @@ Tex.variant('granite.brown', 'stone.granite', { base: '#6a5040' });
 Tex.variant('granite.green', 'stone.granite', { base: '#4a5a50' });
 Tex.variant('slate.charcoal', 'stone.slate', { base: '#2f343c' });
 Tex.variant('slate.blue', 'stone.slate', { base: '#3a4a60' });
+Tex.variant('terrazzo.pink', 'stone.terrazzo', { base: '#f0d8d0' });
