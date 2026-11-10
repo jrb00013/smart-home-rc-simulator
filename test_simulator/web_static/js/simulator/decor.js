@@ -370,3 +370,13 @@ Decor.addSpec('wooden-crate', {
         { size: [1.26, 0.08, 1.26], texture: 'wood.weathered', position: [0, 0.25, 0] }
     ]
 });
+
+Decor.addSpec('barrel-planter', {
+    position: [-36, 0, 48],
+    parts: [
+        { type: 'cyl', radiusTop: 0.7, radiusBottom: 0.62, size: [1.4, 1.3], texture: 'wood.weathered', position: [0, 0.65, 0] },
+        { type: 'cyl', size: [1.2, 0.1], texture: 'metal.rust', position: [0, 1.28, 0] },
+        { type: 'cyl', size: [1.1, 0.1], color: 0x3a2a1a, position: [0, 1.1, 0] },
+        { type: 'sphere', radius: 0.4, color: 0x2f6a2f, position: [0, 1.4, 0] }
+    ]
+});
