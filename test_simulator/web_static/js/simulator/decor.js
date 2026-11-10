@@ -416,3 +416,11 @@ Decor.addSpec('red-door-mat', {
         { size: [2.2, 0.04, 1.2], texture: 'carpet.pile', texOpts: { base: '#8a2a22' }, matProps: { roughness: 1 } }
     ]
 });
+
+Decor.addSpec('tall-floor-vase', {
+    position: [-19.4, 0, 2],
+    parts: [
+        { type: 'cyl', radiusTop: 0.24, radiusBottom: 0.4, size: [0.8, 2.2], texture: 'tile.ceramic', texOpts: { base: '#3d7ac9' }, position: [0, 1.1, 0] },
+        { type: 'cyl', radiusTop: 0.3, radiusBottom: 0.24, size: [0.6, 0.25], texture: 'tile.ceramic', texOpts: { base: '#3d7ac9' }, position: [0, 2.3, 0] }
+    ]
+});
