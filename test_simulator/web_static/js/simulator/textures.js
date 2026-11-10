@@ -673,3 +673,17 @@ Tex.define('paint.wall', function (ctx, w, h, o) {
     }
     Tex.speckle(ctx, w, h, { seed: 3107, count: Math.round(w * h / 1600), size: 1, base: [201, 214, 222], spread: 12, alpha: 0.1 });
 });
+
+Tex.define('marble.black', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 3200);
+    ctx.fillStyle = o.base || '#15161a';
+    ctx.fillRect(0, 0, w, h);
+    for (var v = 0; v < 14; v++) {
+        var x = rand() * w, y = rand() * h;
+        ctx.strokeStyle = 'rgba(' + (200 + rand() * 40 | 0) + ',' + (200 + rand() * 40 | 0) + ',' + (205 + rand() * 40 | 0) + ',' + (0.06 + rand() * 0.16) + ')';
+        ctx.lineWidth = 0.4 + rand() * 1.6;
+        ctx.beginPath(); ctx.moveTo(x, y);
+        for (var s = 0; s < 10; s++) { x += (rand() - 0.5) * 22; y += (rand() - 0.5) * 16; ctx.lineTo(x, y); }
+        ctx.stroke();
+    }
+});
