@@ -481,3 +481,12 @@ Decor.addSpec('magazine-rack', {
         { size: [0.8, 0.05, 0.06], texture: 'metal.brass', position: [0, 0.8, 0.16] }
     ]
 });
+
+Decor.addSpec('desk-lamp', {
+    position: [15.5, 1.11, -20.4],
+    parts: [
+        { type: 'cyl', size: [0.3, 0.05], texture: 'metal.chrome', position: [0.6, 0.03, 0] },
+        { type: 'cyl', size: [0.04, 0.7], texture: 'metal.chrome', position: [0.6, 0.4, 0] },
+        { type: 'cone', radius: 0.28, size: [0.55, 0.35], rotation: [0.5, 0, 0], color: 0x2a2a2c, position: [0.45, 0.8, 0.12] }
+    ]
+});
