@@ -522,3 +522,13 @@ Decor.addSpec('wine-rack', {
         { type: 'cyl', size: [0.14, 0.9], rotation: [0, 0, Math.PI / 2], color: 0x3a2a1a, position: [0.5, 0.9, 0.1] }
     ]
 });
+
+Decor.addSpec('potted-herbs', {
+    position: [16.6, 1.11, -20.6],
+    parts: [
+        { type: 'cyl', radiusTop: 0.22, radiusBottom: 0.18, size: [0.4, 0.35], texture: 'stone.limestone', texOpts: { base: '#b8763f' }, position: [-0.5, 0.17, 0] },
+        { type: 'cone', radius: 0.16, size: [0.32, 0.5], color: 0x3a7a3a, position: [-0.5, 0.5, 0] },
+        { type: 'cyl', radiusTop: 0.22, radiusBottom: 0.18, size: [0.4, 0.35], texture: 'stone.limestone', texOpts: { base: '#b8763f' }, position: [0.4, 0.17, 0] },
+        { type: 'cone', radius: 0.16, size: [0.32, 0.45], color: 0x2f6a2f, position: [0.4, 0.48, 0] }
+    ]
+});
