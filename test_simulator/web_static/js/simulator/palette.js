@@ -55,3 +55,4 @@ Tex.variant('mosaic.gold', 'tile.mosaic', { base: '#e6d8b0' });
 Tex.variant('brick.whitewashed', 'brick.red', { base: '#c8bcac' });
 Tex.variant('brick.brown', 'brick.red', { base: '#8a5a3a' });
 Tex.variant('brick.charcoal', 'brick.red', { base: '#4a4a4a' });
+Tex.variant('fieldstone.grey', 'brick.stone', { base: '#a8a8a0' });
