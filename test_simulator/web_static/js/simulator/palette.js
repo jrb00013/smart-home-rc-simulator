@@ -10,3 +10,4 @@ Tex.variant('oak.honey', 'wood.oak', { base: '#c99a5e' });
 Tex.variant('oak.dark', 'wood.oak', { base: '#6a4a2a' });
 Tex.variant('oak.grey', 'wood.oak', { base: '#9a9288' });
 Tex.variant('walnut.espresso', 'wood.walnut', { base: '#3a2416' });
+Tex.variant('walnut.red', 'wood.walnut', { base: '#6a3a26' });
