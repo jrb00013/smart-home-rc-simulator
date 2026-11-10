@@ -592,3 +592,10 @@ Decor.addSpec('garden-trellis', {
         { size: [2.5, 0.08, 0.08], texture: 'wood.weathered', position: [0, 4.0, 0] }
     ]
 });
+
+Decor.addSpec('welcome-mat', {
+    position: [0, 0.02, 26.6],
+    parts: [
+        { size: [3.0, 0.05, 1.6], texture: 'carpet.pile', texOpts: { base: '#4a3a2a' }, matProps: { roughness: 1 } }
+    ]
+});
