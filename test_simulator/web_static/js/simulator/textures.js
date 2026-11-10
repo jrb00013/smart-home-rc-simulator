@@ -734,3 +734,18 @@ Tex.define('metal.rust', function (ctx, w, h, o) {
         ctx.beginPath(); ctx.arc(rand() * w, rand() * h, 1 + rand() * 5, 0, Math.PI * 2); ctx.fill();
     }
 });
+
+Tex.define('metal.copper', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 3501);
+    ctx.fillStyle = o.base || '#b06a3a';
+    ctx.fillRect(0, 0, w, h);
+    for (var i = 0; i < Math.round(w * h / 200); i++) {
+        ctx.fillStyle = 'rgba(' + (120 + rand() * 60 | 0) + ',' + (170 + rand() * 50 | 0) + ',' + (150 + rand() * 40 | 0) + ',0.14)';
+        ctx.beginPath(); ctx.arc(rand() * w, rand() * h, 3 + rand() * 10, 0, Math.PI * 2); ctx.fill();
+    }
+    for (var s = 0; s < 40; s++) {
+        ctx.strokeStyle = 'rgba(255,220,180,' + (0.03 + rand() * 0.06) + ')';
+        var y = rand() * h;
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y + (rand() - 0.5) * 2); ctx.stroke();
+    }
+});
