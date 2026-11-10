@@ -132,3 +132,19 @@ Decor.add('ceramic-vase-trio', function (api) {
     api.sphere(0.26, 16, clay, -18.4, 0.26, -6.8);
     return true;
 });
+
+Decor.add('fern-planter', function (api) {
+    var pot = api.mat('decor-terracotta2', 'stone.limestone', { roughness: 0.9 }, { seed: 3301 });
+    api.cyl(0.42, 0.32, 0.7, 20, pot, -18, 0.35, 10);
+    var leaf = new THREE.MeshStandardMaterial({ color: 0x2f6a2f, roughness: 0.8, side: THREE.DoubleSide });
+    for (var i = 0; i < 14; i++) {
+        var a = (i / 14) * Math.PI * 2;
+        var frond = new THREE.Mesh(new THREE.ConeGeometry(0.09, 1.3, 6), leaf);
+        frond.position.set(-18 + Math.cos(a) * 0.18, 1.25, 10 + Math.sin(a) * 0.18);
+        frond.rotation.z = Math.cos(a) * 0.6;
+        frond.rotation.x = Math.sin(a) * 0.6;
+        frond.castShadow = true;
+        api.add(frond);
+    }
+    return true;
+});
