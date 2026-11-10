@@ -47,3 +47,4 @@ Tex.variant('subway.white', 'tile.subway', { base: '#f6f6f4' });
 Tex.variant('subway.black', 'tile.subway', { base: '#2a2a2c' });
 Tex.variant('subway.green', 'tile.subway', { base: '#c0d4c4' });
 Tex.variant('hex.white', 'tile.hex', { base: '#f2f2ee' });
+Tex.variant('hex.black', 'tile.hex', { base: '#2a2a2c' });
