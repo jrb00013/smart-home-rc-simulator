@@ -313,3 +313,12 @@ Decor.addSpec('nesting-tables', {
         { size: [0.08, 0.8, 0.7], texture: 'wood.parquet', position: [-0.2, 0.4, 0.7] }
     ]
 });
+
+Decor.addSpec('umbrella-stand', {
+    position: [20, 0, 19],
+    parts: [
+        { type: 'cyl', radiusTop: 0.5, radiusBottom: 0.42, size: [0.9, 1.4], texture: 'metal.galvanized', matProps: { metalness: 0.6, roughness: 0.5 }, position: [0, 0.7, 0] },
+        { type: 'cyl', size: [0.07, 1.7], color: 0x24506e, position: [-0.15, 1.1, 0.05], rotation: [0.06, 0, 0.05] },
+        { type: 'cyl', size: [0.07, 1.5], color: 0x7a3030, position: [0.18, 1.0, -0.05], rotation: [-0.05, 0, -0.06] }
+    ]
+});
