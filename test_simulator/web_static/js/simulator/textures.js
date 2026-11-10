@@ -662,3 +662,14 @@ Tex.define('wood.weathered', function (ctx, w, h, o) {
         ctx.fillRect(0, p * ph + ph - 1, w, 1);
     }
 });
+
+Tex.define('paint.wall', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 3100);
+    ctx.fillStyle = o.base || '#c9d6de';
+    ctx.fillRect(0, 0, w, h);
+    for (var i = 0; i < Math.round(w * h / 500); i++) {
+        ctx.fillStyle = 'rgba(255,255,255,' + (0.02 + rand() * 0.04) + ')';
+        ctx.beginPath(); ctx.arc(rand() * w, rand() * h, 2 + rand() * 6, 0, Math.PI * 2); ctx.fill();
+    }
+    Tex.speckle(ctx, w, h, { seed: 3107, count: Math.round(w * h / 1600), size: 1, base: [201, 214, 222], spread: 12, alpha: 0.1 });
+});
