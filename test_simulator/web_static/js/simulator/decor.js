@@ -552,3 +552,12 @@ Decor.addSpec('planter-box-long', {
         { type: 'sphere', radius: 0.35, color: 0x3a7a3a, position: [2.0, 0.95, 0] }
     ]
 });
+
+Decor.addSpec('outdoor-side-table', {
+    position: [-28, 0, 34],
+    parts: [
+        { type: 'cyl', size: [0.7, 0.1], texture: 'stone.terrazzo', position: [0, 0.8, 0] },
+        { type: 'cyl', size: [0.1, 0.8], texture: 'metal.rust', position: [0, 0.4, 0] },
+        { type: 'cyl', size: [0.4, 0.06], texture: 'metal.rust', position: [0, 0.03, 0] }
+    ]
+});
