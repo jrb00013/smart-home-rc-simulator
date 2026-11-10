@@ -380,3 +380,14 @@ Decor.addSpec('barrel-planter', {
         { type: 'sphere', radius: 0.4, color: 0x2f6a2f, position: [0, 1.4, 0] }
     ]
 });
+
+Decor.addSpec('garden-bench', {
+    position: [30, 0, 52],
+    rotation: [0, -0.4, 0],
+    parts: [
+        { size: [3.2, 0.16, 0.8], texture: 'wood.pine', position: [0, 1.0, 0] },
+        { size: [3.2, 0.8, 0.14], texture: 'wood.pine', position: [0, 1.55, -0.34] },
+        { size: [0.16, 1.0, 0.7], texture: 'metal.rust', position: [-1.4, 0.5, 0] },
+        { size: [0.16, 1.0, 0.7], texture: 'metal.rust', position: [1.4, 0.5, 0] }
+    ]
+});
