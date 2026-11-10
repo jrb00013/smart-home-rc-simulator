@@ -434,3 +434,12 @@ Decor.addSpec('candle-holder', {
         { type: 'cyl', size: [0.1, 0.5], color: 0xf4ead0, position: [0, 0.82, 0] }
     ]
 });
+
+Decor.addSpec('book-stack', {
+    position: [-16, 1.06, -12],
+    parts: [
+        { size: [1.0, 0.14, 0.7], color: 0x24506e, position: [0, 0.07, 0] },
+        { size: [0.95, 0.13, 0.68], color: 0x7a3030, position: [0.03, 0.2, 0.01] },
+        { size: [0.9, 0.12, 0.66], color: 0x2f6a4a, position: [-0.02, 0.33, 0] }
+    ]
+});
