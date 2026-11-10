@@ -391,3 +391,12 @@ Decor.addSpec('garden-bench', {
         { size: [0.16, 1.0, 0.7], texture: 'metal.rust', position: [1.4, 0.5, 0] }
     ]
 });
+
+Decor.addSpec('stone-birdbath', {
+    position: [-24, 0, 56],
+    parts: [
+        { type: 'cyl', radiusTop: 0.32, radiusBottom: 0.5, size: [0.8, 1.2], texture: 'stone.limestone', position: [0, 0.6, 0] },
+        { type: 'cyl', radiusTop: 1.0, radiusBottom: 0.5, size: [2.0, 0.35], texture: 'stone.limestone', position: [0, 1.35, 0] },
+        { type: 'cyl', size: [1.6, 0.05], color: 0x5a8ab0, roughness: 0.1, metalness: 0.2, position: [0, 1.5, 0] }
+    ]
+});
