@@ -500,3 +500,13 @@ Decor.addSpec('bar-stool-a', {
         { type: 'cyl', size: [0.3, 0.04], texture: 'metal.chrome', position: [0, 0.5, 0] }
     ]
 });
+
+Decor.addSpec('bar-stool-b', {
+    position: [19, 0, -1.5],
+    parts: [
+        { type: 'cyl', size: [0.42, 0.12], texture: 'leather', texOpts: { base: '#a87850' }, position: [0, 1.4, 0] },
+        { type: 'cyl', size: [0.06, 1.4], texture: 'metal.chrome', position: [0, 0.7, 0] },
+        { type: 'cyl', size: [0.32, 0.04], texture: 'metal.chrome', position: [0, 0.12, 0] },
+        { type: 'cyl', size: [0.3, 0.04], texture: 'metal.chrome', position: [0, 0.5, 0] }
+    ]
+});
