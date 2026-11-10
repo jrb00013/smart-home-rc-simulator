@@ -490,3 +490,13 @@ Decor.addSpec('desk-lamp', {
         { type: 'cone', radius: 0.28, size: [0.55, 0.35], rotation: [0.5, 0, 0], color: 0x2a2a2c, position: [0.45, 0.8, 0.12] }
     ]
 });
+
+Decor.addSpec('bar-stool-a', {
+    position: [19, 0, -4],
+    parts: [
+        { type: 'cyl', size: [0.42, 0.12], texture: 'leather', position: [0, 1.4, 0] },
+        { type: 'cyl', size: [0.06, 1.4], texture: 'metal.chrome', position: [0, 0.7, 0] },
+        { type: 'cyl', size: [0.32, 0.04], texture: 'metal.chrome', position: [0, 0.12, 0] },
+        { type: 'cyl', size: [0.3, 0.04], texture: 'metal.chrome', position: [0, 0.5, 0] }
+    ]
+});
