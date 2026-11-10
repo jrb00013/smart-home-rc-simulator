@@ -83,3 +83,4 @@ Tex.variant('upholstery.sand', 'fabric.upholstery', { base: '#b8a888' });
 Tex.variant('upholstery.slate', 'fabric.upholstery', { base: '#4a5260' });
 Tex.variant('tweed.grey', 'fabric.tweed', { base: '#7a7a78' });
 Tex.variant('tweed.brown', 'fabric.tweed', { base: '#6b5a44' });
+Tex.variant('tweed.green', 'fabric.tweed', { base: '#5a6a4a' });
