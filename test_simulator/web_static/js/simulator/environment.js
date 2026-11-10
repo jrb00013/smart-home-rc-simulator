@@ -209,3 +209,39 @@ Env.addEffect('stars', function (api) {
         }
     };
 });
+
+// Moon: a pale disc opposite the sun, only above the horizon at night.
+Env.addEffect('moon', function (api) {
+    var THREE = api.THREE;
+    var mat = new THREE.MeshBasicMaterial({ color: 0xdfe6f2, transparent: true, opacity: 0, fog: false });
+    var moon = new THREE.Mesh(new THREE.SphereGeometry(7, 24, 16), mat);
+    moon.name = 'env-moon';
+    api.scene.add(moon);
+    var glowCanvas = (typeof Tex !== 'undefined') ? Tex.canvas(128, 128) : document.createElement('canvas');
+    glowCanvas.width = glowCanvas.height = 128;
+    var gctx = glowCanvas.getContext('2d');
+    var grd = gctx.createRadialGradient(64, 64, 4, 64, 64, 62);
+    grd.addColorStop(0, 'rgba(210,224,255,0.5)');
+    grd.addColorStop(0.4, 'rgba(180,200,240,0.15)');
+    grd.addColorStop(1, 'rgba(180,200,240,0)');
+    gctx.fillStyle = grd;
+    gctx.fillRect(0, 0, 128, 128);
+    var halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(glowCanvas), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+    halo.name = 'env-moon-halo';
+    halo.scale.set(46, 46, 1);
+    api.scene.add(halo);
+    return {
+        update: function (dt, st) {
+            var night = 1 - st.daylight;
+            var target = Math.max(0, night - 0.2) / 0.8;
+            var theta = ((st.time - 18) / 12) * Math.PI;
+            var x = Math.cos(theta) * 150;
+            var y = Math.sin(theta) * 130;
+            moon.position.set(-x, y, -70);
+            halo.position.copy(moon.position);
+            mat.opacity += (target - mat.opacity) * Math.min(1, dt * 2);
+            halo.material.opacity = mat.opacity * 0.8;
+            moon.visible = halo.visible = mat.opacity > 0.02 && y > 10;
+        }
+    };
+});
