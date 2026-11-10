@@ -8,3 +8,4 @@
 Tex.variant('oak.natural', 'wood.oak', { base: '#b07a45' });
 Tex.variant('oak.honey', 'wood.oak', { base: '#c99a5e' });
 Tex.variant('oak.dark', 'wood.oak', { base: '#6a4a2a' });
+Tex.variant('oak.grey', 'wood.oak', { base: '#9a9288' });
