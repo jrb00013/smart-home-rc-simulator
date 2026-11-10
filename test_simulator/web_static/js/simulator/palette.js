@@ -62,3 +62,4 @@ Tex.variant('paint.cream', 'paint.wall', { base: '#efe6d0' });
 Tex.variant('paint.sage', 'paint.wall', { base: '#a8b9a0' });
 Tex.variant('paint.navy', 'paint.wall', { base: '#2a3a56' });
 Tex.variant('paint.terracotta', 'paint.wall', { base: '#c07a5a' });
+Tex.variant('paint.grey', 'paint.wall', { base: '#b0b4b8' });
