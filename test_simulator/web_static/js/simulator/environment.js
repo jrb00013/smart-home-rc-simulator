@@ -324,3 +324,44 @@ Env.addEffect('rain', function (api) {
         }
     };
 });
+
+// Snow: slow falling flakes with sideways sway.
+Env.addEffect('snow', function (api) {
+    var THREE = api.THREE;
+    var count = 1200;
+    var geo = new THREE.BufferGeometry();
+    var arr = new Float32Array(count * 3);
+    var phases = new Float32Array(count);
+    var rand = (typeof Tex !== 'undefined') ? Tex.rng(4300) : Math.random;
+    for (var i = 0; i < count; i++) {
+        arr[i * 3] = rand() * 140 - 70;
+        arr[i * 3 + 1] = rand() * 46;
+        arr[i * 3 + 2] = rand() * 140 - 70;
+        phases[i] = rand() * Math.PI * 2;
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(arr, 3).setUsage(THREE.DynamicDrawUsage));
+    var mat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.5, transparent: true, opacity: 0, depthWrite: false });
+    var points = new THREE.Points(geo, mat);
+    points.name = 'env-snow';
+    api.scene.add(points);
+    var t = 0;
+    return {
+        update: function (dt, st) {
+            var target = st.weather === 'snow' ? 0.85 : 0;
+            mat.opacity += (target - mat.opacity) * Math.min(1, dt * 2);
+            points.visible = mat.opacity > 0.02;
+            if (!points.visible) return;
+            t += dt;
+            for (var i = 0; i < count; i++) {
+                arr[i * 3 + 1] -= (2.4 + st.wind * 2) * dt;
+                arr[i * 3] += Math.sin(t + phases[i]) * 0.6 * dt;
+                if (arr[i * 3 + 1] < 0) {
+                    arr[i * 3 + 1] = 46;
+                    arr[i * 3] = rand() * 140 - 70;
+                    arr[i * 3 + 2] = rand() * 140 - 70;
+                }
+            }
+            geo.attributes.position.needsUpdate = true;
+        }
+    };
+});
