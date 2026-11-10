@@ -155,3 +155,23 @@ Decor.add('denim-floor-cushion', function (api) {
     c.rotation.y = 0.3;
     return true;
 });
+
+Decor.add('wall-clock', function (api) {
+    var chrome = api.mat('decor-chrome2', 'metal.chrome', { roughness: 0.2, metalness: 0.85 });
+    var face = new THREE.MeshStandardMaterial({ color: 0xf4f1e8, roughness: 0.5 });
+    var clock = new THREE.Group();
+    var rim = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.07, 12, 32), chrome);
+    var dial = new THREE.Mesh(new THREE.CircleGeometry(0.5, 32), face);
+    dial.position.z = 0.02;
+    clock.add(rim); clock.add(dial);
+    for (var i = 0; i < 12; i++) {
+        var a = (i / 12) * Math.PI * 2;
+        var tick = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.09, 0.02), chrome);
+        tick.position.set(Math.sin(a) * 0.4, Math.cos(a) * 0.4, 0.04);
+        tick.rotation.z = -a;
+        clock.add(tick);
+    }
+    clock.position.set(11, 7.4, -21.4);
+    api.add(clock);
+    return true;
+});
