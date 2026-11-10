@@ -256,3 +256,17 @@ Decor.addSpec('oval-wool-rug', {
         { type: 'cyl', size: [3.6, 0.035], texture: 'fabric.tweed', texOpts: { base: '#8a5a44' }, matProps: { roughness: 0.95 }, scale: [1.5, 1, 1] }
     ]
 });
+
+Decor.addSpec('walnut-bookshelf', {
+    position: [-20.2, 0, -16],
+    parts: [
+        { size: [0.18, 4.2, 3.2], texture: 'wood.walnut', position: [0, 2.1, -1.5] },
+        { size: [0.18, 4.2, 3.2], texture: 'wood.walnut', position: [0, 2.1, 1.5] },
+        { size: [0.9, 0.12, 3.2], texture: 'wood.walnut', position: [0.4, 0.06, 0] },
+        { size: [0.9, 0.12, 3.2], texture: 'wood.walnut', position: [0.4, 2.1, 0] },
+        { size: [0.9, 0.12, 3.2], texture: 'wood.walnut', position: [0.4, 4.1, 0] },
+        { size: [0.8, 1.4, 0.9], color: 0x24506e, position: [0.4, 0.85, -0.9] },
+        { size: [0.7, 1.1, 0.6], color: 0x7a3030, position: [0.4, 0.7, 0.1] },
+        { size: [0.75, 1.25, 0.7], color: 0x2f6a4a, position: [0.4, 0.78, 0.95] }
+    ]
+});
