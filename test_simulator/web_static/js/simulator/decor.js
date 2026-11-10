@@ -106,3 +106,12 @@ Decor.add('marble-side-table', function (api) {
     api.cyl(0.34, 0.34, 0.04, 20, leg, -16, 0.03, -12);
     return true;
 });
+
+Decor.add('oak-console', function (api) {
+    var wood = api.mat('decor-oak', 'wood.oak', { roughness: 0.6 });
+    api.box(4.0, 0.12, 1.1, wood, 15.5, 1.05, -20.4);
+    api.box(0.12, 1.0, 1.0, wood, 13.7, 0.5, -20.4);
+    api.box(0.12, 1.0, 1.0, wood, 17.3, 0.5, -20.4);
+    api.box(3.6, 0.08, 0.9, wood, 15.5, 0.6, -20.4);
+    return true;
+});
