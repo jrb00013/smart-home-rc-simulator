@@ -80,3 +80,4 @@ Tex.variant('upholstery.green', 'fabric.upholstery', { base: '#3a5a44' });
 Tex.variant('upholstery.rust', 'fabric.upholstery', { base: '#8a4a2a' });
 Tex.variant('upholstery.plum', 'fabric.upholstery', { base: '#5a3a5a' });
 Tex.variant('upholstery.sand', 'fabric.upholstery', { base: '#b8a888' });
+Tex.variant('upholstery.slate', 'fabric.upholstery', { base: '#4a5260' });
