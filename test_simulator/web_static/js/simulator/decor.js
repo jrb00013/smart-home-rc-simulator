@@ -400,3 +400,12 @@ Decor.addSpec('stone-birdbath', {
         { type: 'cyl', size: [1.6, 0.05], color: 0x5a8ab0, roughness: 0.1, metalness: 0.2, position: [0, 1.5, 0] }
     ]
 });
+
+Decor.addSpec('garden-lantern', {
+    position: [8, 0, 44],
+    parts: [
+        { type: 'cyl', size: [0.14, 4.2], texture: 'metal.rust', position: [0, 2.1, 0] },
+        { size: [0.7, 0.9, 0.7], color: 0xffd9a0, emissive: 0xffb84a, roughness: 0.4, position: [0, 4.4, 0] },
+        { type: 'cone', radius: 0.5, size: [0.9, 0.4], texture: 'metal.rust', position: [0, 5.0, 0] }
+    ]
+});
