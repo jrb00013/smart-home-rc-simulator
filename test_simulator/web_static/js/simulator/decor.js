@@ -472,3 +472,12 @@ Decor.addSpec('laundry-basket', {
         { type: 'cyl', size: [0.5, 0.05], color: 0x8a4a3a, position: [0, 0.9, 0] }
     ]
 });
+
+Decor.addSpec('magazine-rack', {
+    position: [10, 0, -20.4],
+    parts: [
+        { size: [0.9, 1.2, 0.25], texture: 'wood.walnut', position: [0, 0.6, 0] },
+        { size: [0.8, 0.05, 0.06], texture: 'metal.brass', position: [0, 0.4, 0.16] },
+        { size: [0.8, 0.05, 0.06], texture: 'metal.brass', position: [0, 0.8, 0.16] }
+    ]
+});
