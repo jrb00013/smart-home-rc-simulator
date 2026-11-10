@@ -722,3 +722,15 @@ Tex.define('tile.hex', function (ctx, w, h, o) {
         }
     }
 });
+
+Tex.define('metal.rust', function (ctx, w, h, o) {
+    var rand = Tex.rng(o.seed || 3500);
+    ctx.fillStyle = o.base || '#6a3a24';
+    ctx.fillRect(0, 0, w, h);
+    for (var i = 0; i < Math.round(w * h / 90); i++) {
+        var t = rand();
+        var col = t > 0.6 ? [150 + rand() * 40, 70 + rand() * 30, 30 + rand() * 20] : [90 + rand() * 40, 45 + rand() * 25, 25 + rand() * 15];
+        ctx.fillStyle = 'rgba(' + (col[0] | 0) + ',' + (col[1] | 0) + ',' + (col[2] | 0) + ',' + (0.2 + rand() * 0.4) + ')';
+        ctx.beginPath(); ctx.arc(rand() * w, rand() * h, 1 + rand() * 5, 0, Math.PI * 2); ctx.fill();
+    }
+});
