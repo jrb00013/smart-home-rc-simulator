@@ -16,3 +16,4 @@ Tex.variant('pine.white', 'wood.pine', { base: '#e8dcc0' });
 Tex.variant('pine.antique', 'wood.pine', { base: '#c8a86a' });
 Tex.variant('pine.knotty', 'wood.pine', { base: '#d0b080' });
 Tex.variant('cherry.dark', 'wood.cherry', { base: '#5a2416' });
+Tex.variant('cherry.warm', 'wood.cherry', { base: '#8a4026' });
