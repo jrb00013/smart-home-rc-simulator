@@ -139,10 +139,32 @@ var Env = (function () {
         state.initialized = true;
         state.enabled = true;
         apply();
-        var WEATHER_ORDER = ['clear', 'rain', 'snow', 'storm', 'fog'];
+        return { effects: effects.length, started: started, failed: failures };
+    }
+
+    var WEATHER_ORDER = ['clear', 'rain', 'snow', 'storm', 'fog'];
 
     function getState() {
-        var PRESETS = {
+        return {
+            time: state.time,
+            weather: state.weather,
+            wind: state.wind,
+            daylight: state.daylight,
+            timeScale: state.timeScale,
+            enabled: state.enabled
+        };
+    }
+
+    function cycleWeather(step) {
+        var i = WEATHER_ORDER.indexOf(state.weather);
+        if (i < 0) i = 0;
+        var n = WEATHER_ORDER.length;
+        var d = (step === undefined) ? 1 : step;
+        setWeather(WEATHER_ORDER[((i + d) % n + n) % n]);
+        return Env;
+    }
+
+    var PRESETS = {
         dawn:    { time: 5.5,  weather: 'clear', wind: 0.2, timeScale: 0 },
         morning: { time: 8.0,  weather: 'clear', wind: 0.3, timeScale: 0 },
         noon:    { time: 12.0, weather: 'clear', wind: 0.25, timeScale: 0 },
@@ -169,28 +191,6 @@ var Env = (function () {
     function pause() { state.enabled = false; return Env; }
     function resume() { if (state.initialized) state.enabled = true; return Env; }
     function toggle() { state.enabled = !state.enabled; return Env; }
-
-    return {
-            time: state.time,
-            weather: state.weather,
-            wind: state.wind,
-            daylight: state.daylight,
-            timeScale: state.timeScale,
-            enabled: state.enabled
-        };
-    }
-
-    function cycleWeather(step) {
-        var i = WEATHER_ORDER.indexOf(state.weather);
-        if (i < 0) i = 0;
-        var n = WEATHER_ORDER.length;
-        var d = (step === undefined) ? 1 : step;
-        setWeather(WEATHER_ORDER[((i + d) % n + n) % n]);
-        return Env;
-    }
-
-    return { effects: effects.length, started: started, failed: failures };
-    }
 
     function update(dt) {
         if (!state.enabled) return;
