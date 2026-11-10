@@ -59,3 +59,4 @@ Tex.variant('fieldstone.grey', 'brick.stone', { base: '#a8a8a0' });
 Tex.variant('fieldstone.tan', 'brick.stone', { base: '#c8b89a' });
 Tex.variant('paint.white', 'paint.wall', { base: '#eef0f2' });
 Tex.variant('paint.cream', 'paint.wall', { base: '#efe6d0' });
+Tex.variant('paint.sage', 'paint.wall', { base: '#a8b9a0' });
