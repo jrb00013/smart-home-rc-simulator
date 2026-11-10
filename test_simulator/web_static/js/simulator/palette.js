@@ -42,3 +42,4 @@ Tex.variant('limestone.sand', 'stone.limestone', { base: '#d8c8a8' });
 Tex.variant('ceramic.white', 'tile.ceramic', { base: '#f4f4f2' });
 Tex.variant('ceramic.cream', 'tile.ceramic', { base: '#efe6d2' });
 Tex.variant('ceramic.sage', 'tile.ceramic', { base: '#c8d4c0' });
+Tex.variant('ceramic.blue', 'tile.ceramic', { base: '#bcd0e0' });
