@@ -97,3 +97,4 @@ Tex.variant('metal.copper.aged', 'metal.copper', { base: '#8a6a4a' });
 Tex.variant('metal.rust.light', 'metal.rust', { base: '#9a5a3a' });
 Tex.variant('carpet.grey', 'carpet.pile', { base: '#7a7a78' });
 Tex.variant('carpet.beige', 'carpet.pile', { base: '#b8a888' });
+Tex.variant('carpet.navy', 'carpet.pile', { base: '#2a3a56' });
