@@ -142,7 +142,31 @@ var Env = (function () {
         var WEATHER_ORDER = ['clear', 'rain', 'snow', 'storm', 'fog'];
 
     function getState() {
-        return {
+        var PRESETS = {
+        dawn:    { time: 5.5,  weather: 'clear', wind: 0.2, timeScale: 0 },
+        morning: { time: 8.0,  weather: 'clear', wind: 0.3, timeScale: 0 },
+        noon:    { time: 12.0, weather: 'clear', wind: 0.25, timeScale: 0 },
+        golden:  { time: 17.5, weather: 'clear', wind: 0.3, timeScale: 0 },
+        dusk:    { time: 19.5, weather: 'clear', wind: 0.25, timeScale: 0 },
+        night:   { time: 22.0, weather: 'clear', wind: 0.15, timeScale: 0 },
+        rainy:   { time: 14.0, weather: 'rain',  wind: 0.55, timeScale: 0 },
+        snowy:   { time: 14.0, weather: 'snow',  wind: 0.3, timeScale: 0 },
+        foggy:   { time: 7.0,  weather: 'fog',   wind: 0.1, timeScale: 0 },
+        stormy:  { time: 15.0, weather: 'storm', wind: 0.9, timeScale: 0 }
+    };
+
+    function preset(name) {
+        var p = PRESETS[name];
+        if (!p) { console.warn('Env.preset: unknown preset "' + name + '"'); return Env; }
+        state.time = ((p.time % 24) + 24) % 24;
+        state.weather = p.weather;
+        state.wind = p.wind;
+        state.timeScale = p.timeScale;
+        apply();
+        return Env;
+    }
+
+    return {
             time: state.time,
             weather: state.weather,
             wind: state.wind,
@@ -199,6 +223,8 @@ var Env = (function () {
         getState: getState,
         cycleWeather: cycleWeather,
         WEATHER_ORDER: WEATHER_ORDER,
+        preset: preset,
+        PRESETS: PRESETS,
         effects: effects
     };
 })();
