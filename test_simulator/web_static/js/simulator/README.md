@@ -10,6 +10,10 @@ The simulator is split into modules (replacing the former single `tv-simulator.j
 | `animations.js` | Power/channel/app/volume/HDMI animation state and starters |
 | `ir.js` | IR signal, button highlight, notification |
 | `preset.js` | `DEFAULT_GRAPHICS_PRESET`, `presetNum` |
+| `textures.js` | Procedural `Tex` texture library (canvas generators, caching) |
+| `palette.js` | Named material finishes built with `Tex.variant` |
+| `decor.js` | `Decor` prop registry and declarative prop specs |
+| `environment.js` | `Env` clock/weather state machine, presets, HUD and ambient effects |
 | `scene.js` | `initScene`, `createRoom`, `createTV` |
 | `ir-remote.js` | `createRemoteControl`, hand, first-person arm/body, buttons |
 | `shows.js` | Stub (show data in globals) |

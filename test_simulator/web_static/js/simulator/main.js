@@ -568,6 +568,11 @@ function animate() {
         }
     }
 
+    // Advance time-of-day, weather and ambient effects
+    if (typeof Env !== 'undefined' && Env && typeof Env.update === 'function') {
+        Env.update(dt);
+    }
+
     renderer.render(scene, camera);
 }
 
