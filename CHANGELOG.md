@@ -14,6 +14,7 @@ reconstructed from the git log.
   into `test_simulator/TESTING.md`, and the two latency docs into `docs/LATENCY.md`.
 
 ### Added
+- Procedural texture library (`textures.js`) with a named material palette, decorative props (`decor.js`), a time-of-day/weather engine with presets, HUD and ambient effects (`environment.js`), and a headless unit harness (`npm run test:unit`).
 - First-person walk mode: collision and stairs, sprint / crouch / jump, doors and
   household interactions, procedural sound, and a clock-based day/night cycle.
 - `CONTRIBUTING.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/BUTTONS.md`, `docs/C_REMOTE.md`.
